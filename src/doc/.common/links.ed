@@ -1,0 +1,8 @@
+:defun{defRef}{id}{address}{text}
+	:setPart{\workingScope}{\id}{\@{\address}{\text}}
+:defun{pageId2Uri}{pageid}
+	\urlPath{\getRelativePath{\dirName{\outputPath}}{\pageId2Path{\pageid}}}
+:defun{page}{pageid}{text}
+	\@{\pageId2Uri{\pageid}}{\or{\text}{\pageid}}
+	
+:defRef{githubProject}{http://github.com/be5invis/moescript}

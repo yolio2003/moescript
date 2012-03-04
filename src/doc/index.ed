@@ -1,0 +1,235 @@
+::document{Moescript}
+
+Moe 是一种新型的、生成 JavaScript 的新语言。Moe 拥有许多实用的特性，使得创作 JavaScript 更加容易。Moe 编译器可以从 \githubProject 下载。Moe 依赖 Eisa 运行时使得其生成的 JavaScript 得以运行，因此 Eisa 也是必要的。
+
+:section{使用编译器}
+	:pre
+		moec <options> input.lf
+	:section{选项}	
+		 - `-o <value>`, `--output <value>`: 指定输出文件的路径。如果不指定，编译结果会显示在 Stdout 里。
+		 - `-t <value>`，`--target <value>`: 指定编译的目标环境，会影响默认的全局变量表。`-t least` 只会使用 `require`、`module` 和 `exports` 三个全局变量。
+		 - `-g <value>`，`--global <value>`: 指定一个全局变量，例如 `-g document`。
+		 - `-m <name>=<path>`，`--module <name>=<path>`: 将一个模块作为 Moe 源码里的全局变量，如 `-m exp=express`，会将 `require('express')` 作为 Moe 源码中的全局变量 `exp`。
+
+:section{概要}
+	空白在 Moe 中相当重要，例如，用于缩进的空白就表示源码的语法层次。这里没有 `end` 或者其他类似的东西，缩进一层，就表示一个新的语句块。使用 Tab 或者空格缩进都可以，但是在同一个文件里请不要随意更换。因为使用了缩进，Moe 中的流程控制语句写法相当简单。通常，所有被控制的语句块都会以冒号开始，然后是缩进过的语句块。而如果冒号后没有换行，则表示只有一个语句受控。
+	:*moe
+		def max(list):
+			var m = list[0]
+			for var i in 0..list.length:
+				if list[i] > m: m = list[i]
+			return m
+		tracel max [5, 4, 3, 2, 1]
+
+	Moe 里一些换行会被视作空格，从而可以把一些很长的表达式分成两行写。这些换行通常是运算符前后、逗号后、`([{` 后以及 `}])` 前的换行。因此你可以利用他们来定义一些很复杂的对象。反斜线也可以让后面的换行化作一缕浮云，消失在编译器眼里。
+	:*moe
+		def gameConfig = [
+			player: [
+				name: "tom",
+				type: Human,
+				level: 1,
+				weapon: sword,
+				inventory: [food, food, potion, bomb]
+			],
+			enemy: [
+				name: "Dragon",
+				type: Dragon,
+				level: 9
+			]
+		]
+	:*moe
+		// some lisp code
+		def code = ['define', ['fib', 'n'],
+			['cond',
+			  [ [['=', 'n', '1'], '1'],
+				[['=', 'n', '2'], '1'],
+				['()', 
+					['+', ['fib', ['-', 'n', '1']],
+						['fib', ['-', 'n', '2']]]]]]]
+
+	从上面应该也能看出，Moe 的注释用 `//` 开始到行尾结束。除了 `//`，使用 `--` 也是一样的。看到 `--` 可以开始注释，你应该就会明白 Moe 里没有 `++` 和 `--` 运算符。除此之外，位于行首（之后不能有任何空白）的 `-!` 用于提供编译器选项，如「变量不声明就报错」就写作「`-! option explicit`」。
+
+:section{变量（包括变不了的）}
+	Moe 的变量用 `var` 或者 `def` 声明。`def` 声明出来的东西更接近常量，他们不能被再次赋值。在代码中，应当尽量使用 `def` 定义常量。他们典型的用法是这样：
+	:*moe
+		def printPrimes(uplimit):
+			def primes = [2, 3, 5, 7];
+			for var n in 2 ... uplimit:
+				var composite = false
+				for (var t = 0; primes[t] * primes[t] <= n; t += 1):
+					if n % primes[t] == 0: 
+						composite = true;
+						break;
+				if not composite:
+					primes.push n;
+					tracel n;
+
+	变量的作用域法则完全等同 JavaScript，使用 `var` 来「局域化」变量。这和一些生成 JavaScript 的语言不同，但是对于熟悉 JavaScript 的用户来说，这样很有用。
+
+	`def` 只能来定义一个东西，而 `var` 一次可以声明多个变量（方法：`var a, b, c, d, ..., z`，不能赋值）。`def` 和 `var` 也可用于定义对象的属性，这只相当于是一次简单赋值。
+	:*moe
+		def Number.prototype.times = function(f):
+			for var i in 0..this: f(i)
+:section{函数}
+	最好用（以及最推荐）的方法是使用 `def` 定义函数。
+	:*moe
+		def square(x) = x * x   // 简单的函数可以这样定义
+
+		def fill(container, liquid = "water"):
+			// 使用冒号不生成 return
+			tracel "Fill " + container + " with " + liquid
+
+		// Y 组合子
+		def Y(g) = // 在这里使用等号……
+			def rec(x)(y) = g(x(x))(y)
+			rec(rec) // 就会在这里自动产生 return 语句
+		
+		//def FixedCombinator(g)(x) = g(Y(g))(x)
+
+		// 使用 Y 组合子定义「递归」函数
+		def Y fibonacci(recurse)(n) = // 多个参数表表示柯里化
+			if(n <= 2): 1
+			else: recurse(n - 2) + recurse(n - 1)
+		
+		fibonacci(5) // 5
+
+	使用 `def` 定义函数应写下 `def`、你想定义的函数名、参数表，然后是 `:` 或者 `=`。在使用 `:` 的时候，你必须自己写 `return` 语句来指明返回值；使用 `=` 则不必要，编译器会自动把这个函数里最后一个表达式语句作为返回值。
+	
+	值得注意的是最后一个使用 Y 组合子制造递归函数的案例。在此处，`Y` 将后面的函数进行处理后赋值给 `fibonacci`；这里的 `Y` 只是一个普通函数，在上面定义出来。这些修饰很像 Python 里的那些。然而，使用修饰时，函数的签名可能会发生变化，增加代码的复杂性，因此在这种情况发生的时候，建议增加注释说明。在上面那个案例里，实际上发生的赋值是这样的：
+	:*moe
+		def fibonacci_1 = function(recurse):
+			return function(n):
+				return 1 if(n <= 2),
+					recurse(n - 2) + recurse(n - 1)
+		def fibonacci = Y(fibonacci_1)
+	
+	这里出现了新的关键字 `function` 以及用它定义的匿名函数。匿名函数在 JavaScript 里很常见，在 Moe 中，定义一个匿名函数值的方法相当多，最直接的就是用 `function` 关键字换掉 `def` 里写下的函数名。类似 `def` 里的情况，`function（...)` 之后也可以跟 `:` 和 `=`，两者的区别仍然是，「`=`」会自动产生 `return`，「`:`」不会。
+	:*moe
+		def fibonacci_2 = function(recurse)=
+			function(n)=
+				1 if(n <= 2),
+					recurse(n - 2) + recurse(n - 1)
+	
+	另一种方法是使用 `:>` 或 `=>`，构造 Lambda 表达式，前接参数表，后接函数体。规律和 `function` 里的用法很相似，`:>` 必须手工写入 `return` 语句，`=>` 会自动生成 `return`。`=>` 经常用于定义一些小函数。
+
+	:*moe
+		list.map (term, index) => term * index
+		$(element).bind "click", (event) :>
+			tracel event
+	
+	Lambda 表达式的右端会尽可能的长。当然，如果出现像下面的这种情况，您的代码已经很难读懂，应当加入括弧来使之清晰。
+	:*moe
+		f (x) :> g x, 1
+		// 等价于
+		f ((x) :> g x, 1),
+
+	Lambda 表达式的 `:>` 和 `=>` 也可以没有参数表，作用和 `():>` 相同。使用回调的时候这种形式会很管用。
+	:*moe
+		def sleep(dt, f) = setTimeout(f, dt)
+		sleep 1000, :>
+			tracel 'Blah!'
+	
+	最后一种形式是用花括弧包裹住表达式，这在 DSL 里这会很常见。表达式的值就是此函数的返回值。
+	:*moe
+		def repeatWhile(condition, body):
+			var c
+			while(c = condition()):
+				body(c)
+
+		var num = 10;
+		repeatWhile {num -= 1}, {|j| tracel j}
+:section{调用函数}
+	调用函数最直接的方法是使用圆括号，圆括号和之前的被调用函数之间不能有空白：
+	:*moe
+		def f(x, y, z) = x * y + z
+		f(1, 1, 1) // 2
+	
+	可以使用名称参数。名称参数会汇聚起来，作为函数的最后一个实参传入。
+	:*moe
+		def f(config) = config.a + config.b
+		f(a: 1, b: 2) // 3
+	
+	在不混淆时，可以省略括弧。不过，不建议省略太多层的括号。
+	:*moe
+		f g h a, b, c
+		// 等价于
+		f(g(h(a, b, c)))
+
+	如果调用的实参表只有一项而且是使用 `{}` 的函数直接量时，可以用花括弧直接替换圆括弧：
+	:*moe
+		act{tracel 'Acted!'}
+	
+	Moe 支持一种特殊的方法来调用函数。通过使用 `|` 符号。在此符号后写上函数也表示函数调用，竖线之前者作为此次调用的第一个参数传入。您还可以追加更多的参数，写在后面。`|` 可以有很多个，串成一长串。在计算的时候，竖线之前的东西会先计算，之后才是写在竖线后的函数，因而在最终编译生成的 JavaScript 里，可能会有临时变量和赋值出现。
+	:*moe
+		def tap(value, f) = f(value) then value;
+		5 |tap {|x| tracel x} |{|x| x * 3} // 5
+		  |tap {|x| tracel x}              // 15
+		 
+	JavaScript 里很常用的「链式调用」使用一个略微不同的符号 `|.`，之后接方法名。
+	:*moe
+		$ "selector"
+			|.addClass "selected"
+			|.css background: "red"
+	
+	两种“管道调用”可以任意组合。
+	:section{伪函数}
+		Moe 中有几个关键字可以像函数那样「调用」，不过它们实际上作用于编译期，用来生成特殊的代码。它们是 `new`、`resend`、`do` 和 `wait`。它们称为伪函数。所有的伪函数都只能接受一个非命名参数（否则报语法错），不能单独出现（否则照样语法错）。一些伪函数还限制它们接受的「参数」必须拥有函数调用的形式，这样的伪函数也可以叫做调用修饰。
+
+		`new` 用来构造对象：
+		:*moe
+			def Point(x, y):
+				this.x = x
+				this.y = y
+
+			def origin = new Point 0, 0
+		
+		`resend` 用来向其他函数封送 `this`。在面向对象编程里，常用于调用「基类」的方法。它后面必须接一个函数调用。
+		:*moe
+			def Man():
+				//...
+			def Man::speak(something) = tracel something;
+
+			def outof(Man) Child():
+				//...
+			def Child::speak(something):
+				tracel "Ah!";
+				tracel resend Man::speak(something)
+				// 等价于 tracel Man.prototype.speak.call(this, something)
+		`do` 的行为和 `resend` 很相似。`do` 后接函数调用时的行为同 `resend` 一致，但是 `do` 后面还可以接其他形式的表达式，此时 `do f` 相当于 `f.apply(this, arguments)`。
+
+		`wait` 用于生成回调。如果某个函数里出现了 `wait`，这个函数里的所有代码生成都会受到影响，甚至它本身也会变成其他类型。`wait` 常用于异步操作中。`wait` 后面也必须接一个函数调用。
+		:*moe
+			def f():
+				// 不需要书写 loadResource something, function(resource)...
+				var resource = wait loadResource(something)
+			tracel (type of f) // "object"，此时 f 是一个阻塞原语（见下文），并非普通函数。
+
+		`wait` 有一种等价的形式，是把 `!` 插在函数和调用函数用的括弧之间，如 `loadResource!(something)`。
+
+:section{回调和阻塞}
+	前文已经述及，`wait` 所在的函数会变成阻塞原语。阻塞原语是一个对象，结构大致是这样：
+	:*moe
+		// 这样的定义……
+		def obstructive(args):
+			//... wait f() ...
+			//... f!() ...
+		// 形成这样的对象
+		[build: function(schemata)(args)()]
+	
+	`schemata` 是一个对象，定义了一组方法（`break` 和 `return`，以后可能还会增加 `error`）来处理阻塞原语的返回值，区分阻塞原语因为阻塞返回还是真正的返回。在迭代器里，就需要区分两种情形并且对返回值进行不同的处理。（或者说区分 yield 和 return）。`args` 就是在定义时定义的传入的参数表。第三个括弧则用来启动这个阻塞原语。
+
+	通常用来定义阻塞原语的 `def` 后面都会跟些东西修饰编译生成的「裸」原语，比如 `eisa/libs/async` 提供的 `async` 就可以处理绝大多数 JavaScript 库里面的回调：
+	:*moe
+		def async randPrintNums(n):
+			def tasks = [];
+			for var i in 0..n:
+				tasks.push let(i) => async :>
+					wait sleep 100 * Math.random()
+					tracel i
+			wait join tasks
+	值得注意的是第三个例子，使用了嵌套的 `async`。
+
+
+:section{链接}
+	 - Moescript: \githubProject
+	 - 函数库说明: \page{lib/index}

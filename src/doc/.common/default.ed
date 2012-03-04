@@ -1,0 +1,31 @@
+:input{\dirName{\execPath}/marcos/html.ed}
+:input{\dirName{\execPath}/marcos/util.ed}
+:input{\dirName{\execPath}/marcos/source.ed}
+
+
+:defun_{document}{mTitle}{mBody}
+	:def{buildDir}{\normalizePath{\cwd/../../doc}}
+	:defun{pageId2Path}{id}{\buildDir/\id.html}
+	:def{outputPath}{\normalizePath{\pageId2Path{\pathNoExt{\getRelativePath{\cwd}{\inputPath}}}}}
+	:def{stylePath}{\urlPath{\getRelativePath{\dirName{\outputPath}}{\buildDir/rc/style.css}}}
+	:input{\cwd/.common/links.ed}
+	:input{\cwd/.common/pagemeta.ed}
+	:def{pageBody}{\eval{\mBody}}
+	:fileOut{\outputPath}
+		:html5doctype
+		::html
+		:head
+			:title{\mTitle}
+			:style
+				:"{@import url(\stylePath);}
+		::body
+		:div{id="contents"}
+			:div{id="headarea"}
+				:_h{\mTitle}
+				:div{class="pageinfo"}
+					\part{\pageMeta}{page_info} Last update: \getDateFormat{yyyy-MM-dd}
+			:pageBody
+	:consoleOut
+		Build complete. File generated at \"{\outputPath}
+
+

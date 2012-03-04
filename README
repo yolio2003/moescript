@@ -1,1 +1,6 @@
-Moe script
+def Moescript = describe """
+	A not-very-but-still-light Javascript-targeted language. (and its runtime and libraries.)
+
+	Build
+	To build moescript just type "make".
+"""

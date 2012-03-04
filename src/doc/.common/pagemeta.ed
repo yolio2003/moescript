@@ -1,0 +1,10 @@
+:def{pageMeta}{\newHash}
+:setPart{\pageMeta}{page_info}{}
+:defun{meta}{id}{value}
+	:setpart{\pageMeta}{\id}{\value}
+:defun{appendPageInfo}{info}
+	::voidize
+	\setPart{\pageMeta}{page_info}{\getPart{\pageMeta}{page_info}\info · }
+:defun{belongsTo}{pageid}
+	::voidize
+	\appendPageInfo{Up: \page{\pageid}}
