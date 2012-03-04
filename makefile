@@ -4,8 +4,11 @@ DIST = dist
 MOD = dist/node_modules/moe
 MOEC = $(MOD)/compiler
 dirs:
+	-@mkdir -p $(DIST)
+	-@mkdir -p $(DIST)/bin
 	-@mkdir -p $(MOD)
 	-@mkdir -p $(MOD)/libs
+	-@mkdir -p $(MOD)/cli
 	-@mkdir -p $(MOEC)
 	-@mkdir -p $(MOEC)/targets
 
@@ -20,24 +23,26 @@ moert: dirs $(moeRTMods) $(moeLibMods)
 
 moecMods = $(MOEC)/compiler.rt.js $(MOEC)/compiler.js $(MOEC)/codegen.js $(MOEC)/parser.js \
 			$(MOEC)/resolve.js $(MOEC)/requirements.js
-moecNodeMods = $(DIST)/opts.js $(DIST)/moec.js
+moecNodeMods = $(MOD)/cli/opts.js $(MOD)/cli/moec.js
 moecTargets = $(MOEC)/targets/node.js $(MOEC)/targets/least.js
 $(moecMods) $(moecTargets): $(MOEC)/%: src/compiler/%
 	cp $< $@
-$(moecNodeMods): $(DIST)/%: src/moec/%
+$(moecNodeMods): $(MOD)/cli/%: src/moec/%
 	cp $< $@
 $(MOEC)/package.json: src/compiler/package.json
+	cp $< $@
+$(DIST)/bin/moec: src/moec/moec
 	cp $< $@
 
 moecLib: $(moecMods)
 moecNodeLib: $(moecNodeMods)
 moecTargets: $(moecTargets)
-moecMain: moecLib $(MOEC)/package.json moecNodeLib moecTargets 
+moecMain: moecLib $(MOEC)/package.json moecNodeLib moecTargets $(DIST)/bin/moec
 
 moec: moert moecMain
 
 
-moecEXE = node $(DIST)/moec.js -t least
+moecEXE = node $(DIST)/bin/moec -t least
 
 ### Web test environment
 ### Always updates all scripts
