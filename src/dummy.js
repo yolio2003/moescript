@@ -25,4 +25,4 @@ var compile = exports.compile = function(module, fileName){
 	module._compile(compiled, fileName);
 }
 
-require.extensions['.lf'] = compile;
+require.extensions['.moe'] = compile;

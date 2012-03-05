@@ -1,15 +1,21 @@
-::document{Moescript}
+::document{moescript}
 
-Moe 是一种新型的、生成 JavaScript 的新语言。Moe 拥有许多实用的特性，使得创作 JavaScript 更加容易。Moe 编译器可以从 \githubProject 下载。Moe 依赖 Eisa 运行时使得其生成的 JavaScript 得以运行，因此 Eisa 也是必要的。
+Moe 是一种新型的、生成 JavaScript 的新语言。Moe 拥有许多实用的特性，使得创作 JavaScript 更加容易。Moe 编译器可以从 \githubProject 下载。
 
-:section{使用编译器}
+:section{Moec 编译器}
 	:pre
-		moec <options> input.lf
+		moec <options> input.moe
 	:section{选项}	
 		 - `-o <value>`, `--output <value>`: 指定输出文件的路径。如果不指定，编译结果会显示在 Stdout 里。
-		 - `-t <value>`，`--target <value>`: 指定编译的目标环境，会影响默认的全局变量表。`-t least` 只会使用 `require`、`module` 和 `exports` 三个全局变量。
+		 - `-t <value>`，`--target <value>`: 指定编译的目标环境，会影响默认的全局变量表。`-t least` 只会使用 `require`、`module` 和 `exports` 三个全局变量。`-t node` 则会绑定所有的 Nodejs 全局变量。
 		 - `-g <value>`，`--global <value>`: 指定一个全局变量，例如 `-g document`。
 		 - `-m <name>=<path>`，`--module <name>=<path>`: 将一个模块作为 Moe 源码里的全局变量，如 `-m exp=express`，会将 `require('express')` 作为 Moe 源码中的全局变量 `exp`。
+
+:section{Moe 加载器}
+	使用 moeDummy 可以让 Nodejs 像加载 `.js` 那样加载 `.moe` 文件。你只需要
+	:*js
+		require('moe/dummy')
+	之后就直接可以用 `require` 来加载 `.moe` 了。全局变量和 Node 是一样的。
 
 :section{概要}
 	空白在 Moe 中相当重要，例如，用于缩进的空白就表示源码的语法层次。这里没有 `end` 或者其他类似的东西，缩进一层，就表示一个新的语句块。使用 Tab 或者空格缩进都可以，但是在同一个文件里请不要随意更换。因为使用了缩进，Moe 中的流程控制语句写法相当简单。通常，所有被控制的语句块都会以冒号开始，然后是缩进过的语句块。而如果冒号后没有换行，则表示只有一个语句受控。

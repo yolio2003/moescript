@@ -34,15 +34,21 @@ $(MOEC)/package.json: src/compiler/package.json
 $(DIST)/bin/moec: src/moec/moec
 	cp $< $@
 
-moecLib: $(moecMods)
+moecLib: $(moecMods) $(MOEC)/package.json
 moecNodeLib: $(moecNodeMods)
 moecTargets: $(moecTargets)
-moecMain: moecLib $(MOEC)/package.json moecNodeLib moecTargets $(DIST)/bin/moec
+moecMain: moecLib moecNodeLib moecTargets $(DIST)/bin/moec
 
 moec: moert moecMain
 
-
 moecEXE = node $(DIST)/bin/moec -t least
+
+moeFullLibMods = $(MOD)/libs/stdenum.js
+$(moeFullLibMods): $(MOD)/%.js: src/%.moe
+	$(moecEXE) $< -o $@
+
+moeFullLib: $(moeFullLibMods)
+
 
 ### Web test environment
 ### Always updates all scripts
@@ -52,7 +58,6 @@ webtestDir:
 	-@mkdir -p webtest/moe
 	-@mkdir -p webtest/moe/libs
 	-@mkdir -p webtest/moe/compiler
-	-@mkdir -p webtest/moe/compiler/lib
 
 nessat = webtest/nessat.js
 nessatEXE = node $(nessat)
@@ -60,18 +65,10 @@ $(nessat): webtest/%.js: src/webrt/%.js
 	cp $< $@
 nessat: $(nessat)
 
-webMods = $(subst $(MOD)/,$(WEBMOD)/,$(moeRTMods) $(moeLibMods) $(moecMods))
+webMods = $(subst $(MOD)/,$(WEBMOD)/,$(moeRTMods) $(moeLibMods) $(moecMods) $(moeFullLibMods))
 $(webMods): $(WEBMOD)/%.js: $(MOD)/%.js
 	$(nessatEXE) $< $@ dist/node_modules/
 webMods: nessat $(webMods)
-
-webtestLFModules = $(WEBMOD)/libs/stdenum.js
-$(webtestLFModules):
-	$(moecEXE) $< -o $@
-	$(nessatEXE) $@ $@ webtest/
-#	node $(MOEC) -t necessaria $< | uglifyjs -b -i 4 -nm -o $@
-webtest/moe/libs/stdenum.js: src/libs/stdenum.moe
-webLFMods: moec nessat $(webtestLFModules)
 
 webtestENV = webtest/index.html webtest/inputbox.js webtest/mod.rt.js
 $(webtestENV):
@@ -81,7 +78,7 @@ webtest/inputbox.js: webtest_env/inputbox.js
 webtest/mod.rt.js:   src/webrt/mod.rt.js
 webtestENV: $(webtestENV)
 
-webtest: moec webtestDir nessat webMods webLFMods webtestENV
+webtest: moec moeFullLib webtestDir nessat webMods webtestENV
 
 clean:
 	rm -rf dist
