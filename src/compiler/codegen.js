@@ -47,7 +47,8 @@ var C_NAME = exports.C_NAME = function (name) { return TO_ENCCD(name) + '$' },
 	C_TEMP = exports.C_TEMP = function (type){ return type + '$_' },
 	T_THIS = function (env) { return '_$_THIS' },
 	T_ARGN = function(){ return '_$_ARGND' },
-	T_ARGS = function(){ return '_$_ARGS' };
+	T_ARGS = function(){ return '_$_ARGS' },
+	C_BLOCK = function(label){ return 'block_' + label }
 
 //:func{INDENT}{Indents block}
 var INDENT = function(s){ return s.replace(/^/gm, '    ') };
@@ -220,11 +221,7 @@ exports.Generator = function(g_envs, g_config){
 		
 		var s = transformOProto(tree);
 
-		tree.useTemp('PROGRESS');
 		tree.useTemp('SCHEMATA', ScopedScript.SPECIALTEMP);
-		tree.useTemp('EOF');
-		tree.useTemp('COROFUN');
-		tree.useTemp('COEXCEPTION', ScopedScript.SPECIALTEMP);
 
 
 		var locals = MOE_UNIQ(tree.locals),
@@ -252,15 +249,8 @@ exports.Generator = function(g_envs, g_config){
 					ARGN_BIND(tree),
 					(temps.length ? 'var ' + temps.join(', '): ''),
 					(vars.length ? 'var ' + vars.join(', ') : ''),
-					C_TEMP('PROGRESS') + '=' + lInital,
-					C_TEMP('EOF') + '= false',
-					$('return %1 = function(){%2}',
-						C_TEMP('COROFUN'),
-						JOIN_STMTS([
-							$('while(%1)\n%2',
-								C_TEMP('PROGRESS'), 
-								INDENT($('MASTERCTRL: switch(%1){%2}', C_TEMP('PROGRESS'), s)))
-						]))
+					s.s,
+					'return ' + s.enter
 				]));
 		tree.transformed = s;
 		env = backupenv;
@@ -589,7 +579,7 @@ exports.Generator = function(g_envs, g_config){
 		return s;
 	});
 	vmSchemataDef(nt.REPEAT, function () {
-		return $('do{%2}while(%1)', transform(ungroup(this.condition)), transform(this.body));
+		return $('do{%2}while(!(%1))', transform(ungroup(this.condition)), transform(this.body));
 	});
 	vmSchemataDef(nt.WHILE, function () {
 		return $('while(%1){%2}', transform(ungroup(this.condition)), transform(this.body));
@@ -646,28 +636,47 @@ exports.Generator = function(g_envs, g_config){
 	"Obstructive Proto Flow";
 	var oProtoFlow = function(ct){
 		var block = [];
+		var labelPlacements = [];
 		var joint = function(){
-			return '\n' + block.join('\n') + '\n';
+			var basicBlocks = [];
+			var ilast = 0;
+			for(var i = 1; i <= block.length; i++){
+				if(labelPlacements[i]){
+					basicBlocks.push({
+						statements: block.slice(ilast, i),
+						id: labelPlacements[ilast][0],
+						labels: labelPlacements[ilast]
+					});
+					ilast = i;
+				}
+			};
+			var ans = [];
+			for(var i = 0; i < basicBlocks.length; i++){
+				var b = basicBlocks[i];
+				var sContinue = (i < basicBlocks.length - 1 && !/^return /.test(b.statements[b.statements.length - 1]))
+					? [GOTO(basicBlocks[i + 1].id)] : []
+				ans.push('function ' + C_BLOCK(b.id) + '(_){' + JOIN_STMTS(b.statements.concat(sContinue)) + '}')
+				for(var j = 1; j < b.labels.length; j++){
+					ans.push('var ' + C_BLOCK(b.labels[j]) + ' = ' + C_BLOCK(b.id));
+				}
+			}
+			return {s: ans.join(';\n'), enter: C_BLOCK(basicBlocks[0].id)};
 		};
-		var labelN = 0;
 		var label_dispatch = function(){
-			return ++labelN
+			return makeT()
 		};
 
 		var GOTO = function(label){
-			return '{' + C_TEMP('PROGRESS') + '=' + label + '; break MASTERCTRL}'
-		}
-		var STOP = function(label){
-			return C_TEMP('PROGRESS') + '=' + label;
+			return 'return ' + C_BLOCK(label) + '()'
 		}
 		var LABEL = function(label){
-			return block.push('  case ' + label + ':')
-		}
-		var OVER = function(){
-			return '{ ' + C_TEMP('PROGRESS') + '= 0;' + C_TEMP('COROFUN') + '.stopped = true };'
+			if(labelPlacements[block.length])
+				labelPlacements[block.length].push(label)
+			else
+				labelPlacements[block.length] = [label];
 		}
 		var pushStatement = function(s){
-			if(s) block.push(INDENT(s) + ';')
+			if(s) block.push(s);
 		};
 		var obstPartID = function(){
 			return C_TEMP(makeT(env));
@@ -677,9 +686,7 @@ exports.Generator = function(g_envs, g_config){
 		return {
 			ps: pushStatement,
 			GOTO: GOTO,
-			STOP: STOP,
 			LABEL: LABEL,
-			OVER: OVER,
 			label: label_dispatch,
 			joint: joint,
 			obstPartID: obstPartID
@@ -694,8 +701,6 @@ exports.Generator = function(g_envs, g_config){
 			label = flowM.label,
 			GOTO = flowM.GOTO,
 			LABEL = flowM.LABEL,
-			STOP = flowM.STOP,
-			OVER = flowM.OVER;
 			obstPartID = flowM.obstPartID;
 		var pct = function(node){ return ps(ct(node))};
 
@@ -731,7 +736,6 @@ exports.Generator = function(g_envs, g_config){
 		// Labels
 		var lNearest = 0;
 		var scopeLabels = {};
-		lInital = label();
 
 		// obstructive expressions
 		var oC_ARGS = function(node, env, skip, skips){
@@ -829,25 +833,23 @@ exports.Generator = function(g_envs, g_config){
 			var ca = oC_ARGS(this, env, skip, skips);
 			var id = obstPartID();
 			var l = label();
-			ps(STOP(l));
 			if(ca.hasNameQ) {
 				ps($('return %1(MOE_NINVOKE(%2, %3, [%4], [%5], true))',
 					PART(C_TEMP('SCHEMATA'), 'break'),
 					e.p,
 					e.f,
 					ca.displacement + ',' + 'undefined',
-					ca.args + ',' + $('function(x){%1 = x; %2()}', id, C_TEMP('COROFUN'))
-				))
+					ca.args + ',' + C_BLOCK(l)))
 			} else {
-				ps($('return %1(%2.call(%3, %4 function(x){%5 = x; %6()}))',
+				ps($('return %1(%2.call(%3, %4%5))',
 					PART(C_TEMP('SCHEMATA'), 'break'),
 					e.f,
 					e.p,
-					ca.args ? ca.args + "," : "",
-					id,
-					C_TEMP('COROFUN')));
+					ca.args ? ca.args + ", " : "",
+					C_BLOCK(l)));
 			}
 			LABEL(l);
+			ps(id + ' = _')
 			return id;
 		};
 
@@ -855,14 +857,13 @@ exports.Generator = function(g_envs, g_config){
 			var e = obsPart.call(this.expression);
 			var id = obstPartID();
 			var l = label();
-			ps(STOP(l));
-			ps($('return %1(%2.call(%3, function(x){%4 = x; %5()}))',
+			ps($('return %1(%2.call(%3, %4))',
 				PART(C_TEMP('SCHEMATA'), 'break'),
 				e.f,
 				e.p,
-				id,
-				C_TEMP('COROFUN')));
+				C_BLOCK(l)));
 			LABEL(l);
+			ps(id + ' = _')
 			return id;
 		});
 
@@ -1044,7 +1045,6 @@ exports.Generator = function(g_envs, g_config){
 	
 
 		oSchemataDef(nt.RETURN, function() {
-			ps(OVER());
 			ps($('return %1["return"](%2)',
 				C_TEMP('SCHEMATA'),
 				ct(this.expression)));
@@ -1076,10 +1076,10 @@ exports.Generator = function(g_envs, g_config){
 		// -------------------------------------------------------------
 		// Here we go
 
-		LABEL(lInital);
+		LABEL(label());
 		ct(tree.code);
-		ps(OVER());
 		ps('return ' + C_TEMP('SCHEMATA') + '["return"]' + '()');
+		LABEL(label());
 		return flowM.joint();
 	}
 

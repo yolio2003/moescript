@@ -27,7 +27,19 @@ Moe 是一种新型的、生成 JavaScript 的新语言。Moe 拥有许多实用
 			return m
 		tracel max [5, 4, 3, 2, 1]
 
-	Moe 里一些换行会被视作空格，从而可以把一些很长的表达式分成两行写。这些换行通常是运算符前后、逗号后、`([{` 后以及 `}])` 前的换行。因此你可以利用他们来定义一些很复杂的对象。反斜线也可以让后面的换行化作一缕浮云，消失在编译器眼里。
+	Moe 里一些标点符号旁边的换行会被视作空格，从而可以把一些很长的表达式分成两行写。这些换行通常是运算符前后、逗号后、以及**紧贴**括弧内侧的换行。这些特性能让你比较方便的定义复杂的对象。反斜线也可以让后面的换行化作一缕浮云，消失在编译器眼里。
+	:*moe
+		tracel \
+			1,
+			2,
+			3 +
+			 4
+			 + 5
+		(tracel // 不像 Python，只有紧贴括弧内侧的换行才会被忽略
+		        // 因此这里的换行会导致语法错。
+			x,
+			y,
+			z)
 	:*moe
 		def gameConfig = [
 			player: [
@@ -154,16 +166,22 @@ Moe 是一种新型的、生成 JavaScript 的新语言。Moe 拥有许多实用
 	:*moe
 		def f(config) = config.a + config.b
 		f(a: 1, b: 2) // 3
-	
-	在不混淆时，可以省略括弧。不过，不建议省略太多层的括号。
-	:*moe
-		f g h a, b, c
-		// 等价于
-		f(g(h(a, b, c)))
 
 	如果调用的实参表只有一项而且是使用 `{}` 的函数直接量时，可以用花括弧直接替换圆括弧：
 	:*moe
 		act{tracel 'Acted!'}
+	
+	在不混淆时，可以省略括弧，下面是一些案例。
+	:*moe
+		f g h a, b, c
+		x y z w
+		f
+	分别等价于
+	:*moe
+		f(g(h(a, b, c)))
+		x(y(z(w)))
+		f  // 不产生调用
+	Moe 支持的省略调用只能有「`f g h a, b, c`」这样的形式，而且省略调用和运算符不能混用（因此 `f + g h` 会产生语法错）。
 	
 	Moe 支持一种特殊的方法来调用函数。通过使用 `|` 符号。在此符号后写上函数也表示函数调用，竖线之前者作为此次调用的第一个参数传入。您还可以追加更多的参数，写在后面。`|` 可以有很多个，串成一长串。在计算的时候，竖线之前的东西会先计算，之后才是写在竖线后的函数，因而在最终编译生成的 JavaScript 里，可能会有临时变量和赋值出现。
 	:*moe
@@ -178,6 +196,32 @@ Moe 是一种新型的、生成 JavaScript 的新语言。Moe 拥有许多实用
 			|.css background: "red"
 	
 	两种“管道调用”可以任意组合。
+
+	总的来说 Moe 表达式的语法是：
+	:*pre
+		SingleExpression
+			= OperatorExpression
+			| OmissionCallExpression
+		OmissionCallExpression
+			= Unary
+			| Unary ArgumentList
+			| Unary OmissionCallExpression
+		PipeExpression
+			= SingleExpression
+			| PipeExpression PipelineTerm
+		IfExpression
+			= PipeExpression
+			| IfExpression ifAffix
+		Assignment 
+			= Unary AssignmentOperator IfExpression
+		Expression
+			= Assignment
+			| IfExpression
+
+		CallItem
+			= OperatorExpression
+			| Unary CallItem
+
 	:section{伪函数}
 		Moe 中有几个关键字可以像函数那样「调用」，不过它们实际上作用于编译期，用来生成特殊的代码。它们是 `new`、`resend`、`do` 和 `wait`。它们称为伪函数。所有的伪函数都只能接受一个非命名参数（否则报语法错），不能单独出现（否则照样语法错）。一些伪函数还限制它们接受的「参数」必须拥有函数调用的形式，这样的伪函数也可以叫做调用修饰。
 
@@ -210,7 +254,7 @@ Moe 是一种新型的、生成 JavaScript 的新语言。Moe 拥有许多实用
 				var resource = wait loadResource(something)
 			tracel (type of f) // "object"，此时 f 是一个阻塞原语（见下文），并非普通函数。
 
-		`wait` 有一种等价的形式，是把 `!` 插在函数和调用函数用的括弧之间，如 `loadResource!(something)`。
+		`wait` 有一种等价的形式，是把 `!` 插在被调用的函数之后，如 `loadResource! something`。
 
 :section{回调和阻塞}
 	前文已经述及，`wait` 所在的函数会变成阻塞原语。阻塞原语是一个对象，结构大致是这样：

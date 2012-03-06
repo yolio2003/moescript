@@ -12,67 +12,74 @@ var $ = function(template, items_){
 	});
 };
 
-
-
 var NodeType = lfcrt.NodeType;
 var MakeNode = lfcrt.MakeNode;
 
-var ID = 0,
-	OPERATOR = 1,
-	COLON = 2,
-	COMMA = 3,
-	NUMBER = 4,
-	STRING = 5,
-	SEMICOLON = 6,
-	STARTBRACE = 7,
-	ENDBRACE = 8,
-	DOT = 9,
-	IF = 10,
-	FOR = 11,
-	WHILE = 12,
-	REPEAT = 13,
-	UNTIL = 14,
-	ARGUMENTS = 15,
-	CASE = 18,
-	PIECEWISE = 19,
-	WHEN = 20,
-	FUNCTION = 21,
-	RETURN = 22,
-	THROW = 23,
-	BREAK = 24,
-	// CONTINUE = 25,
-	LABEL = 26,
-	STEP = 27,
-	END = 28,
-	ELSE = 29,
-	OTHERWISE = 30,
-	THEN = 31,
-	VAR = 32,
-	SHARP = 33,
-	// FALLTHROUGH = 34,
-	DO = 36,
-	TRY = 37,
-	TASK = 40,		//reserved for coro
-	LAMBDA = 41,
-	PASS = 42,
-	EXCLAM = 43,
-	WAIT = 44,
-	USING = 45,
-	LET = 46,
-	DEF = 47,
-	RESEND = 48,
-	NEW = 49,
-	INDENT = 1000,
-	OUTDENT = 1001,
-	CONSTANT = 101,
-	ME = 102,
-	MY = 103,
-	CALLEE = 104,
-	PROTOMEMBER = 105,
-	ASSIGN = 106,
-	BACKSLASH = 501;
+var tokenTypeStrs = [];
+var TokenType = function(){
+	var k = 0;
+	return function(desc){
+		k = k + 1;
+		tokenTypeStrs[k] = desc;
+		return k;
+	}
+}();
 
-var SQSTART = 91, SQEND = 93, RDSTART = 40, RDEND = 41, CRSTART = 123, CREND = 125;
+var ID = TokenType('Identifier'),
+	OPERATOR = TokenType('Operator'),
+	COLON = TokenType('Colon'),
+	COMMA = TokenType('Comma'),
+	NUMBER = TokenType('Number'),
+	STRING = TokenType('String'),
+	SEMICOLON = TokenType('Semicolon'),
+	OPEN = TokenType('Open'),
+	CLOSE = TokenType('Close'),
+	DOT = TokenType('Dot'),
+	IF = TokenType('if'),
+	FOR = TokenType('for'),
+	WHILE = TokenType('while'),
+	REPEAT = TokenType('repeat'),
+	UNTIL = TokenType('until'),
+	ARGUMENTS = TokenType('arguments'),
+	CASE = TokenType('case'),
+	PIECEWISE = TokenType('piecewise'),
+	WHEN = TokenType('when'),
+	FUNCTION = TokenType('Function'),
+	RETURN = TokenType('Return'),
+	THROW = TokenType('Throw'),
+	BREAK = TokenType('Break'),
+	LABEL = TokenType('Label'),
+	END = TokenType('End'),
+	ELSE = TokenType('Else'),
+	OTHERWISE = TokenType('Otherwise'),
+	PIPE = TokenType('Pipeline sign'),
+	VAR = TokenType('Var'),
+	SHARP = TokenType('Sharp sign'),
+	DO = TokenType('Do'),
+	TRY = TokenType('Try'),
+	TASK = TokenType('Task'),
+	LAMBDA = TokenType('Lambda'),
+	PASS = TokenType('Pass'),
+	EXCLAM = TokenType('Exclamation symbol'),
+	WAIT = TokenType('Wait'),
+	USING = TokenType('Using'),
+	LET = TokenType('Let'),
+	DEF = TokenType('Def'),
+	RESEND = TokenType('Resend'),
+	NEW = TokenType('New'),
+	INDENT = TokenType('Indent'),
+	OUTDENT = TokenType('Outdent'),
+	CONSTANT = TokenType('Constant'),
+	ME = TokenType('This'),
+	MY = TokenType('My sign'),
+	CALLEE = TokenType('Callee'),
+	PROTOMEMBER = TokenType('Prototype member symbol'),
+	ASSIGN = TokenType('Assign symbol'),
+	BACKSLASH = TokenType('Backslash'),
+
+	SQSTART = '[', SQEND = ']', 
+	RDSTART = '(', RDEND = ')', 
+	CRSTART = '{', CREND = '}';
 
 var Token = function (t, v, p, s, i) {
 	this.type = t;
@@ -82,7 +89,7 @@ var Token = function (t, v, p, s, i) {
 	this.isName = i;
 }
 Token.prototype.toString = function () {
-	return '[' + this.type + ' : ' + this.value + ']'
+	return '[' + tokenTypeStrs[this.type] + (this.value ? ' ' + this.value : '') + ']'
 }
 var condF = function (match, $1) {
 	if ($1.length > 1) {
@@ -138,7 +145,6 @@ var nameTypes = {
 	//'end': END,
 	'else': ELSE,
 	'otherwise': OTHERWISE,
-	'then': THEN,
 	'var': VAR,
 	'def': DEF,
 	'this': ME,
@@ -192,15 +198,15 @@ var symbolTypes = {
 	':>': LAMBDA,
 	'=>': LAMBDA,
 	'#': SHARP,
-	'(': STARTBRACE,
-	'[': STARTBRACE,
-	'{': STARTBRACE,
-	'}': ENDBRACE,
-	']': ENDBRACE,
-	')': ENDBRACE,
+	'(': OPEN,
+	'[': OPEN,
+	'{': OPEN,
+	'}': CLOSE,
+	']': CLOSE,
+	')': CLOSE,
 	',': COMMA,
 	':': COLON,
-	'|': THEN,
+	'|': PIPE,
 	'.': DOT,
 	'..': OPERATOR,
 	'...': OPERATOR,
@@ -225,7 +231,7 @@ var lex = exports.lex = function (input, cfgMap) {
 	var optionMaps = cfgMap || {}
 
 	var make = function (t, v, p, isn) {
-		contt = false;
+		ignoreComingNewline = false;
 		tokens[tokl++] = new Token(t, // type
 				v, // value
 				p, // position
@@ -245,26 +251,25 @@ var lex = exports.lex = function (input, cfgMap) {
 			}
 		}
 	};
-	var contt = false;
+	var ignoreComingNewline = false;
 	var noImplicits = function () {
 		icomp.desemi();
-	}
+	};
 	var noSemicolons = function(){
 		while (tokens[tokl - 1] && tokens[tokl - 1].type === SEMICOLON) {
 			tokl -= 1;
 		}
-	}
+	};
 	var p_symbol = function (s, n) {
 		var t = symbolType(s);
 		switch (t) {
 			case OPERATOR:
 			case COMMA:
-			case THEN:
+			case PIPE:
 			case DOT:
 			case PROTOMEMBER:
-				noImplicits();
 				make(t, s, n);
-				contt = true;
+				ignoreComingNewline = true;
 				break;
 
 			case SHARP:
@@ -276,24 +281,21 @@ var lex = exports.lex = function (input, cfgMap) {
 				make(t, s, n);
 				break;
 
-			case STARTBRACE:
-				make(t, s.charCodeAt(0), n);
-				contt = true;
+			case OPEN:
+				make(t, s.charAt(0), n);
+				ignoreComingNewline = true;
 				break;
 
-			case ENDBRACE:
-				noImplicits();
-				make(t, s.charCodeAt(0), n);
+			case CLOSE:
+				make(t, s.charAt(0), n);
 				break;
 
 			case SEMICOLON:
-				//noImplicits();
 				make(t, 1, n);
-				//contt = true;
 				break;
 
 			case BACKSLASH:
-				contt = true;
+				ignoreComingNewline = true;
 				break;
 
 			default:
@@ -350,7 +352,8 @@ var lex = exports.lex = function (input, cfgMap) {
 	});
 	var rNumber = /0[xX][a-fA-F0-9]+|\d+(?:\.\d+(?:[eE]-?\d+)?)?/;
 	var rSymbol = /\.{1,3}|[+\-*\/<>=!%~|&][<>=~|&]*|:[:>]|[()\[\]\{\}@\\;,#:]/;
-	var rNewline = /(?:\n[ \t]*)+/;
+	var rIgnore = /[+\-*\/<>&|\.,)\]}]|[=!][=~]|::/
+	var rNewline = composeRex(/\n(?!\s*(?:#ignore))(?:[ \t]*\n)*[ \t]*/, {ignore: rIgnore});
 	var rToken = composeRex(/(#comment)|(?:#option)|(#identifier)|(#string)|(#number)|(#symbol)|(#newline)/gm, {
 		comment: rComment,
 		option: rOption,
@@ -371,16 +374,19 @@ var lex = exports.lex = function (input, cfgMap) {
 		var stack = [''], top = 0;
 		var process = function(b, p){
 			var c = compare(stack[top], b, p);
-			if(c === 1){
-				stack[++top] = b;
-				//make(SEMICOLON, 0, p);
-				make(INDENT, 0, p);
-			} else if(c === -1) {
-				//make(SEMICOLON, 0, p);
-				dump(b, p);
-				//make(SEMICOLON, 0, p);
+			if(ignoreComingNewline){
+				ignoreComingNewline = false;
+				return;
 			} else {
-				make(SEMICOLON, 0, p);
+				if(c === 1){
+					stack[++top] = b;
+					make(INDENT, 0, p);
+				} else if(c === -1) {
+					dump(b, p);
+				} else {
+					make(SEMICOLON, 0, p);
+				};
+				ignoreComingNewline = false;
 			}
 		};
 		var dump = function(b, p){
@@ -395,7 +401,9 @@ var lex = exports.lex = function (input, cfgMap) {
 					make(OUTDENT, 0, p);
 				}
 				make(SEMICOLON, 0, p);
-			}
+			};
+			if(stack[top] !== b)
+				throw token_err("Wrong indentation.", p + 1);
 		};
 		var desemi = function(){
 			while(tokens[tokl - 1] && (tokens[tokl - 1].type === INDENT || 
@@ -417,15 +425,12 @@ var lex = exports.lex = function (input, cfgMap) {
 		function (match, comment, opt, nme, strlit, number, symbol, newline, n) {
 			after_space = false;
 			if(comment){
-				noImplicits();
+				//noImplicits();
 			} else if(opt) {
-				noImplicits();
+				//noImplicits();
 				option(opt);
 			} if (nme) {
-				var nty = nameType(match);
-				if(nty === OPERATOR) noImplicits();
-				make(nty, match, n, true);
-				if(nty === OPERATOR) contt = true;
+				make(nameType(match), match, n, true);
 			} else if (strlit) {
 				stringliteral(match, n);
 			} else if (number) {
@@ -434,10 +439,7 @@ var lex = exports.lex = function (input, cfgMap) {
 				p_symbol(match, n);
 			} else if (newline) {
 				var indent = newline.slice(newline.lastIndexOf('\n') + 1);
-				if (!contt) {
-					icomp.process(indent, n);
-				}
-				contt = false;
+				icomp.process(indent, n);
 			}
 			return '';
 		}, function(m, pos){
@@ -502,10 +504,8 @@ exports.parse = function (input, source, config) {
 		var nt, value, t, node;
 		if (!token)
 			throw PE(errorMessage || 'Requires token type#' + type);
-		if (type !== undefined && token.type !== type)
-			throw PE(errorMessage || 'Unexpected token: got' + token);
-		if (test !== undefined && token.value !== test)
-			throw PE(errorMessage || 'Unexpected token: got' + token);
+		if (type !== undefined && token.type !== type || test !== undefined && token.value !== test)
+			throw PE(errorMessage || 'Unexpected token: got' + token + ' instead ' + new Token(type, test));
 		return moveNext();
 	};
 
@@ -675,21 +675,21 @@ exports.parse = function (input, source, config) {
 	}
 
 	// Function body: 
-	//		"{" statements "}"
+	//		"{" expression "}"
 	var functionBody = function (p) {
-		advance(STARTBRACE, CRSTART);
+		advance(OPEN, CRSTART);
 		var parameters = p || new Node(nt.PARAMETERS, { names: [], anames: [] });
-		if(tokenIs(THEN)) { // {|args| } form
+		if(tokenIs(PIPE)) { // {|args| } form
 			if(p)
 				throw PE('Attempting to add parameters to a parameter-given function');
-			advance(THEN);
+			advance(PIPE);
 			parameters.names = parlist();
-			advance(THEN);
+			advance(PIPE);
 		};
 		var code = new Node(nt.SCRIPT, {
 			content:[new Node(nt.RETURN, {expression: expression()})]
 		});
-		advance(ENDBRACE, CREND);
+		advance(CLOSE, CREND);
 		return new Node(nt.FUNCTION, { parameters: parameters, code: code });
 	};
 	// Function body using
@@ -732,10 +732,10 @@ exports.parse = function (input, source, config) {
 	// "function" [Parameters] FunctionBody
 	var functionLiteral = function () {
 		var f, p;
-		if (tokenIs(STARTBRACE, RDSTART)) {
+		if (tokenIs(OPEN, RDSTART)) {
 			p = parameters();
 		};
-		if (tokenIs(STARTBRACE, RDSTART)) { // currying arguments
+		if (tokenIs(OPEN, RDSTART)) { // currying arguments
 			f = curryBody(p);
 		} else if (tokenIs(COLON) || tokenIs(ASSIGN, '=')) {
 			f = blockBody(p);
@@ -783,11 +783,11 @@ exports.parse = function (input, source, config) {
 
 	var parameters = function () {
 		var arr = [];
-		advance(STARTBRACE, RDSTART);
-		if (!tokenIs(ENDBRACE, RDEND)) {
+		advance(OPEN, RDSTART);
+		if (!tokenIs(CLOSE, RDEND)) {
 			arr = parlist();
 		};
-		advance(ENDBRACE, RDEND);
+		advance(CLOSE, RDEND);
 		ensure(!HAS_DUPL(arr), 'Parameter list contains duplicate');
 		return new Node(nt.PARAMETERS, { names: arr });
 	};
@@ -832,9 +832,9 @@ exports.parse = function (input, source, config) {
 
 	// object
 	var objectLiteral = function () {
-		advance(STARTBRACE, SQSTART);
+		advance(OPEN, SQSTART);
 		var node = new Node(nt.OBJECT);
-		if (tokenIs(ENDBRACE, SQEND)) {
+		if (tokenIs(CLOSE, SQEND)) {
 			node.args = [];
 		} else if (tokenIs(COMMA)) {
 			advance();
@@ -848,7 +848,7 @@ exports.parse = function (input, source, config) {
 		} else {
 			argList(node);
 		}
-		advance(ENDBRACE, SQEND);
+		advance(CLOSE, SQEND);
 		if(!node.nameused){
 			node.type = nt.ARRAY
 		};
@@ -860,7 +860,7 @@ exports.parse = function (input, source, config) {
 	// let(assignments): 
 	//     statements
 	var letExpr = function(){
-		advance(STARTBRACE, RDSTART);
+		advance(OPEN, RDSTART);
 		var vars = [], args = [];
 		do {
 			var nm = lname();
@@ -874,7 +874,7 @@ exports.parse = function (input, source, config) {
 			if(!tokenIs(COMMA)) break;
 				else advance();
 		} while(true);
-		var p = advance(ENDBRACE, RDEND);
+		var p = advance(CLOSE, RDEND);
 		var s = (tokenIs(LAMBDA) ? continueLambdaExpression : blockBody)(new Node(nt.PARAMETER, {names: vars}));
 
 		return new Node(nt.CALL, {
@@ -885,17 +885,21 @@ exports.parse = function (input, source, config) {
 	};
 
 	var groupLike = function(){
-		if(nextIs(ENDBRACE, RDEND) || nextIs(ID) && (shiftIs(2, ENDBRACE, RDEND) && shiftIs(3, LAMBDA) || shiftIs(2, COMMA)))
+		if(nextIs(CLOSE, RDEND) || nextIs(ID) && (shiftIs(2, CLOSE, RDEND) && shiftIs(3, LAMBDA) || shiftIs(2, COMMA)))
 			return lambdaExpression();
 		else {
 			var state = saveState();
 			try {
-				advance(STARTBRACE, RDSTART);
+				advance(OPEN, RDSTART);
 				var r = expression();
-				advance(ENDBRACE, RDEND);
+				advance(CLOSE, RDEND);
 			} catch(e) {
 				loadState(state);
-				return lambdaExpression()
+				try {
+					var s = lambdaExpression()
+				} catch(e2) {
+					throw e
+				}
 			};
 			if(tokenIs(LAMBDA)){
 				loadState(state);
@@ -930,7 +934,7 @@ exports.parse = function (input, source, config) {
 			case LET:
 				advance();
 				return letExpr();
-			case STARTBRACE:
+			case OPEN:
 				if (token.value === SQSTART) {
 					return objectLiteral();
 				} else if (token.value === RDSTART) {
@@ -984,10 +988,10 @@ exports.parse = function (input, source, config) {
 			return new Node(nt.MEMBER, { left: new Node(nt.MEMBER, {left: left, right: 'prototype'}), right: right });
 		} else {
 			advance();
-			if (tokenIs(STARTBRACE, SQSTART)) {  // .[ Expressuib ]  format
+			if (tokenIs(OPEN, SQSTART)) {  // .[ Expressuib ]  format
 				advance();
 				right = callItem();
-				advance(ENDBRACE, SQEND);
+				advance(CLOSE, SQEND);
 				return new Node(nt.ITEM, { left: left, right: right });
 			} else if (tokenIs(STRING)) {
 				right = literal();
@@ -1001,7 +1005,7 @@ exports.parse = function (input, source, config) {
 	var member = function () {
 		var m = primary();
 		// a.b.[e1].c[e2]			...
-		while (tokenIs(DOT) || tokenIs(STARTBRACE, SQSTART) && !token.spaced || tokenIs(PROTOMEMBER))
+		while (tokenIs(DOT) || tokenIs(OPEN, SQSTART) && !token.spaced || tokenIs(PROTOMEMBER))
 			if (tokenIs(DOT) || tokenIs(PROTOMEMBER)) {
 				m = memberitem(m);
 			} else {
@@ -1010,33 +1014,33 @@ exports.parse = function (input, source, config) {
 					left: m,
 					right: callItem()
 				});
-				advance(ENDBRACE, SQEND);
+				advance(CLOSE, SQEND);
 			};
 		return m;
 	};
 	var completeCallExpression = function(m){
-		out: while (tokenIs(STARTBRACE) && !token.spaced || tokenIs(DOT) || tokenIs(EXCLAM) || tokenIs(PROTOMEMBER)) {
+		out: while (tokenIs(OPEN) && !token.spaced || tokenIs(DOT) || tokenIs(EXCLAM) || tokenIs(PROTOMEMBER)) {
 			switch (token.type) {
 				case EXCLAM:
 					var m = new Node(nt.WAIT, { expression: m });
 					advance();
 					continue;
-				case STARTBRACE:
+				case OPEN:
 					if (token.value === RDSTART) { // invocation f(a,b,c...)
 						advance();
 						m = new Node(nt.CALL, {
 							func: m
 						});
-						if (tokenIs(ENDBRACE,RDEND)) { m.args = []; advance(); continue; };
-						var unfinished = argList(m, false, ENDBRACE, RDEND);
-						advance(ENDBRACE, RDEND);
+						if (tokenIs(CLOSE,RDEND)) { m.args = []; advance(); continue; };
+						var unfinished = argList(m, false, CLOSE, RDEND);
+						advance(CLOSE, RDEND);
 						while(unfinished){
 							unfinished = false
-							if(tokenIs(STARTBRACE, RDSTART)){
+							if(tokenIs(OPEN, RDSTART)){
 								advance();
-								argList(m, false, ENDBRACE, RDEND);
-								unfinished = advance(ENDBRACE, RDEND)
-							} else if (tokenIs(STARTBRACE, CRSTART)){
+								argList(m, false, CLOSE, RDEND);
+								unfinished = advance(CLOSE, RDEND)
+							} else if (tokenIs(OPEN, CRSTART)){
 								m.args.push(functionBody());
 								m.names.push(null);
 							}
@@ -1049,7 +1053,7 @@ exports.parse = function (input, source, config) {
 							left: m,
 							right: callItem()
 						});
-						advance(ENDBRACE, SQEND);
+						advance(CLOSE, SQEND);
 					} else if (token.value === CRSTART){
 						m = wrapCall(new Node(nt.CALL, {
 							func: m,
@@ -1243,8 +1247,8 @@ exports.parse = function (input, source, config) {
 		check[WHEN] = 1;
 		check[OTHERWISE] = 1;
 		check[SEMICOLON] = 1;
-		check[ENDBRACE] = 1;
-		check[THEN] = 1;
+		check[CLOSE] = 1;
+		check[PIPE] = 1;
 		check[IF] = 1;
 		check[COMMA] = 1;
 		check[COLON] = 1;
@@ -1286,15 +1290,25 @@ exports.parse = function (input, source, config) {
 
 	}();
 
+	var singleExpression = function(c){
+		if(tokenIs(OPERATOR)){ // f + g
+			c = operatorPiece(c, unary);
+		} else { // f g h
+			c = omissionCall(c);
+		};
+		return c;
+	}
+
 	var expression = function () {
 		// expression.
 		// following specifics are supported:
 		// - Omissioned calls
 		// - "then" syntax for chained calls
-		var right, c = unary();
+		var c = unary();
 		if (tokenIs(ASSIGN, '=') || ASSIGNIS()){
 			var _v = token.value;
-			ensure(c.type === nt.VARIABLE || c.type === nt.ITEM || c.type === nt.MEMBER || c.type === nt.MEMBERREFLECT || c.type === nt.TEMPVAR,
+			ensure(c.type === nt.VARIABLE || c.type === nt.ITEM ||
+			       c.type === nt.MEMBER || c.type === nt.MEMBERREFLECT || c.type === nt.TEMPVAR,
 					"Invalid assignment");
 			advance();
 			return new Node(nt.ASSIGN, {
@@ -1306,60 +1320,45 @@ exports.parse = function (input, source, config) {
 				position: c.position
 			});
 		};
-
-		var method, isOmission = false, curry = false, pipelike = false;
-		if(tokenIs(OPERATOR)){ // f + g
-			c = operatorPiece(c, unary);
-			isOmission = false
-		} else { // f g h
-			c = omissionCall(c);
-		}
-
-		// possible pipelines
-
-		while(tokenIs(THEN)){
+		c = singleExpression(c);
+		while(tokenIs(PIPE)){
 			advance();
-			isOmission = false;
 
 			if (tokenIs(DOT)) {
 				// |.name chaining
 				advance(DOT);
 				ensure(token && token.isName, 'Missing identifier for Chain invocation');
-				method = name();
 				c = new Node(nt.CALL, {
 					func: new Node(nt.MEMBER, {
 						left: c,
-						right: method
+						right: name()
 					}),
 					args: [],
 					names: []
 				});
 			} else {
 				// pipeline
-				method = callExpression();
 				c = new Node(nt.CALL, {
-					func: method,
+					func: callExpression(),
 					args: [c],
 					names: [null],
 					pipeline: true
 				});
 			};
-			if(tokenIs(THEN)) continue;
+			if(tokenIs(PIPE)) continue;
 			if(isExpFin()) break;
 
 			argList(c, true);
 			c = wrapCall(c);
 		};
 		
-		c.pipelike = false;
-
 		if(tokenIs(IF)){
-			advance(); advance(STARTBRACE, RDSTART);
+			advance(); advance(OPEN, RDSTART);
 			c = new Node(nt.CONDITIONAL, {
+				condition: expression(),
 				thenPart: c
 			});
-			c.condition = expression();
-			advance(ENDBRACE, RDEND);
+			advance(CLOSE, RDEND);
 			if(tokenIs(COMMA)){
 				advance();
 				c.elsePart = expression()
@@ -1368,6 +1367,7 @@ exports.parse = function (input, source, config) {
 			}
 		};
 
+		ensure(isExpFin(), 'Unexpected Expression ending');
 		return c;
 	};
 	var callItem = function(omit){
@@ -1388,10 +1388,10 @@ exports.parse = function (input, source, config) {
 
 
 	var stover = function () {
-		return !token || (token.type === SEMICOLON || token.type === END || token.type === ENDBRACE && token.value === CREND || token.type === OUTDENT);
+		return !token || (token.type === SEMICOLON || token.type === END || token.type === CLOSE && token.value === CREND || token.type === OUTDENT);
 	}
 	var nextstover = function () {
-		return !next || (next.type === SEMICOLON || next.type === END || next.type === ENDBRACE && next.value === CREND || next.type === OUTDENT);
+		return !next || (next.type === SEMICOLON || next.type === END || next.type === CLOSE && next.value === CREND || next.type === OUTDENT);
 	}
 	var endS = false;
 	var stmtover = function(){endS = true}
@@ -1428,15 +1428,14 @@ exports.parse = function (input, source, config) {
 			case ELSE:
 			case OTHERWISE:
 			case WHEN:
-				throw PE('Unobtained END,ELSE,WHEN or OTNERWISE');
+			case CLOSE:
+				throw PE('Unexpected statement symbol');
 			case VAR:
 				advance();
 				return varstmt();
 			case DEF:
 				advance();
 				return defstmt();
-			case ENDBRACE:
-				return;
 			case PASS:
 				advance(PASS);
 				return;
@@ -1479,12 +1478,12 @@ exports.parse = function (input, source, config) {
 		var shift = 0;
 		while(true){
 			// matches `(`
-			if(!shiftIs(shift, STARTBRACE, RDSTART)) 
+			if(!shiftIs(shift, OPEN, RDSTART)) 
 				return false;
 			else
 				shift++;
 
-			if(shiftIs(shift, ENDBRACE, RDEND)) 
+			if(shiftIs(shift, CLOSE, RDEND)) 
 				shift++
 			else
 				while(true){
@@ -1494,7 +1493,7 @@ exports.parse = function (input, source, config) {
 					// if there is a `=`, return true
 					if(shiftIs(shift, ASSIGN, '=')) return tSpecific ? false : DEF_FUNCTIONAL;
 					// if there is a `(`, break
-					if(shiftIs(shift, ENDBRACE, RDEND)) {shift++; break}
+					if(shiftIs(shift, CLOSE, RDEND)) {shift++; break}
 					// then loop is there is a `,`
 					else if (shiftIs(shift, COMMA)) shift++;
 					else return false;
@@ -1504,7 +1503,7 @@ exports.parse = function (input, source, config) {
 			} else {
 				if(shiftIs(shift, ASSIGN, '=') || shiftIs(shift, COLON) || shiftIs(shift, LAMBDA))
 					return DEF_FUNCTIONAL
-				else if(shiftIs(shift, STARTBRACE, RDSTART)) { }
+				else if(shiftIs(shift, OPEN, RDSTART)) { }
 				else return false;
 			};
 		};
@@ -1572,16 +1571,6 @@ exports.parse = function (input, source, config) {
 		}
 		return n;
 	};
-	var ifaffix = function(given){
-		if(tokenIs(IF)){
-			advance(IF);
-			return new Node(nt.IF, {
-				condition: callItem(), 
-				thenPart: given,
-				exprStmtQ: given.exprStmtQ
-			});
-		} else return given;
-	};
 
 	var whilestmt = function () {
 		advance(WHILE);
@@ -1597,6 +1586,7 @@ exports.parse = function (input, source, config) {
 		var n = new Node(nt.REPEAT, {
 			body: block()
 		});
+		stripSemicolons();
 		advance(UNTIL);
 		n.condition = expression();
 		return n;
@@ -1604,9 +1594,9 @@ exports.parse = function (input, source, config) {
 	var forstmt = function () {
 		var node;
 		advance(FOR);
-		if(tokenIs(STARTBRACE, RDSTART)){
+		if(tokenIs(OPEN, RDSTART)){
 			node = new Node(nt.FOR);
-			advance(STARTBRACE, RDSTART);
+			advance(OPEN, RDSTART);
 			ensure(token);
 			if (token.type !== SEMICOLON) {
 				if (token.type === VAR) {
@@ -1623,11 +1613,11 @@ exports.parse = function (input, source, config) {
 				throw PE('The condition of a FOR loop mustn\'t be empty.');
 			}
 			advance(SEMICOLON);
-			if (token.type !== ENDBRACE && token.value !== RDEND) {
+			if (token.type !== CLOSE && token.value !== RDEND) {
 				node.step = expression();
 			};
 
-			advance(ENDBRACE, RDEND);
+			advance(CLOSE, RDEND);
 		} else {
 			node = new Node(nt.FORIN);
 			var declQ = false;
