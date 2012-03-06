@@ -155,7 +155,7 @@ exports.Generator = function(g_envs, g_config){
 			if(p > ep) ep = p
 		}
 		return function(){
-			var r = "/*@LFC-DEBUG " + sp + "," + ep + "@*/" ;
+			var r = "//@ - MOEMAP - " + sp + " -- " + ep;
 			sp = ep
 			return r;
 		}
@@ -279,7 +279,6 @@ exports.Generator = function(g_envs, g_config){
 		} else {
 			r = '{!UNKNOWN}';
 		};
-		if(node.position) walkedPosition(node.position);
 		return r;
 	};
 
@@ -626,8 +625,11 @@ exports.Generator = function(g_envs, g_config){
 		var a = [];
 		for (var i = 0; i < n.content.length; i++) {
 			if (n.content[i]){
+				if(n.content[i].begins){
+					walkedPosition(n.content[i].begins);
+					a.push(flushLines());
+				}
 				a.push(transform(n.content[i]));
-				a.push(flushLines());
 			}
 		}
 		return JOIN_STMTS(a)
@@ -1066,9 +1068,12 @@ exports.Generator = function(g_envs, g_config){
 			var gens;
 			for (var i = 0; i < n.content.length; i++){
 				if (n.content[i]){
+					if(n.content[i].begins){
+						walkedPosition(n.content[i].begins);
+						ps(flushLines());
+					};
 					gens = ct(n.content[i]);
 					if(gens) ps(gens);
-					ps(flushLines())
 				}
 			}
 		});

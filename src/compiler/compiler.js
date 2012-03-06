@@ -93,11 +93,12 @@ var compile = exports.compile = function (source, config) {
 	var generator = Generator(trees, {makeT: makeT});
 	var generatedSource = generator(enter);
 
-	if(source && ast.debugQ){
-		generatedSource = generatedSource.replace(/^\s*\/\*@LFC-DEBUG (\d+),(\d+)@\*\/.*$/gm, function(m, $1, $2){
-			return getSource($1 - 0, $2 - 0).split('\n').filter(function(s){ return !!s })
-				.map(function(s){ return STRIZE('[LFC-DEBUG]: ' + s) + ";" }).join('\n')
+	if(ast.debugQ){
+		generatedSource = generatedSource.replace(/^\s*\/\/@ - MOEMAP - (\d+) -- (\d+).*/gm, function(m, $1, $2){
+			return getSource($1 - 0, $2 - 0).replace(/^/gm, '//MoeMap//') .replace(/^\/\/MoeMap\/\/[ \t]*$/gm, '');
 		})
+	} else {
+		generatedSource = generatedSource.replace(/^\s*\/\/.*\n/gm, '');
 	}
 
 	return {

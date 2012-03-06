@@ -525,6 +525,12 @@ exports.parse = function (input, source, config) {
 	var shiftIs = function (n, t, v) {
 		return tokens[j + n] && tokens[j + n].type === t && (v ? tokens[j + n].value === v : true);
 	};
+	var pos = function(){
+		if(token) 
+			return token.position
+		else 
+			return source.length;
+	}
 
 	// Parse warning and error
 	var PW = lfcrt.PWMeta('LFC', source, function(p){
@@ -1398,8 +1404,14 @@ exports.parse = function (input, source, config) {
 
 
 	var statement =  function(){
+		var begins = pos();
 		var r = statement_r.apply(this, arguments);
+		var ends = pos();
 		stmtover();
+		if(r){
+			r.begins = begins;
+			r.ends = ends;
+		};
 		return r;
 	};
 	var statement_r = function () {
