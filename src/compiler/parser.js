@@ -1004,7 +1004,7 @@ exports.parse = function (input, source, config) {
 		return m;
 	};
 	var completeCallExpression = function(m){
-		out: while (tokenIs(OPEN) && !token.spaced || tokenIs(DOT) || tokenIs(EXCLAM) || tokenIs(PROTOMEMBER)) {
+		out: while (tokenIs(OPEN) && !token.spaced || tokenIs(DOT) || tokenIs(EXCLAM) && !token.spaced || tokenIs(PROTOMEMBER)) {
 			switch (token.type) {
 				case EXCLAM:
 					var m = new Node(nt.WAIT, { expression: m });
