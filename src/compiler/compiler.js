@@ -53,24 +53,51 @@ var compile = exports.compile = function (source, config) {
 	var PW = lfcrt.PWMeta('LFC', source);
 	var PE = lfcrt.PEMeta(PW);
 
-	var getSource = function(){
-		var a = source.split('\n');
-		var remap = [0];
-		a.forEach(function(s){
-			remap.push(remap[remap.length - 1] + s.length + 1)
-		});
-
-		var mins = 0
-
-		return function(s, t){
-			for(var i = mins; i < remap.length; i++) if(remap[i] > s)
-				for(var j = i; i < remap.length; j++) if(remap[j] > t) {
-					mins = j + 1;
-					return source.slice(remap[i - 1], remap[j]).replace(/\s+$/, '')
-				};
+	var sourceSlice = function(p, q){
+		var slice = source.slice(p, q);
+		if(slice.trim()){
+			return slice.replace(/\s+$/, '').replace(/^/gm, '//MoeMap// ') + '\n';
+		} else {
 			return ''
 		}
-	}();
+	}
+	var generateSourceMap = function(generated){
+		var a = [], s = [];
+		generated.replace(/^[ \t]*\/\/@ - MOEMAP -- (\d+).*/gm, function(m, pos){
+			a.push(pos - 0);
+			return m;
+		});
+		a.push(source.length);
+
+		var remap = [0];
+		for(var j = 0; j < source.length; j++)
+			if(source.charAt(j) === '\n')
+				remap.push(j + 1);
+		remap.push(source.length);
+		//console.log(remap);
+
+		//console.log(a.slice(0));
+		// position "rounding"
+		var lastLine = 0;
+		for(var i = 0; i < a.length; i++){
+			while(a[i] >= remap[lastLine + 1]){
+				lastLine ++;
+			}
+			a[i] = remap[lastLine]
+		};
+		for(var i = a.length - 1; i > 1; i--){
+			if(a[i - 1] === a[i - 2])
+				a[i - 1] = a[i];
+		}
+
+		for(var i = 0; i < a.length - 1; i++) 
+			s[i] = sourceSlice(a[i], a[i + 1]);
+
+		i = 0;
+		return generated.replace(/^\s*\/\/@ - MOEMAP -- \d+.*\n/gm, function(){
+			return s[i++];
+		});
+	}
 
 	var makeT = lfcrt.TMaker();
 
@@ -94,11 +121,9 @@ var compile = exports.compile = function (source, config) {
 	var generatedSource = generator(enter);
 
 	if(ast.debugQ){
-		generatedSource = generatedSource.replace(/^\s*\/\/@ - MOEMAP - (\d+) -- (\d+).*/gm, function(m, $1, $2){
-			return getSource($1 - 0, $2 - 0).replace(/^/gm, '//MoeMap//') .replace(/^\/\/MoeMap\/\/[ \t]*$/gm, '');
-		})
+		generatedSource = generateSourceMap(generatedSource)
 	} else {
-		generatedSource = generatedSource.replace(/^\s*\/\/.*\n/gm, '');
+//		generatedSource = generatedSource.replace(/^\s*\/\/.*\n/gm, '');
 	}
 
 	return {

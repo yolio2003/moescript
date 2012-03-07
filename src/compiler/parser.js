@@ -72,7 +72,6 @@ var ID = TokenType('Identifier'),
 	CONSTANT = TokenType('Constant'),
 	ME = TokenType('This'),
 	MY = TokenType('My sign'),
-	CALLEE = TokenType('Callee'),
 	PROTOMEMBER = TokenType('Prototype member symbol'),
 	ASSIGN = TokenType('Assign symbol'),
 	BACKSLASH = TokenType('Backslash'),
@@ -153,7 +152,6 @@ var nameTypes = {
 	'null': CONSTANT,
 	'undefined': CONSTANT,
 	'arguments': ARGUMENTS,
-	'callee': CALLEE,
 	'do': DO,
 	'try': TRY,
 	'TASK': TASK,
@@ -556,15 +554,12 @@ exports.parse = function (input, source, config) {
 		var lasttype = laststmt.type;
 		if(lasttype === nt.EXPRSTMT){
 			node.content[last] = new Node(nt.RETURN, {
-				expression: laststmt.expression
+				expression: laststmt.expression,
+				begins: laststmt.begins,
+				ends: laststmt.ends
 			})
 		} else {
-			var c = implicitReturnCpst(laststmt, false);
-			if(c){
-				node.content.push(new Node(nt.RETURN, {
-					expression: new Node(nt.TEMPVAR, {name: 'IMPLICIT'})
-				}))
-			}
+			implicitReturnCpst(laststmt, false);
 		}
 		return node;
 	};
@@ -578,21 +573,13 @@ exports.parse = function (input, source, config) {
 			if(node.elsePart){
 				ir(node.elsePart);
 			}
-		} else if(lasttype === nt.PIECEWISE){
+		} else if(lasttype === nt.PIECEWISE || lasttype === nt.CASE){
 			for(var i = 0; i < node.bodies.length; i++){
 				ir(node.bodies[i]);
 			};
 			if(node.otherwise){
 				ir(node.otherwise);
 			};
-		} else if(lasttype === nt.CASE){
-			for(var i = 0; i < node.bodies.length; i++){
-				ir(node.bodies[i]);
-			};
-			if(node.otherwise){
-				ir(node.otherwise);
-			};
-			return true;
 		};
 	};
 
@@ -641,12 +628,6 @@ exports.parse = function (input, source, config) {
 	var thisp = function () {
 		var t = advance(ME);
 		return new Node(nt.THIS);
-	};
-
-	// callee
-	var calleep = function () {
-		var t = advance(CALLEE);
-		return new Node(nt.CALLEE);
 	};
 
 	// 'my' construct: "my" Identifier
@@ -931,8 +912,6 @@ exports.parse = function (input, source, config) {
 				return constant();
 			case ME:
 				return thisp();
-			case CALLEE:
-				return calleep();
 			case MY:
 				return thisprp();
 			case ARGUMENTS:

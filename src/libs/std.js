@@ -197,32 +197,29 @@ var enumeratorSchemata = {
 }
 //: enumerator
 var generateEmitter = function(d){
-	var i = function(f){
-		var v;
-		while((v = d()) instanceof YIELDVALUE)
-			f.apply(null, v.values)			
-	};
-	var r = function(f){
-		if(f instanceof Function){
-			return (r = i)(f)
-		} else {
-			return (r = d)();
+	var emitRestart = d;
+	var emit = function(){
+		var v = emitRestart();
+		if(v.restart && v.values){
+			emitRestart = v.restart;
+			return v;
 		}
 	};
-	return {emit: function(f){return r(f)}}
+	return emit
 };
-reg('enumeration', function(){
-	var f = function(M){
+var enumeration;
+reg('enumeration', enumeration = function(){
+	var f = function(M, t){
 		var G = M.build(enumeratorSchemata);
 		return function(){
-			return generateEmitter(G.apply(this, arguments));
+			return generateEmitter(G.apply(t || this, arguments));
 		}
 	};
 	f.bypass = function(g, restart){
-		return new YIELDVALUE(g)
+		return new YIELDVALUE(g, restart)
 	};
 	f['yield'] = function(restart){
-		return new YIELDVALUE(SLICE(arguments, 0, -1));
+		return new YIELDVALUE(SLICE(arguments, 0, -1), arguments[arguments.length - 1]);
 	};
 	return f;
 }());

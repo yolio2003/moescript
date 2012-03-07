@@ -149,17 +149,9 @@ exports.Generator = function(g_envs, g_config){
 	var makeT = g_config.makeT;
 	
 	var walkedPosition;
-	var flushLines = function(){
-		var sp = 0; var ep = 0;
-		walkedPosition = function(p){
-			if(p > ep) ep = p
-		}
-		return function(){
-			var r = "//@ - MOEMAP - " + sp + " -- " + ep;
-			sp = ep
-			return r;
-		}
-	}();
+	var walkedTo = function(position){
+		return '//@ - MOEMAP -- ' + position;
+	}
 
 	var ungroup = function(node){
 		while(node.type === nt.GROUP)
@@ -314,9 +306,6 @@ exports.Generator = function(g_envs, g_config){
 		var s = e;
 		s.argsOccurs = true;
 		return T_ARGS();
-	});
-	eSchemataDef(nt.CALLEE, function (transform, e) {
-		return C_TEMP(e.fid);
 	});
 	eSchemataDef(nt.PARAMETERS, function () {
 		throw new Error('Unexpected parameter group');
@@ -593,7 +582,6 @@ exports.Generator = function(g_envs, g_config){
 	vmSchemataDef(nt.FORIN, function (nd, e) {
 		var tEnum = makeT(e);
 		var tYV = makeT(e);
-		var tYVC = makeT(e);
 
 		var varAssign;
 		if(this.pass){
@@ -602,11 +590,11 @@ exports.Generator = function(g_envs, g_config){
 			varAssign = C_NAME(this.vars[0]) + '=' + C_TEMP(tYV) + '.value' ; // v[0] = enumerator.value
 			for(var i = 1; i < this.vars.length; i += 1)
 				varAssign += $(', %1 = %2.values[%3]', C_NAME(this.vars[i]), C_TEMP(tYV), i);
+			//varAssign += $(', %1 = %2.restart', C_TEMP(tEnum), C_TEMP(tYV));
 		}
-		var s_enum = $('%3 = (%1 = %2.emit()) instanceof MOE_YIELDVALUE',
+		var s_enum = $('(%1 = %2())',
 			C_TEMP(tYV),
-			C_TEMP(tEnum),
-			C_TEMP(tYVC));
+			C_TEMP(tEnum));
 		return $('%1 = %2.getEnumerator();\nwhile(%3){\n%4;%5}',
 			C_TEMP(tEnum),
 			transform(this.range),
@@ -625,10 +613,7 @@ exports.Generator = function(g_envs, g_config){
 		var a = [];
 		for (var i = 0; i < n.content.length; i++) {
 			if (n.content[i]){
-				if(n.content[i].begins){
-					walkedPosition(n.content[i].begins);
-					a.push(flushLines());
-				}
+				a.push(walkedTo(n.content[i].begins));
 				a.push(transform(n.content[i]));
 			}
 		}
@@ -1001,7 +986,6 @@ exports.Generator = function(g_envs, g_config){
 		oSchemataDef(nt.FORIN, function(node, env){
 			var tEnum = makeT(env);
 			var tYV = makeT(env);
-			var tYVC = makeT(env);
 
 			var varAssign;
 			if(this.pass){
@@ -1011,10 +995,9 @@ exports.Generator = function(g_envs, g_config){
 				for(var i = 1; i < this.vars.length; i += 1)
 					varAssign += $(', %1 = %2.values[%3]', C_NAME(this.vars[i]), C_TEMP(tYV), i);
 			}
-			var s_enum = $('(%3 = (%1 = %2.emit()) instanceof MOE_YIELDVALUE) ? ( %4 ): undefined',
+			var s_enum = $('(%1 = %2()) ? ( %3 ): undefined',
 				C_TEMP(tYV),
 				C_TEMP(tEnum),
-				C_TEMP(tYVC),
 				varAssign);
 
 			var lLoop = label();
@@ -1023,7 +1006,7 @@ exports.Generator = function(g_envs, g_config){
 			ps(C_TEMP(tEnum) + '=' + ct(this.range) + '.getEnumerator()');
 			ps(s_enum);
 			(LABEL(lLoop));
-			ps('if(!(' + C_TEMP(tYVC) + '))' + GOTO(lEnd));
+			ps('if(!(' + C_TEMP(tYV) + '))' + GOTO(lEnd));
 			pct(this.body);
 			ps(s_enum);
 			ps(GOTO(lLoop));
@@ -1068,14 +1051,11 @@ exports.Generator = function(g_envs, g_config){
 			var gens;
 			for (var i = 0; i < n.content.length; i++){
 				if (n.content[i]){
-					if(n.content[i].begins){
-						walkedPosition(n.content[i].begins);
-						ps(flushLines());
-					};
+					ps(walkedTo(n.content[i].begins));
 					gens = ct(n.content[i]);
 					if(gens) ps(gens);
 				}
-			}
+			};
 		});
 
 		// -------------------------------------------------------------

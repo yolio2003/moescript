@@ -101,9 +101,10 @@ var MOE_NINVOKE = function(p, f, displacement, args, asyncQ) {
 var MOE_RMETHOD = function(l, r, m) {
 	return r[m](l)
 }
-var MOE_YIELDVALUE = function(a) {
+var MOE_YIELDVALUE = function(a, restart) {
 	this.value = a[0];
 	this.values = a;
+	this.restart = restart;
 }
 var MOE_RETURNVALUE = function(x) {
 	this.value = x
