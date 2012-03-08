@@ -34,24 +34,6 @@ var reg = function(name, value){
 reg('derive', derive);
 reg('NamedArguments', NamedArguments);
 
-//: composing
-reg('composing', function(obj_){
-	var obj = derive(obj_);
-	for(var i = 1; i < arguments.length; i++){
-		if(arguments[i] instanceof Rule)
-			obj[arguments[i].left] = arguments[i].right;
-		else if (arguments[i] instanceof NamedArguments)
-			NamedArguments.each(arguments[i], function(val, prop){
-				obj[prop] = val
-			});
-		else {
-			for(var each in arguments[i])
-				if(OWNS(arguments[i], each))
-					obj[each] = arguments[i][each];
-		}
-	}
-	return obj;
-});
 reg('endl', '\n');
 
 //: PrimitiveTypes
@@ -153,14 +135,6 @@ reg('operator', {
 	or: 	function (a, b) { return a || b}
 });
 
-//: tee
-reg('tee', function (x, f) {
-	f(x);
-	return x
-});
-
-reg('present', { be : function(x){return x !== undefined && x !== null}});
-reg('absent', { be : function(x){return x === undefined || x === null }});
 reg('YieldValue', {be: function(x){return x instanceof YIELDVALUE}});
 reg('ReturnValue', {be: function(x){return x instanceof RETURNVALUE}});
 
@@ -235,14 +209,16 @@ reg('Enumerable', function(M){
 
 reg('debugger', function(){debugger});
 
-reg('spawn', function(f){
-	var o = {}
-	var r = f.call(o);
-	return r || o;
-});
-
-reg('ness_', function(M){
-	M.build(OBSTRUCTIVE_SCHEMATA_M)()()
+reg('object', function(p, f){
+	var o;
+	if(!f){
+		o = {};
+		f = p
+	} else {
+		o = derive(p);
+	};
+	f.call(o);
+	return o;
 });
 
 //: prototypes

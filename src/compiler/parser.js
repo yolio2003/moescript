@@ -779,8 +779,8 @@ exports.parse = function (input, source, config) {
 		return new Node(nt.PARAMETERS, { names: arr });
 	};
 
-	var argList = function (nc, omit, tfinal, vfinal) {
-		var args = [], names = [], pivot, name, sname, nameused, unfinished;
+	var argList = function (nc, omit) {
+		var args = [], names = [], pivot, name, sname, nameused;
 		do {
 			if (token && (token.isName || tokenIs(STRING)) && nextIs(COLON) && !(shiftIs(2, SEMICOLON) || shiftIs(2, INDENT))) {
 				// named argument
@@ -802,10 +802,6 @@ exports.parse = function (input, source, config) {
 				break
 			};
 			advance();
-			if(tfinal && tokenIs(tfinal, vfinal)) {
-				unfinished = true;
-				break;
-			}
 		} while (true);
 		ensure(!HAS_DUPL(names), 'Named argument list contains duplicate');
 		nc.args = (nc.args || []).concat(args);
@@ -814,7 +810,7 @@ exports.parse = function (input, source, config) {
 
 		ensure(!(nc.func && nc.func.type === nt.CTOR && nc.nameused), 
 			"Unable to use named arguments inside old-style Constructior5 invocation");
-		return unfinished
+		return nc;
 	};
 
 	// object
@@ -1016,20 +1012,9 @@ exports.parse = function (input, source, config) {
 						m = new Node(nt.CALL, {
 							func: m
 						});
-						if (tokenIs(CLOSE,RDEND)) { m.args = []; advance(); continue; };
-						var unfinished = argList(m, false, CLOSE, RDEND);
+						if (tokenIs(CLOSE, RDEND)) { m.args = []; advance(); continue; };
+						argList(m, false);
 						advance(CLOSE, RDEND);
-						while(unfinished){
-							unfinished = false
-							if(tokenIs(OPEN, RDSTART)){
-								advance();
-								argList(m, false, CLOSE, RDEND);
-								unfinished = advance(CLOSE, RDEND)
-							} else if (tokenIs(OPEN, CRSTART)){
-								m.args.push(functionBody());
-								m.names.push(null);
-							}
-						};
 						m = wrapCall(m);
 					} else if (token.value === SQSTART) { // ITEM operator
 						// a[e] === a.item(e)
@@ -1128,7 +1113,8 @@ exports.parse = function (input, source, config) {
 				args: [],
 				names:[]
 			});
-		}	}
+		}
+	};
 
 	var callExpression = function () {
 		return completeCallExpression(primary());
@@ -1282,7 +1268,7 @@ exports.parse = function (input, source, config) {
 			c = omissionCall(c);
 		};
 		return c;
-	}
+	};
 
 	var expression = function () {
 		// expression.
@@ -1308,7 +1294,6 @@ exports.parse = function (input, source, config) {
 		c = singleExpression(c);
 		while(tokenIs(PIPE)){
 			advance();
-
 			if (tokenIs(DOT)) {
 				// |.name chaining
 				advance(DOT);
@@ -1481,7 +1466,7 @@ exports.parse = function (input, source, config) {
 					// matches ID
 					if(!shiftIs(shift, ID)) return false;
 					shift++;
-					// if there is a `=`, return true
+					// if there is a `=` or `:`, return true
 					if(shiftIs(shift, ASSIGN, '=')) return tSpecific ? false : DEF_FUNCTIONAL;
 					// if there is a `(`, break
 					if(shiftIs(shift, CLOSE, RDEND)) {shift++; break}
@@ -1501,6 +1486,7 @@ exports.parse = function (input, source, config) {
 	};
 	var defPartQ = function(){
 		if(tokenIs(ASSIGN, '=')) return DEF_ASSIGNMENT;
+		else if(tokenIs(COLON)) return DEF_FUNCTIONAL;
 		else return parlistQ();
 	};
 

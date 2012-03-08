@@ -66,7 +66,22 @@ Moe 是一种新型的、生成 JavaScript 的新语言。Moe 拥有许多实用
 						['fib', ['-', 'n', '2']]]]]]]
 
 	从上面应该也能看出，Moe 的注释用 `//` 开始到行尾结束。除了 `//`，使用 `--` 也是一样的。（看到 `--` 可以开始注释，你应该就会明白 Moe 里没有 `++` 和 `--` 运算符——你应该用 `+=` 和 `-=`。）除此之外，位于行首（之后不能有任何空白）的 `-!` 用于提供编译器选项，如「变量不声明就报错」就写作「`-! option explicit`」。
+:section{对象}
+	对象的直接量和数组直接量都使用方括弧 `[]`。因而，`[]` 表示空数组，空对象使用复杂些的符号 `[:]` 表示。
 
+	除了直接量也可以使用标准库里的 `object` 函数（适合对性能要求不高、作为配置使用的大型对象）：
+	:*moe
+		def gameConfig = object =>
+		    @player = object =>
+		        @name = "tom"
+		        @type = Human
+		        @level = 1
+		        @weapon = sword
+		        @inventory = [food, food, potion, bomb]
+		    @enemy = object =>
+		        @name = "Dragon"
+		        @type = Dragon
+		        @level = 9
 :section{变量（包括变不了的）}
 	Moe 的变量用 `var` 或者 `def` 声明。`def` 声明出来的东西更接近常量，他们不能被再次赋值。在代码中，应当尽量使用 `def` 定义常量。他们典型的用法是这样：
 	:*moe
@@ -215,7 +230,7 @@ Moe 是一种新型的、生成 JavaScript 的新语言。Moe 拥有许多实用
 			= PipeExpression
 			| IfExpression ifAffix
 		Assignment 
-			= Unary AssignmentOperator IfExpression
+			= Unary AssignmentOperator Expression
 		Expression
 			= Assignment
 			| IfExpression
@@ -270,7 +285,7 @@ Moe 是一种新型的、生成 JavaScript 的新语言。Moe 拥有许多实用
 	
 	`schemata` 是一个对象，定义了一组方法（`break` 和 `return`，以后可能还会增加 `error`）来处理阻塞原语的返回值，区分阻塞原语因为阻塞返回还是真正的返回。在迭代器里，就需要区分两种情形并且对返回值进行不同的处理。（或者说区分 yield 和 return）。`args` 就是在定义时定义的传入的参数表。第三个括弧则用来启动这个阻塞原语。
 
-	通常用来定义阻塞原语的 `def` 后面都会跟些东西修饰编译生成的「裸」原语，比如 `eisa/libs/async` 提供的 `async` 就可以处理绝大多数 JavaScript 库里面的回调：
+	通常用来定义阻塞原语的 `def` 后面都会跟些东西修饰编译生成的「裸」原语，比如 `eisa/libs/async` 提供的 `async` 就可以处理绝大多数 JavaScript 库里面的回调。
 	:*moe
 		def async randPrintNums(n):
 			def tasks = [];
@@ -279,7 +294,6 @@ Moe 是一种新型的、生成 JavaScript 的新语言。Moe 拥有许多实用
 					wait sleep 100 * Math.random()
 					tracel i
 			wait join tasks
-	值得注意的是第三个例子，使用了嵌套的 `async`。
 
 
 :section{链接}
