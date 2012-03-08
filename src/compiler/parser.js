@@ -139,9 +139,7 @@ var nameTypes = {
 	'return': RETURN,
 	'throw': THROW,
 	'break': BREAK,
-	// 'continue': CONTINUE,
 	'label': LABEL,
-	//'end': END,
 	'else': ELSE,
 	'otherwise': OTHERWISE,
 	'var': VAR,
@@ -674,7 +672,7 @@ exports.parse = function (input, source, config) {
 			advance(PIPE);
 		};
 		var code = new Node(nt.SCRIPT, {
-			content:[new Node(nt.RETURN, {expression: expression()})]
+			content:[new Node(nt.RETURN, {expression: assignmentExpression()})]
 		});
 		advance(CLOSE, CREND);
 		return new Node(nt.FUNCTION, { parameters: parameters, code: code });
@@ -844,7 +842,7 @@ exports.parse = function (input, source, config) {
 	//     statements
 	var letExpr = function(){
 		advance(OPEN, RDSTART);
-		var vars = [], args = [];
+		var vars = [], args = [], names = [];
 		do {
 			var nm = lname();
 			if(tokenIs(ASSIGN, "=")){
@@ -853,7 +851,7 @@ exports.parse = function (input, source, config) {
 			} else {
 				var va = new Node(nt.VARIABLE, { name: nm });
 			};
-			vars.push({name: nm}), args.push(va);
+			vars.push({name: nm}), args.push(va), names.push(null);
 			if(!tokenIs(COMMA)) break;
 				else advance();
 		} while(true);
@@ -861,9 +859,9 @@ exports.parse = function (input, source, config) {
 		var s = (tokenIs(LAMBDA) ? continueLambdaExpression : blockBody)(new Node(nt.PARAMETER, {names: vars}));
 
 		return new Node(nt.CALL, {
-			func: s, 
-			args: args,
-			names: args.map(function(){ return null })
+			func: new Node(nt.MEMBER, {left: s, right: 'call'}), 
+			args: [new Node(nt.THIS)].concat(args),
+			names: [null].concat(names)
 		});
 	};
 
@@ -874,7 +872,7 @@ exports.parse = function (input, source, config) {
 			var state = saveState();
 			try {
 				advance(OPEN, RDSTART);
-				var r = expression();
+				var r = assignmentExpression();
 				advance(CLOSE, RDEND);
 			} catch(e) {
 				loadState(state);
@@ -1125,9 +1123,6 @@ exports.parse = function (input, source, config) {
 		if (tokenIs(OPERATOR) && (token.value === '-' || token.value === 'not')) {
 			var t = advance(OPERATOR);
 			return new Node(t.value === '-' ? nt.NEGATIVE : nt.NOT, { operand: callExpression() });
-		} else if (tokenIs(EXCLAM)) {
-			advance();
-			return new Node(nt.NOT, { operand: callExpression() });	
 		} else {
 			return callExpression();
 		}
@@ -1270,28 +1265,10 @@ exports.parse = function (input, source, config) {
 		return c;
 	};
 
-	var expression = function () {
-		// expression.
-		// following specifics are supported:
-		// - Omissioned calls
-		// - "then" syntax for chained calls
-		var c = unary();
-		if (tokenIs(ASSIGN, '=') || ASSIGNIS()){
-			var _v = token.value;
-			ensure(c.type === nt.VARIABLE || c.type === nt.ITEM ||
-			       c.type === nt.MEMBER || c.type === nt.MEMBERREFLECT || c.type === nt.TEMPVAR,
-					"Invalid assignment");
-			advance();
-			return new Node(nt.ASSIGN, {
-				left: c,
-				right: _v === "=" ? expression() : new Node(nt[_v.slice(0, _v.length - 1)], {
-					left: c, 
-					right: expression()
-				}),
-				position: c.position
-			});
-		};
-		c = singleExpression(c);
+	var expression = function (c) {
+		c = singleExpression(c || unary());
+
+		// Pipeline calls
 		while(tokenIs(PIPE)){
 			advance();
 			if (tokenIs(DOT)) {
@@ -1320,8 +1297,8 @@ exports.parse = function (input, source, config) {
 
 			argList(c, true);
 			c = wrapCall(c);
-		};
-		
+		};		
+		// If affix
 		if(tokenIs(IF)){
 			advance(); advance(OPEN, RDSTART);
 			c = new Node(nt.CONDITIONAL, {
@@ -1336,9 +1313,27 @@ exports.parse = function (input, source, config) {
 				c.elsePart = new Node(nt.LITERAL, {value: {map: undefined}});
 			}
 		};
-
-		ensure(isExpFin(), 'Unexpected Expression ending');
 		return c;
+	};
+	var assignmentExpression = function(){
+		var c = unary();
+		if (tokenIs(ASSIGN, '=') || ASSIGNIS()){
+			var _v = token.value;
+			ensure(c.type === nt.VARIABLE || c.type === nt.ITEM ||
+			       c.type === nt.MEMBER || c.type === nt.MEMBERREFLECT || c.type === nt.TEMPVAR,
+					"Invalid assignment");
+			advance();
+			return new Node(nt.ASSIGN, {
+				left: c,
+				right: _v === "=" ? expression() : new Node(nt[_v.slice(0, _v.length - 1)], {
+					left: c, 
+					right: assignmentExpression()
+				}),
+				position: c.position
+			});
+		} else {
+			return expression(c);
+		}
 	};
 	var callItem = function(omit){
 		var node = unary();
@@ -1416,7 +1411,7 @@ exports.parse = function (input, source, config) {
 				advance(PASS);
 				return;
 			default:
-				return new Node(nt.EXPRSTMT, {expression: expression(), exprStmtQ : true});
+				return new Node(nt.EXPRSTMT, {expression: assignmentExpression(), exprStmtQ : true});
 		};
 	};
 	var blocky = function(node){
@@ -1428,7 +1423,7 @@ exports.parse = function (input, source, config) {
 	};
 	var varstmt = function(){
 		if(tokenIs(ID) && (nextIs(COMMA) || nextstover())){
-			return vardecls;
+			return vardecls();
 		} else {
 			return new Node(nt.EXPRSTMT, {expression: varDefinition(false)});
 		};
@@ -1580,18 +1575,18 @@ exports.parse = function (input, source, config) {
 					advance(VAR);
 					node.start = varstmt();
 				} else {
-					node.start = expression();
+					node.start = assignmentExpression();
 				}
 			};
 			advance(SEMICOLON);
 			if (token.type !== SEMICOLON) {
-				node.condition = expression();
+				node.condition = assignmentExpression();
 			} else {
 				throw PE('The condition of a FOR loop mustn\'t be empty.');
 			}
 			advance(SEMICOLON);
 			if (token.type !== CLOSE && token.value !== RDEND) {
-				node.step = expression();
+				node.step = assignmentExpression();
 			};
 
 			advance(CLOSE, RDEND);

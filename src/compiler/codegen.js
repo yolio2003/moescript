@@ -269,7 +269,7 @@ exports.Generator = function(g_envs, g_config){
 		} else if (epSchemata[node.type]) {
 			r = epSchemata[node.type].call(node, transform, env);
 		} else {
-			r = '{!UNKNOWN}';
+			throw node
 		};
 		return r;
 	};
@@ -702,7 +702,7 @@ exports.Generator = function(g_envs, g_config){
 			} else if(epSchemata[node.type]) {
 				return epSchemata[node.type].call(node, expPart, env)
 			} else {
-				return '{!UNKNOWN}';
+				throw node;
 			}
 		};
 		var expPart = function(node){
