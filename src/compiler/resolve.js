@@ -1,9 +1,9 @@
 var moe = require('moe/runtime');
 var MOE_UNIQ = moe.runtime.UNIQ;
 var OWNS = moe.runtime.OWNS;
-var lfcrt = require('./compiler.rt');
-var nt = lfcrt.NodeType;
-var ScopedScript = lfcrt.ScopedScript;
+var moecrt = require('./compiler.rt');
+var nt = moecrt.NodeType;
+var ScopedScript = moecrt.ScopedScript;
 
 exports.resolve = function(ast, cInitVariables, PE, PW, cWarn){
 	var createScopes = function(tree){
@@ -24,7 +24,7 @@ exports.resolve = function(ast, cInitVariables, PE, PW, cWarn){
 				stack.push(s);
 				current = s;
 
-				lfcrt.walkNode(node, fWalk);
+				moecrt.walkNode(node, fWalk);
 				
 				stack.pop();
 				current = stack[stack.length - 1];
@@ -35,7 +35,7 @@ exports.resolve = function(ast, cInitVariables, PE, PW, cWarn){
 				var label = node.name;
 				ensure(!current.labels[label] && current.labels[label] !== 0, 'Unable to re-label a statement');
 				current.labels[label] = node;
-				lfcrt.walkNode(node, fWalk);
+				moecrt.walkNode(node, fWalk);
 				current.labels[label] = 0
 			} else if(node.type === nt.BREAK && node.destination) {
 				ensure(current.labels[name] && current.labels[name].type === nt.LABEL, 
@@ -59,7 +59,7 @@ exports.resolve = function(ast, cInitVariables, PE, PW, cWarn){
 				} else if(node.type === nt.WAIT){
 					current.oProto = true;
 				}; 
-				lfcrt.walkNode(node, fWalk);
+				moecrt.walkNode(node, fWalk);
 			}
 		};
 
@@ -68,7 +68,7 @@ exports.resolve = function(ast, cInitVariables, PE, PW, cWarn){
 		current.code = tree.code;
 		tree.tree = 1;
 
-		lfcrt.walkNode(tree, fWalk);
+		moecrt.walkNode(tree, fWalk);
 		return scopes;
 	};
 
@@ -81,11 +81,11 @@ exports.resolve = function(ast, cInitVariables, PE, PW, cWarn){
 				obs = true;
 				oProtoQ = oProtoQ || node.type === nt.WAIT;
 			};
-			obs = obs || lfcrt.walkNode(node, fWalk);
+			obs = obs || moecrt.walkNode(node, fWalk);
 			if(obs) node.obstructive = true;
 			return obs;
 		};
-		lfcrt.walkNode(scope.code, fWalk);
+		moecrt.walkNode(scope.code, fWalk);
 		if(oProtoQ) {
 			scope.oProto = true;
 			scope.code.obstructive = true
@@ -99,9 +99,9 @@ exports.resolve = function(ast, cInitVariables, PE, PW, cWarn){
 			if(node.type === nt.EXPRSTMT) return;
 			if(node.type === nt.BREAK)
 				throw PE("Break outside a loop statement or CASE statement", node.position);
-			return lfcrt.walkNode(node, fWalk);
+			return moecrt.walkNode(node, fWalk);
 		};
-		lfcrt.walkNode(scope.code, fWalk);
+		moecrt.walkNode(scope.code, fWalk);
 	};
 
 	var checkCallWrap = function(scope){
@@ -109,9 +109,9 @@ exports.resolve = function(ast, cInitVariables, PE, PW, cWarn){
 		var fWalk = function(node){
 			if(node.type === nt.CALLWRAP)
 				throw PE("Invalid CALLWRAP usage", node.position);
-			return lfcrt.walkNode(node, fWalk);
+			return moecrt.walkNode(node, fWalk);
 		};
-		lfcrt.walkNode(scope.code, fWalk);
+		moecrt.walkNode(scope.code, fWalk);
 	};
 
 	var checkFunction = function(s){

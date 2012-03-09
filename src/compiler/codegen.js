@@ -1,7 +1,7 @@
 var moe = require('moe/runtime');
-var lfcrt = require('./compiler.rt');
-var nt = lfcrt.NodeType;
-var ScopedScript = lfcrt.ScopedScript;
+var moecrt = require('./compiler.rt');
+var nt = moecrt.NodeType;
+var ScopedScript = moecrt.ScopedScript;
 
 var MOE_UNIQ = moe.runtime.UNIQ;
 var OWNS = moe.runtime.OWNS;

@@ -19,7 +19,7 @@ var PW_flatLine = function(line){
 	return line.replace(/^\n+|\n+$/g, '').replace(/\t/g, '    ')
 }
 
-var PWMeta = exports.PWMeta = function(prefix, source, positionGetter){
+var PWMeta = exports.PWMeta = function(source, positionGetter){
 	source = '\n' + source + '\n';
 	positionGetter = positionGetter || function(p){ return p == undefined ? source.length : p };
 	return function(message, p){
@@ -34,8 +34,7 @@ var PWMeta = exports.PWMeta = function(prefix, source, positionGetter){
 		var line_front = PW_flatLine(source.slice(sp, pos));
 		var prev_line = PW_flatLine(source.slice(sp_prev, sp));
 		var line = PW_flatLine(source.slice(sp, fp));
-		message = $('[%1] %2 (at line %3)\n] %4\n] %5\n%6---^',
-				prefix,
+		message = $('%1 (at line %2)\n] %3\n] %4\n%5---^',
 				message,
 				lineno,
 				prev_line,

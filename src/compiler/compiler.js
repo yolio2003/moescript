@@ -6,9 +6,9 @@ var moe = require('moe/runtime');
 var MOE_UNIQ = moe.runtime.UNIQ;
 var OWNS = moe.runtime.OWNS;
 
-var lfcrt = require('./compiler.rt');
-var nt = lfcrt.NodeType;
-var ScopedScript = lfcrt.ScopedScript;
+var moecrt = require('./compiler.rt');
+var nt = moecrt.NodeType;
+var ScopedScript = moecrt.ScopedScript;
 
 var lfc_parser = require('./parser');
 
@@ -50,8 +50,8 @@ var compile = exports.compile = function (source, config) {
 		}(cInitVariables)
 	};
 
-	var PW = lfcrt.PWMeta('LFC', source);
-	var PE = lfcrt.PEMeta(PW);
+	var PW = moecrt.PWMeta(source);
+	var PE = moecrt.PEMeta(PW);
 
 	var sourceSlice = function(p, q){
 		var slice = source.slice(p, q);
@@ -99,7 +99,7 @@ var compile = exports.compile = function (source, config) {
 		});
 	}
 
-	var makeT = lfcrt.TMaker();
+	var makeT = moecrt.TMaker();
 
 	//Parse
 	var ast = parse(lex(source, config.optionMaps), source, {initInterator: cInitVariables, makeT: makeT});

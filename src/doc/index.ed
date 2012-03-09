@@ -108,7 +108,7 @@ Moe 是一种新型的、生成 JavaScript 的新语言。Moe 拥有许多实用
 	:*moe
 		def square(x) = x * x   // 简单的函数可以这样定义
 
-		def fill(container, liquid = "water"):
+		def fill(container, liquid = "water"): // 默认参数用等号表示，只能出现在最右。
 			// 使用冒号不生成 return
 			tracel "Fill " + container + " with " + liquid
 
@@ -146,17 +146,11 @@ Moe 是一种新型的、生成 JavaScript 的新语言。Moe 拥有许多实用
 	另一种方法是使用 `:>` 或 `=>`，构造 Lambda 表达式，前接参数表，后接函数体。规律和 `function` 里的用法很相似，`:>` 必须手工写入 `return` 语句，`=>` 会自动生成 `return`。`=>` 经常用于定义一些小函数。
 
 	:*moe
-		list.map (term, index) => term * index
+		list.map (term, index) => term * index // 没有缩进的话，Lambda 表达式会「尽可能的长」
 		$(element).bind "click", (event) :>
 			tracel event
-	
-	Lambda 表达式的右端会尽可能的长。当然，如果出现像下面的这种情况，您的代码已经很难读懂，应当加入括弧来使之清晰。
-	:*moe
-		f (x) :> g x, 1
-		// 等价于
-		f ((x) :> g x, 1),
 
-	Lambda 表达式的 `:>` 和 `=>` 也可以没有参数表，作用和 `():>` 相同。使用回调的时候这种形式会很管用。
+	Lambda 表达式的 `:>` 和 `=>` 也可以没有参数表，作用和 `() :>` 相同。使用回调的时候这种形式会有用。
 	:*moe
 		def sleep(dt, f) = setTimeout(f, dt)
 		sleep 1000, :>
@@ -173,6 +167,7 @@ Moe 是一种新型的、生成 JavaScript 的新语言。Moe 拥有许多实用
 
 		var num = 10;
 		repeatWhile {num -= 1}, {|j| tracel j}
+
 :section{调用函数}
 	调用函数最直接的方法是使用圆括号，圆括号和之前的被调用函数之间**不能有空白**：
 	:*moe

@@ -3,7 +3,7 @@
 //	:info:			Parser for lofn
 
 var moe = require('moe/runtime');
-var lfcrt = require('./compiler.rt');
+var moecrt = require('./compiler.rt');
 
 var $ = function(template, items_){
 	var a = arguments;
@@ -12,8 +12,8 @@ var $ = function(template, items_){
 	});
 };
 
-var NodeType = lfcrt.NodeType;
-var MakeNode = lfcrt.MakeNode;
+var NodeType = moecrt.NodeType;
+var MakeNode = moecrt.MakeNode;
 
 var tokenTypeStrs = [];
 var TokenType = function(){
@@ -64,6 +64,7 @@ var ID = TokenType('Identifier'),
 	WAIT = TokenType('Wait'),
 	USING = TokenType('Using'),
 	LET = TokenType('Let'),
+	WHERE = TokenType('Where'),
 	DEF = TokenType('Def'),
 	RESEND = TokenType('Resend'),
 	NEW = TokenType('New'),
@@ -154,6 +155,7 @@ var nameTypes = {
 	'try': TRY,
 	'TASK': TASK,
 	'let': LET,
+	'where': WHERE,
 	'pass': PASS,
 	'wait': WAIT,
 	'resend': RESEND,
@@ -220,7 +222,7 @@ var symbolType = function (m) {
 var lex = exports.lex = function (input, cfgMap) {
 	input = input + "\n\n\n"
 
-	var token_err = lfcrt.PEMeta(lfcrt.PWMeta("LFC", input));
+	var token_err = moecrt.PEMeta(moecrt.PWMeta(input));
 
 	var tokens = [], tokl = 0, options = {}, SPACEQ = {' ': true, '\t': true};
 	var output = {};
@@ -529,10 +531,10 @@ exports.parse = function (input, source, config) {
 	}
 
 	// Parse warning and error
-	var PW = lfcrt.PWMeta('LFC', source, function(p){
+	var PW = moecrt.PWMeta(source, function(p){
 		return p == undefined ? (token ? token.position : source.length) : p
 	});
-	var PE = lfcrt.PEMeta(PW);
+	var PE = moecrt.PEMeta(PW);
 	// Assert
 	var ensure = function(c, m, p){
 		if(!c) throw PE(m, p);
@@ -657,11 +659,37 @@ exports.parse = function (input, source, config) {
 			}
 		};
 		c.content.unshift(last);
-	}
+	};
 
-	// Function body: 
-	//		"{" expression "}"
-	var functionBody = function (p) {
+	var functionLiteral = function () {
+		var f, p;
+		if (tokenIs(OPEN, RDSTART)) {
+			p = parameters();
+		};
+		if (tokenIs(OPEN, RDSTART)) { // currying arguments
+			f = curryBody(p);
+		} else if (tokenIs(COLON) || tokenIs(ASSIGN, '=')) {
+			f = blockBody(p);
+		} else if (tokenIs(LAMBDA)){
+			f = continueLambdaExpression(p);
+		} else {
+			f = expressionBody(p);
+		};
+		return f;
+	};
+
+	var lambdaExpression = function(){
+		if(tokenIs(ID)){
+			var p = new Node(nt.PARAMETERS, {names: [{name: lname()}]});
+		} else if(tokenIs(LAMBDA)) {
+			var p = null;
+		} else {
+			var p = parameters();
+		}
+		var f = continueLambdaExpression(p);
+		return f;
+	};
+	var expressionBody = function (p) {
 		advance(OPEN, CRSTART);
 		var parameters = p || new Node(nt.PARAMETERS, { names: [], anames: [] });
 		if(tokenIs(PIPE)) { // {|args| } form
@@ -677,9 +705,7 @@ exports.parse = function (input, source, config) {
 		advance(CLOSE, CREND);
 		return new Node(nt.FUNCTION, { parameters: parameters, code: code });
 	};
-	// Function body using
-	//		COLON
-	//			statements
+
 	var blockBody = function (p) {
 		var t = advance();
 		var parameters = p || new Node(nt.PARAMETERS, { names: [], anames: [] });
@@ -690,15 +716,15 @@ exports.parse = function (input, source, config) {
 		return new Node(nt.FUNCTION, {parameters: parameters, code: code});
 	};
 
-	var curryBody = function (p, acceptAssignQ) {
+	var curryBody = function (p) {
 		var parameters = p;
 		var code = new Node(nt.SCRIPT, {
-			content: [new Node(nt.RETURN, { expression: functionLiteral(acceptAssignQ) })]
+			content: [new Node(nt.RETURN, { expression: functionLiteral() })]
 		});
 		return new Node(nt.FUNCTION, {parameters: parameters, code: code});
 	};
 
-	// Lambda content
+
 	var continueLambdaExpression = function (p) {
 		var t = advance(LAMBDA);
 		var parameters = p || new Node(nt.PARAMETERS, { names: [], anames: [] });
@@ -712,44 +738,6 @@ exports.parse = function (input, source, config) {
 		});
 	};
 
-	//@functionLiteral
-	// Function literal
-	// "function" [Parameters] FunctionBody
-	var functionLiteral = function () {
-		var f, p;
-		if (tokenIs(OPEN, RDSTART)) {
-			p = parameters();
-		};
-		if (tokenIs(OPEN, RDSTART)) { // currying arguments
-			f = curryBody(p);
-		} else if (tokenIs(COLON) || tokenIs(ASSIGN, '=')) {
-			f = blockBody(p);
-		} else if (tokenIs(LAMBDA)){
-			f = continueLambdaExpression(p);
-		} else {
-			f = functionBody(p);
-		};
-		return f;
-	};
-
-	var lambdaExpression = function(){
-		if(tokenIs(ID)){
-			var p = new Node(nt.PARAMETERS, {names: [{name: lname()}]});
-		} else if(tokenIs(LAMBDA)) {
-			var p = null;
-		} else {
-			var p = parameters();
-		}
-		var f = continueLambdaExpression(p);
-		return f;
-	}
-
-	// Parameters ->
-	// "(" Parameter { "," Parameter } ")"
-	// Parameter ->
-	// Identifier [ = Expression ]
-
-	// Only parameters explicitly defined names can be a named parameter
 	var parlist = function(){
 		var arr = [];
 		var dfvArgQ = false;
@@ -919,7 +907,7 @@ exports.parse = function (input, source, config) {
 				} else if (token.value === RDSTART) {
 					return groupLike();
 				} else if (token.value === CRSTART) {
-					return functionBody();
+					return expressionBody();
 				}
 			case SHARP:
 				// # form
@@ -1025,7 +1013,7 @@ exports.parse = function (input, source, config) {
 					} else if (token.value === CRSTART){
 						m = wrapCall(new Node(nt.CALL, {
 							func: m,
-							args:[functionBody()],
+							args:[expressionBody()],
 							names: [null]
 						}));
 					} else {
@@ -1216,6 +1204,7 @@ exports.parse = function (input, source, config) {
 		check[CLOSE] = 1;
 		check[PIPE] = 1;
 		check[IF] = 1;
+		check[WHERE] = 1;
 		check[COMMA] = 1;
 		check[COLON] = 1;
 		check[DOT] = 1;
@@ -1266,18 +1255,20 @@ exports.parse = function (input, source, config) {
 	};
 
 	var expression = function (c) {
-		c = singleExpression(c || unary());
-
+		return whereClausize(ifClausize(pipeClausize(singleExpression(c || unary()))));
+	};
+	var pipeClausize = function(node){
 		// Pipeline calls
-		while(tokenIs(PIPE)){
+		if(tokenIs(PIPE)){
 			advance();
+			var c;
 			if (tokenIs(DOT)) {
 				// |.name chaining
 				advance(DOT);
 				ensure(token && token.isName, 'Missing identifier for Chain invocation');
 				c = new Node(nt.CALL, {
 					func: new Node(nt.MEMBER, {
-						left: c,
+						left: node,
 						right: name()
 					}),
 					args: [],
@@ -1287,23 +1278,25 @@ exports.parse = function (input, source, config) {
 				// pipeline
 				c = new Node(nt.CALL, {
 					func: callExpression(),
-					args: [c],
+					args: [node],
 					names: [null],
 					pipeline: true
 				});
 			};
-			if(tokenIs(PIPE)) continue;
-			if(isExpFin()) break;
-
+			if(isExpFin(c)) return c;
 			argList(c, true);
-			c = wrapCall(c);
-		};		
+			return pipeClausize(wrapCall(c));
+		} else {
+			return node;
+		}
+	};
+	var ifClausize = function(node){
 		// If affix
 		if(tokenIs(IF)){
 			advance(); advance(OPEN, RDSTART);
 			c = new Node(nt.CONDITIONAL, {
 				condition: expression(),
-				thenPart: c
+				thenPart: node
 			});
 			advance(CLOSE, RDEND);
 			if(tokenIs(COMMA)){
@@ -1311,10 +1304,53 @@ exports.parse = function (input, source, config) {
 				c.elsePart = expression()
 			} else {
 				c.elsePart = new Node(nt.LITERAL, {value: {map: undefined}});
-			}
-		};
-		return c;
-	};
+			};
+			return c;
+		} else {
+			return node;
+		}
+	}
+	var whereClausize = function(node){
+		stripSemicolons();
+		if(tokenIs(WHERE)) {
+			advance(WHERE);
+			advance(COLON);
+			advance(INDENT);
+			var stmts = [];
+			while(stripSemicolons(), token && !tokenIs(OUTDENT)){
+				var bind = variable();
+				var right;
+				if(tokenIs(ASSIGN, '=')){
+					advance(ASSIGN, '=');
+					right = expression();
+				} else {
+					right = functionLiteral(true);
+				}
+				stmts.push(new Node(nt.EXPRSTMT, {
+					expression: new Node(nt.ASSIGN, {
+						left: bind,
+						right: right
+					}),
+					declareVariable: bind.name
+				}))
+			};
+			advance(OUTDENT);
+			stmts.push(new Node(nt.RETURN, { expression: node }));
+			return new Node(nt.CALL, {
+				func: new Node(nt.MEMBER, {
+					left: new Node(nt.FUNCTION, {
+						parameters: new Node(nt.PARAMETERS, {names: []}),
+						code: new Node(nt.SCRIPT, {content: stmts})
+					}),
+					right: 'call'
+				}),
+				args: [new Node(nt.THIS)],
+				names: [null]
+			})
+		} else {
+			return node;
+		}
+	}
 	var assignmentExpression = function(){
 		var c = unary();
 		if (tokenIs(ASSIGN, '=') || ASSIGNIS()){
