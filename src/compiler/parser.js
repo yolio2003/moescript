@@ -377,9 +377,11 @@ var lex = exports.lex = function (input, cfgMap) {
 				return;
 			} else {
 				if(c === 1){
+					// indent
 					stack[++top] = b;
 					make(INDENT, 0, p);
 				} else if(c === -1) {
+					// outdent
 					dump(b, p);
 				} else {
 					make(SEMICOLON, 0, p);
@@ -400,8 +402,11 @@ var lex = exports.lex = function (input, cfgMap) {
 				}
 				make(SEMICOLON, 0, p);
 			};
-			if(stack[top] !== b)
-				throw token_err("Wrong indentation.", p + 1);
+			if(stack[top] < b) {
+					// indent
+					stack[++top] = b;
+					make(INDENT, 0, p);
+			};
 		};
 		var desemi = function(){
 			while(tokens[tokl - 1] && (tokens[tokl - 1].type === INDENT || 
@@ -1309,30 +1314,36 @@ exports.parse = function (input, source, config) {
 		} else {
 			return node;
 		}
+	};
+	var whereClause = function(){
+		var bind = variable();
+		var right;
+		if(tokenIs(ASSIGN, '=')){
+			advance(ASSIGN, '=');
+			right = expression();
+		} else {
+			right = functionLiteral(true);
+		};
+		stripSemicolons();
+		return new Node(nt.EXPRSTMT, {
+			expression: new Node(nt.ASSIGN, {
+				left: bind,
+				right: right
+			}),
+			declareVariable: bind.name
+		});
 	}
 	var whereClausize = function(node){
 		stripSemicolons();
 		if(tokenIs(WHERE)) {
 			advance(WHERE);
-			advance(COLON);
-			advance(INDENT);
 			var stmts = [];
-			while(stripSemicolons(), token && !tokenIs(OUTDENT)){
-				var bind = variable();
-				var right;
-				if(tokenIs(ASSIGN, '=')){
-					advance(ASSIGN, '=');
-					right = expression();
-				} else {
-					right = functionLiteral(true);
-				}
-				stmts.push(new Node(nt.EXPRSTMT, {
-					expression: new Node(nt.ASSIGN, {
-						left: bind,
-						right: right
-					}),
-					declareVariable: bind.name
-				}))
+			if(tokenIs(ID)){
+				stmts.push(whereClause());
+			};
+			advance(INDENT);
+			while(token && !tokenIs(OUTDENT)){
+				stmts.push(whereClause());
 			};
 			advance(OUTDENT);
 			stmts.push(new Node(nt.RETURN, { expression: node }));
