@@ -11,7 +11,7 @@ exports.resolve = function(ast, cInitVariables, PE, PW, cWarn){
 		var stack = [];
 
 		var fWalk = function(node){
-			if(node.type === nt.FUNCTION){
+			if(node.type === nt.FUNCTION) {
 				var s = new ScopedScript(scopes.length + 1, current);
 				if(current){
 					current.hasNested = true;
@@ -31,7 +31,7 @@ exports.resolve = function(ast, cInitVariables, PE, PW, cWarn){
 
 				node.parameters = node.code = null;
 				node.tree = s.id;
-			} else if(node.type === nt.LABEL){
+			} else if(node.type === nt.LABEL) {
 				var label = node.name;
 				ensure(!current.labels[label] && current.labels[label] !== 0, 'Unable to re-label a statement');
 				current.labels[label] = node;

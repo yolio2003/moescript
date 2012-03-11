@@ -629,7 +629,9 @@ exports.parse = function (input, source, config) {
 		var t = advance();
 		return new Node(nt.LITERAL, { 
 			value: {map: consts[t.value]},
-			sourceName: t.value
+			operatorType: (t.value === 'not' ? nt.NOT :
+				           t.value === 'negate' ? nt.NEGATIVE :
+				           null)
 		});
 	};
 
@@ -842,14 +844,16 @@ exports.parse = function (input, source, config) {
 							left: new Node(nt.VARIABLE, {name: 'x'}),
 							right: new Node(nt.VARIABLE, {name: 'y'})
 						})
-					})
+					}),
+					operatorType: opType
 				})
 			} else {
+				var t = makeT();
 				var r = new Node(nt.FUNCTION, {
-					parameters: new Node(nt.PARAMETERS, {names: [{name: 'x'}]}),
+					parameters: new Node(nt.PARAMETERS, {names: []}),
 					code: new Node(nt.RETURN, {
 						expression: new Node(opType, {
-							left: new Node(nt.VARIABLE, {name: 'x'}),
+							left: new Node(nt.TEMPVAR, {name: t, processing: 1}),
 							right: unary()
 						})
 					})
@@ -1066,7 +1070,7 @@ exports.parse = function (input, source, config) {
 				return callWrappers[n.func.value](n.args[0])
 			} else if(n.func.type === nt.CALLWRAP) {
 				throw new PE('Wrong call wrapper usage.')
-			} else if(n.func.type === nt.LITERAL) {
+			} else if(n.func.operatorType) {
 				return callWrappers.OPERATOR(n);
 			};
 		};
@@ -1136,10 +1140,15 @@ exports.parse = function (input, source, config) {
 		}
 	};
 	callWrappers.OPERATOR = function(node){
-		if((node.func.sourceName === 'not' || node.func.sourceName === 'negate') 
+		if((node.func.operatorType === nt.NOT || node.func.operatorType === nt.NEGATIVE) 
 			&& (node.args.length === 1 && !node.names[0])) {
-			return new Node(node.func.sourceName === 'not' ? nt.NOT : nt.NEGATIVE, { operand: node.args[0] });
-		};
+			return new Node(node.func.operatorType, { operand: node.args[0] });
+		} else if(node.args.length === 2 && !node.names[0] && !node.names[1]) {
+			return new Node(node.func.operatorType, { 
+				left: node.args[0],
+				right: node.args[1]
+			});
+		}
 		return node;
 	};
 
