@@ -159,6 +159,9 @@ var MOE_TRY = function(f) {
 			
 	return ret;
 };
+var MOE_NEGATE = function(x){return -x}
+var MOE_NOT = function(x){return !x}
+
 var MOE_ITEM = function(o, n){
 	if('item' in o) return o.item(n)
 	else return o[n]
@@ -463,6 +466,8 @@ moe.runtime = moe.rt = {
 	SLICE: MOE_SLICE,
 	THROW: MOE_THROW,
 	TRY: MOE_TRY,
+	NEGATE: MOE_NEGATE,
+	NOT: MOE_NOT,
 	UNIQ: MOE_UNIQ,
 	YIELDVALUE: MOE_YIELDVALUE,
 	ITEM: MOE_ITEM,

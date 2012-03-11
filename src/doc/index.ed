@@ -1,24 +1,25 @@
 ::document{moescript}
 
-Moe 是一种新型的、生成 JavaScript 的新语言。Moe 拥有许多实用的特性，使得创作 JavaScript 更加容易。Moe 编译器可以从 \githubProject 下载。
+**Moe is a new, not-very-little light Javascript-targeted language written in JavaScript.** 
 
-:section{Moec 编译器}
+You can get it from \githubProject.
+
+:section{`Moec` compiler}
 	:pre
 		moec <options> input.moe
-	:section{选项}	
-		 - `-o <value>`, `--output <value>`: 指定输出文件的路径。如果不指定，编译结果会显示在 Stdout 里。
-		 - `-t <value>`，`--target <value>`: 指定编译的目标环境，会影响默认的全局变量表。`-t least` 只会使用 `require`、`module` 和 `exports` 三个全局变量。`-t node` 则会绑定所有的 Nodejs 全局变量。
-		 - `-g <value>`，`--global <value>`: 指定一个全局变量，例如 `-g document`。
-		 - `-m <name>=<path>`，`--module <name>=<path>`: 将一个模块作为 Moe 源码里的全局变量，如 `-m exp=express`，会将 `require('express')` 作为 Moe 源码中的全局变量 `exp`。
+	:section{Options}	
+		 - `-o <value>`, `--output <value>`: Specify the path of output file. If it is not specified, `moec` will print generated code into STDOUT.
+		 - `-t <value>`，`--target <value>`: Specify the compilation target which affects global variable list. `-t least` will provide `require`、`module` and `exports` only for globals. `-t node` will provide all Node global variables.
+		 - `-g <value>`，`--global <value>`: Specify a global variable, e.g. `-g document`。
+		 - `-m <name>=<path>`，`--module <name>=<path>`: Map a module into a global variable, for exmaple, `-m exp=express` will map `require('express')` into the global variablr `exp` inside Moe source.
 
-:section{Moe 加载器}
-	使用 moeDummy 可以让 Nodejs 像加载 `.js` 那样加载 `.moe` 文件。你只需要
+:section{Moe loader}
+	The `moeDummy` makes Node possible to load `.moe` files as well as `.js`. Everything required is
 	:*js
 		require('moe/dummy')
-	之后就直接可以用 `require` 来加载 `.moe` 了。全局变量和 Node 是一样的。
 
-:section{概要}
-	空白在 Moe 中相当重要，例如，用于缩进的空白就表示源码的语法层次。这里没有 `end` 或者其他类似的东西，缩进一层，就表示一个新的语句块。使用 Tab 或者空格缩进都可以，但是在同一个文件里请不要随意更换。因为使用了缩进，Moe 中的流程控制语句写法相当简单。通常，所有被控制的语句块都会以冒号开始，然后是缩进过的语句块。而如果冒号后没有换行，则表示只有一个语句受控。
+:section{Overview}
+	First, whitespaces plays important rule in Moe, indents means structure for example. There is nothing works like `end` or `{}` in other languages. It is not required to use `;` to terminate statements (though semiclolns still works as well), and use indentation instead of surrounding statements with `{}`. Every control block is started by a symbol like `:`, `=>` or `=`.
 	:*moe
 		def max(list):
 			var m = list[0]
@@ -27,7 +28,7 @@ Moe 是一种新型的、生成 JavaScript 的新语言。Moe 拥有许多实用
 			return m
 		tracel max [5, 4, 3, 2, 1]
 
-	Moe 里一些标点符号旁边的换行会被视作空格，从而可以把一些很长的表达式分成两行写。这些换行通常是运算符前后、逗号后、以及**紧贴**括弧内侧的换行。这些特性能让你比较方便的定义复杂的对象。反斜线也可以让后面的换行化作一缕浮云，消失在编译器眼里。
+	Newlines **around** some symbols will be ignored so that you could write long expressions or complex literals. Unlike Python, line breaks inside parentheses, which often causes syntax errors, will not be ignored.
 	:*moe
 		tracel \
 			1,
@@ -35,12 +36,8 @@ Moe 是一种新型的、生成 JavaScript 的新语言。Moe 拥有许多实用
 			3 +
 			 4
 			 + 5
-		(tracel // 不像 Python，只有紧贴括弧内侧的换行才会被忽略
-		        // 因此这里的换行会导致语法错。
-			x,
-			y,
-			z)
-	:*moe
+
+		-- A game congi
 		def gameConfig = [
 			player: [
 				name: "tom",
@@ -55,7 +52,7 @@ Moe 是一种新型的、生成 JavaScript 的新语言。Moe 拥有许多实用
 				level: 9
 			]
 		]
-	:*moe
+
 		// some lisp code
 		def code = ['define', ['fib', 'n'],
 			['cond',
@@ -64,9 +61,14 @@ Moe 是一种新型的、生成 JavaScript 的新语言。Moe 拥有许多实用
 				['()', 
 					['+', ['fib', ['-', 'n', '1']],
 						['fib', ['-', 'n', '2']]]]]]]
+	:*moe
+		-- Wrong example: newline inside parentheses
+		--	(tracel  -- here
+		--		x,
+		--		y,
+		--		z)
 
-	从上面应该也能看出，Moe 的注释用 `//` 开始到行尾结束。除了 `//`，使用 `--` 也是一样的。（看到 `--` 可以开始注释，你应该就会明白 Moe 里没有 `++` 和 `--` 运算符——你应该用 `+=` 和 `-=`。）除此之外，位于行首（之后不能有任何空白）的 `-!` 用于提供编译器选项，如「变量不声明就报错」就写作「`-! option explicit`」。
-:section{对象}
+:section{Objects}
 	对象的直接量和数组直接量都使用方括弧 `[]`。因而，`[]` 表示空数组，空对象使用复杂些的符号 `[:]` 表示。
 
 	除了直接量也可以使用标准库里的 `object` 函数（适合对性能要求不高、作为配置使用的大型对象）：
@@ -110,11 +112,11 @@ Moe 是一种新型的、生成 JavaScript 的新语言。Moe 拥有许多实用
 
 		def fill(container, liquid = "water"): // 默认参数用等号表示，只能出现在最右。
 			// 使用冒号不生成 return
-			tracel "Fill " + container + " with " + liquid
+			tracel ("Fill " + container + " with " + liquid)
 
 		// Y 组合子
 		def Y(g) = // 在这里使用等号……
-			def rec(x)(y) = g(x(x))(y)
+			def rec(x)(y) = g(x(x)) y
 			rec(rec) // 就会在这里自动产生 return 语句
 		
 		//def FixedCombinator(g)(x) = g(Y(g))(x)
@@ -286,7 +288,7 @@ Moe 是一种新型的、生成 JavaScript 的新语言。Moe 拥有许多实用
 			def tasks = [];
 			for var i in 0..n:
 				tasks.push let(i) => async :>
-					wait sleep 100 * Math.random()
+					wait sleep (100 * Math.random())
 					tracel i
 			wait join tasks
 
