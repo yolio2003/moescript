@@ -19,7 +19,7 @@ You can get it from \githubProject.
 		require('moe/dummy')
 
 :section{Overview}
-	First, whitespaces plays important rule in Moe, indents means structure for example. There is nothing works like `end` or `{}` in other languages. It is not required to use `;` to terminate statements (though semiclolns still works as well), and use indentation instead of surrounding statements with `{}`. Every control block is started by a symbol like `:`, `=>` or `=`.
+	First, whitespaces plays important rule in Moe, indents means structure for example. There is nothing works like `end` or `{}` in other languages. It is not required to use `;` to terminate statements (though semiclolns still works as well), and use indentation instead of surrounding statements with `{}`. Every control block is started by a symbol like `:`, `=>` or `=`, then one **unindented** statement, or a indented statement block.
 	:*moe
 		def max(list):
 			var m = list[0]
@@ -69,10 +69,18 @@ You can get it from \githubProject.
 		--		z)
 
 :section{Objects}
-	对象的直接量和数组直接量都使用方括弧 `[]`。因而，`[]` 表示空数组，空对象使用复杂些的符号 `[:]` 表示。
-
-	除了直接量也可以使用标准库里的 `object` 函数（适合对性能要求不高、作为配置使用的大型对象）：
+	Both object literals and array literals uses `[]`. Therefore, empty objects should use `[:]` while `[]` means empty array. Keywords can appear inside object literals without quoting.
 	:*moe
+		def actions = [
+			if: ((cond, fThen, fElse) => fThen() if(cond), fElse())
+		]
+
+	You can also use `object` function provided in standard libary for large objects, especially configs.
+	:*moe
+		-- function object: creates object using a constructor with an optional prototype.
+		-- object(oPrototype, fConstruct) <- Derives(oPrototype)
+		-- object(fConstruct) <- Object
+
 		def gameConfig = object =>
 		    @player = object =>
 		        @name = "tom"
@@ -84,9 +92,39 @@ You can get it from \githubProject.
 		        @name = "Dragon"
 		        @type = Dragon
 		        @level = 9
-:section{变量（包括变不了的）}
-	Moe 的变量用 `var` 或者 `def` 声明。`def` 声明出来的东西更接近常量，他们不能被再次赋值。在代码中，应当尽量使用 `def` 定义常量。他们典型的用法是这样：
+:section{Variables (and immutable ones)}
+	Variables in Moe is defined by `var` or `def`. "Variables" defined by `def` is actually a constant, which means it is impossible make any assignment to it. Scopes rule is exactly same as JavaScript, `var` and `def` **shadows** external variables.
 	:*moe
+		var outer = 1
+		var x = 2
+		def f = function():
+			var inner = 3
+			outer = 4
+			var x = 5
+			tracel inner  -- 3
+			tracel outer  -- 4
+			tracel x      -- 5
+		f()
+		tracel outer      -- 4
+		tracel x          -- 2
+
+	`def` can only define one thing once, with `var` can declares multiple variables without initialization. However, you are able to use `def` for defining properties, which is useful processing objects. In this situation, `def` is only a simple assignment.
+	:*moe
+		def Number.prototype.times = function(f):
+			for var i in 0..this: f(i)
+:section{Functions}
+	The most recommended way to define a function is using `def`. Add argument list after the function name, then a `:` or `=`, then the function body.
+
+	Function bodies started by `=` will **generate `return` statements automatically**, means its last expression executed will become its return value. Therefore, it is not required to use `return` statements. On the contraty, `:`-bodies won't. You must use `return` statements explicitly to specify its return value, or the function will simply return `undefined`, like what JavaScript acts.
+	:*moe
+		// Define a simple function
+		-- function square: calculate square of a number
+		-- square(x <- Number) <- Number
+		def square(x) = x * x
+
+		// A procedure.
+		-- function printPrimes: print all prime numbers not greater than an uplimit specified
+		-- printPrimes(uplimit <- Number)
 		def printPrimes(uplimit):
 			def primes = [2, 3, 5, 7];
 			for var n in 2 ... uplimit:
@@ -99,38 +137,27 @@ You can get it from \githubProject.
 					primes.push n;
 					tracel n;
 
-	变量的作用域法则完全等同 JavaScript，使用 `var` 来「局域化」变量。这和一些生成 JavaScript 的语言不同，但是对于熟悉 JavaScript 的用户来说，这样很有用。
-
-	`def` 只能来定义一个东西，而 `var` 一次可以声明多个变量（方法：`var a, b, c, d, ..., z`，不能赋值）。`def` 和 `var` 也可用于定义对象的属性，这只相当于是一次简单赋值。
-	:*moe
-		def Number.prototype.times = function(f):
-			for var i in 0..this: f(i)
-:section{函数}
-	最好用（以及最推荐）的方法是使用 `def` 定义函数。
-	:*moe
-		def square(x) = x * x   // 简单的函数可以这样定义
-
-		def fill(container, liquid = "water"): // 默认参数用等号表示，只能出现在最右。
-			// 使用冒号不生成 return
+		// Parameters with default value
+		def fill(container, liquid = "water"):
 			tracel ("Fill " + container + " with " + liquid)
 
-		// Y 组合子
-		def Y(g) = // 在这里使用等号……
+		-- function Y: Fixed point combinator
+		-- Y(g <- Function) <- Function
+		--     which Y(g)(x) = g(Y(g))(x)
+		def Y(g) =
+			// use "=" here...
 			def rec(x)(y) = g(x(x)) y
-			rec(rec) // 就会在这里自动产生 return 语句
+			rec(rec) // ...means this value will be returned.
 		
-		//def FixedCombinator(g)(x) = g(Y(g))(x)
-
-		// 使用 Y 组合子定义「递归」函数
-		def Y fibonacci(recurse)(n) = // 多个参数表表示柯里化
+		// Define recursive function using Y
+		def Y fibonacci(recurse)(n) =
+			// Multiple argument lists means currying
 			if(n <= 2): 1
 			else: recurse(n - 2) + recurse(n - 1)
 		
 		fibonacci(5) // 5
-
-	使用 `def` 定义函数应写下 `def`、你想定义的函数名、参数表，然后是 `:` 或者 `=`。在使用 `:` 的时候，你必须自己写 `return` 语句来指明返回值；使用 `=` 则不必要，编译器会自动把这个函数里最后一个表达式语句作为返回值。
 	
-	值得注意的是最后一个使用 Y 组合子制造递归函数的案例。在此处，`Y` 将后面的函数进行处理后赋值给 `fibonacci`；这里的 `Y` 只是一个普通函数，在上面定义出来。这些修饰很像 Python 里的那些。然而，使用修饰时，函数的签名可能会发生变化，增加代码的复杂性，因此在这种情况发生的时候，建议增加注释说明。在上面那个案例里，实际上发生的赋值是这样的：
+	There is a notable example using the `Y` combinator. Expressions like `Y` after `def` is a **modifer**, which is useful in defining wrapped functions, for example, recursive functions produced by `Y`. Here, `fibonacci` is actually:
 	:*moe
 		def fibonacci_1 = function(recurse):
 			return function(n):
@@ -138,7 +165,7 @@ You can get it from \githubProject.
 					recurse(n - 2) + recurse(n - 1)
 		def fibonacci = Y(fibonacci_1)
 	
-	这里出现了新的关键字 `function` 以及用它定义的匿名函数。匿名函数在 JavaScript 里很常见，在 Moe 中，定义一个匿名函数值的方法相当多，最直接的就是用 `function` 关键字换掉 `def` 里写下的函数名。类似 `def` 里的情况，`function（...)` 之后也可以跟 `:` 和 `=`，两者的区别仍然是，「`=`」会自动产生 `return`，「`:`」不会。
+	No-name functions can be defined using `function`. Like what we did in `def`, you can simply replace that function name by `function`. In the same matter, `=` for automatic generated `return`s, `:` for manual.
 	:*moe
 		def fibonacci_2 = function(recurse)=
 			function(n)=
@@ -210,31 +237,6 @@ You can get it from \githubProject.
 			|.css background: "red"
 	
 	两种“管道调用”可以任意组合。
-
-	总的来说 Moe 表达式的语法是：
-	:*pre
-		SingleExpression
-			= OperatorExpression
-			| OmissionCallExpression
-		OmissionCallExpression
-			= Unary
-			| Unary ArgumentList
-			| Unary OmissionCallExpression
-		PipeExpression
-			= SingleExpression
-			| PipeExpression PipelineTerm
-		IfExpression
-			= PipeExpression
-			| IfExpression ifAffix
-		Assignment 
-			= Unary AssignmentOperator Expression
-		Expression
-			= Assignment
-			| IfExpression
-
-		CallItem
-			= OperatorExpression
-			| Unary CallItem
 
 	:section{伪函数}
 		Moe 中有几个关键字可以像函数那样「调用」，不过它们实际上作用于编译期，用来生成特殊的代码。它们是 `new`、`resend`、`do` 和 `wait`。它们称为伪函数。所有的伪函数都只能接受一个非命名参数（否则报语法错），不能单独出现（否则照样语法错）。一些伪函数还限制它们接受的「参数」必须拥有函数调用的形式，这样的伪函数也可以叫做调用修饰。
