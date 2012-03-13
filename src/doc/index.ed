@@ -68,30 +68,6 @@ You can get it from \githubProject.
 		--		y,
 		--		z)
 
-:section{Objects}
-	Both object literals and array literals uses `[]`. Therefore, empty objects should use `[:]` while `[]` means empty array. Keywords can appear inside object literals without quoting.
-	:*moe
-		def actions = [
-			if: ((cond, fThen, fElse) => fThen() if(cond), fElse())
-		]
-
-	You can also use `object` function provided in standard libary for large objects, especially configs.
-	:*moe
-		-- function object: creates object using a constructor with an optional prototype.
-		-- object(oPrototype, fConstruct) <- Derives(oPrototype)
-		-- object(fConstruct) <- Object
-
-		def gameConfig = object =>
-		    @player = object =>
-		        @name = "tom"
-		        @type = Human
-		        @level = 1
-		        @weapon = sword
-		        @inventory = [food, food, potion, bomb]
-		    @enemy = object =>
-		        @name = "Dragon"
-		        @type = Dragon
-		        @level = 9
 :section{Variables (and immutable ones)}
 	Variables in Moe is defined by `var` or `def`. "Variables" defined by `def` is actually a constant, which means it is impossible make any assignment to it. Scopes rule is exactly same as JavaScript, `var` and `def` **shadows** external variables.
 	:*moe
@@ -112,10 +88,14 @@ You can get it from \githubProject.
 	:*moe
 		def Number.prototype.times = function(f):
 			for var i in 0..this: f(i)
+
 :section{Functions}
 	The most recommended way to define a function is using `def`. Add argument list after the function name, then a `:` or `=`, then the function body.
 
 	Function bodies started by `=` will **generate `return` statements automatically**, means its last expression executed will become its return value. Therefore, it is not required to use `return` statements. On the contraty, `:`-bodies won't. You must use `return` statements explicitly to specify its return value, or the function will simply return `undefined`, like what JavaScript acts.
+
+	Functions may also have default values for arguments. Override the default value by passing an argument.
+
 	:*moe
 		// Define a simple function
 		-- function square: calculate square of a number
@@ -172,22 +152,19 @@ You can get it from \githubProject.
 				1 if(n <= 2),
 					recurse(n - 2) + recurse(n - 1)
 	
-	另一种方法是使用 `:>` 或 `=>`，构造 Lambda 表达式，前接参数表，后接函数体。规律和 `function` 里的用法很相似，`:>` 必须手工写入 `return` 语句，`=>` 会自动生成 `return`。`=>` 经常用于定义一些小函数。
-
+	Another way, called **Lambdas**, is using an optional list of parameters, an arrow(`:>` or `=>`), and the function body. Unindented Lambdas will extend all the way to the right as long aspossible. The `=`-`:` rule still rules here.
 	:*moe
-		list.map (term, index) => term * index // 没有缩进的话，Lambda 表达式会「尽可能的长」
+		list.map (term, index) => term * index
 		$(element).bind "click", (event) :>
 			tracel event
 
-	Lambda 表达式的 `:>` 和 `=>` 也可以没有参数表，作用和 `() :>` 相同。使用回调的时候这种形式会有用。
-	:*moe
 		def sleep(dt, f) = setTimeout(f, dt)
 		sleep 1000, :>
 			tracel 'Blah!'
-		// 注意下面的代码和 (act) :> something 不同
+		// Note: different from (act) :> something
 		act :> something
 	
-	最后一种形式是用花括弧包裹住表达式，这在 DSL 里这会很常见。表达式的值就是此函数的返回值。
+	The final form is wrapping **one** expression using `{}`. The wrapped expression will be the return value. Arguments are writtern inside the brackets, and wrapped by `|`'s. This is called **Delaied expression**.
 	:*moe
 		def repeatWhile(condition, body):
 			var c
@@ -197,20 +174,44 @@ You can get it from \githubProject.
 		var num = 10;
 		repeatWhile {num -= 1}, {|j| tracel j}
 
-:section{调用函数}
-	调用函数最直接的方法是使用圆括号，圆括号和之前的被调用函数之间**不能有空白**：
+:section{Objects}
+	Both object literals and array literals uses `[]`. Therefore, empty objects should use `[:]` while `[]` means empty array. Keywords can appear inside object literals without quoting.
+	:*moe
+		def actions = [
+			if: ((cond, fThen, fElse) => fThen() if(cond), fElse())
+		]
+
+	You can also use `object` function provided in standard libary for large objects, especially configs.
+	:*moe
+		-- function object: creates object using a constructor with an optional prototype.
+		-- object(oPrototype, fConstruct) <- Derives(oPrototype)
+		-- object(fConstruct) <- Object
+
+		def gameConfig = object =>
+		    @player = object =>
+		        @name = "tom"
+		        @type = Human
+		        @level = 1
+		        @weapon = sword
+		        @inventory = [food, food, potion, bomb]
+		    @enemy = object =>
+		        @name = "Dragon"
+		        @type = Dragon
+		        @level = 9
+
+:section{Calling functions}
+	The most direct way to call a function is using brackets(`()`). Note that there **must not** be any space between the function and the brackets. If there is only one argument, and it is a delaied expression (`{expr}`), the `()` can be omitted.
 	:*moe
 		def f(x, y, z) = x * y + z
 		f(1, 1, 1) // 2
+
+		def act(f) = f()
+		act{tracel 'blah!'} // short for act({tracel 'blah!'})
 	
-	可以使用名称参数。名称参数会汇聚起来，作为函数的最后一个实参传入。
+	You can use named arguments. All named arguments will be accumulated into an object literal passed into the function as the last argument.
 	:*moe
 		def f(config) = config.a + config.b
 		f(a: 1, b: 2) // 3
-
-	如果调用的实参表只有一项而且是使用 `{}` 的函数直接量时，可以用花括弧直接替换圆括弧：
-	:*moe
-		act{tracel 'Acted!'}
 	
 	在不混淆时，可以省略括弧，下面是一些案例。
 	:*moe
