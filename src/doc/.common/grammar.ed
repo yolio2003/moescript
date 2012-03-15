@@ -1,0 +1,12 @@
+:defun{syntax}{termName}{definition}
+	::pre{class="syntax"}
+	:__lit{\termName}
+	:__newline
+	::_gsub{{(\n)\n+}}{g}{{$1}}
+	::_gsub{{[+*?](?!['"])}}{g}{{<sup class="repeat">$&</sup>}}
+	::_gsub{{[=|\[\](){}]+(?!['"])}}{gm}{{<tt class="punctor">$&</tt>}}
+	::_gsub{{'.*?'}}{g}{{<span class="literal">$&</span>}}
+	::_gsub{{[\s|]*$}}{gm}{{ }}
+	::_gsub{{^\s*\| }}{}{{    = }}
+	::_gsub{{^\s*}}{gm}{{    | }}
+	:definition

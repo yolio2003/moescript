@@ -1,0 +1,85 @@
+::document{Grammar}
+
+The full definition os MoeScript grammar is shown below.
+
+:section{lexical}
+	|syntax{Identifier}
+		(Letter | '_' | '$') (Letter | '_' | '$' | Digit)*
+	|syntax{Number}
+		Digit+ ['.' Digit+ [('e' | 'E') ['-'] Digit+] ]
+		('0x' | '0X') HexDigit+
+:section{Primary}
+	|syntax{Primary}
+		Variable
+		Number
+		String
+		Constant
+		ValueKeyword
+		AtForm
+		SharpForm
+		FunctionLiteral
+		LetExpression
+		'(' Expression ')'
+	|syntax{Variable}
+		Identifier
+	|syntax{Constant}
+		'true' | 'false' | 'try' | 'catch' | 'null' | 'undefined' | 'negate' | 'not'
+	|syntax{ValueKeyword}
+		'this' | 'arguments' 
+	|syntax{AtForm}
+		'@' Name
+	|syntax{SharpForm}
+		'#' Number | '#' Name | '##' | '#@'
+	|syntax{FunctionLiteral}
+		'function'? (ParameterList? LambdaBody | ExpressionBody)
+		'function' ParameterList* BlockBody
+		'(' Operator ')'
+		'(' Operator Unary ')'
+	|syntax{FunctionLiteralBody}
+		ParameterList* BlockBody
+		ParameterList? LambdaBody
+		ExpressionBody
+	|syntax{BlockBody}
+		':' ControlBlock
+	|syntax{LambdaBody}
+		LambdaSymbol ControlBlock
+	|syntax{ExpressionBody}
+		'{' Expression '}'
+	|syntax{LetExpression}
+		'let' '(' LetAssignments ')' (BlockBody | LambdaBody)
+	|syntax{LetAssignments}
+		LetAssignment (',' LetAssignment)*
+	|syntax{LetAssignment}
+		Variable
+		Variable '=' Call
+	|syntax{ObjectLiteral}
+		'[' ArgumentList ']'
+		'[' ':' ']'
+:section{Calls}
+	|syntax{Call}
+		Primary
+		Call '(' ArgumentList ')'
+		Call ExpressionBody
+		Call '.' Name
+		Call '[' Expression ']'
+		Call '.[' Expression ']'
+	|syntax{ArgumentList}
+		Argument (',' Argument)*
+	|syntax{Argument}
+		Call
+		(Name | String) ':' Call
+	|syntax{Unary}
+		Call+ ArgumentList?
+:section{Operators}
+	|syntax{AddOperator}
+		'+' | '-'
+:section{Expression}
+	|syntax{Expression}
+		Operating PipelineCall* IfClause? WhereClause?
+	|syntax{PipelineCall}
+		'|' Call ArgumentList
+		'|' '.' Name ArgumentList
+	|syntax{IfClause}
+		'if' '(' Expression ')' (',' Expression)?
+	|syntax{WhereClause}
+		SSep* 'where' (WhereTerm | WhereTerm? Indent (WhereTerm SSep*)* Outdent)
