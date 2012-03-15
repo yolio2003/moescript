@@ -158,7 +158,6 @@ var nameTypes = {
 	'pass': PASS,
 	'wait': WAIT,
 	'resend': RESEND,
-	'then': OPERATOR,
 	'new': NEW
 };
 var nameType = function (m) {
@@ -795,9 +794,6 @@ exports.parse = function (input, source, config) {
 			argList(node);
 		}
 		advance(CLOSE, SQEND);
-		if(!node.nameused){
-			node.type = nt.ARRAY
-		};
 		return node;
 	};
 
@@ -962,12 +958,7 @@ exports.parse = function (input, source, config) {
 			return new Node(nt.MEMBER, { left: new Node(nt.MEMBER, {left: left, right: 'prototype'}), right: right });
 		} else {
 			advance();
-			if (tokenIs(OPEN, SQSTART)) {  // .[ Expressuib ]  format
-				advance();
-				right = callItem();
-				advance(CLOSE, SQEND);
-				return new Node(nt.ITEM, { left: left, right: right });
-			} else if (tokenIs(STRING)) {
+			if (tokenIs(STRING)) {
 				right = literal();
 				return new Node(nt.MEMBERREFLECT, { left: left, right: right });
 			} else { // . Identifier  format
@@ -1009,14 +1000,6 @@ exports.parse = function (input, source, config) {
 						argList(m, false);
 						advance(CLOSE, RDEND);
 						m = wrapCall(m);
-					} else if (token.value === SQSTART) { // ITEM operator
-						// a[e] === a.item(e)
-						advance();
-						m = new Node(nt.MEMBERREFLECT, {
-							left: m,
-							right: callItem()
-						});
-						advance(CLOSE, SQEND);
 					} else if (token.value === CRSTART){
 						m = wrapCall(new Node(nt.CALL, {
 							func: m,
@@ -1202,8 +1185,7 @@ exports.parse = function (input, source, config) {
 			'and': 50, '&&': 50, 
 			'or': 55, '||': 55,
 			'..': 57, '...': 57,
-			'as': 60,
-			'then' : 65
+			'as': 60
 		};
 		var combp = {
 			'of': R,
@@ -1214,8 +1196,7 @@ exports.parse = function (input, source, config) {
 			'==': N, '!=': N, '=~': N, '!~': N, '===':N, '!==':N,
 			'and': L, 'or': L, '&&': L, '||' : L,
 			'..': N, '...': N,
-			'as': L,
-			'then' : L
+			'as': L
 		}
 
 		return function (start, progress) {
@@ -1330,6 +1311,24 @@ exports.parse = function (input, source, config) {
 			return node;
 		}
 	};
+	var whereClause = function(){
+		var bind = variable();
+		var right;
+		if(tokenIs(ASSIGN, '=')){
+			advance(ASSIGN, '=');
+			right = expression();
+		} else {
+			right = functionLiteral(true);
+		};
+		stripSemicolons();
+		return new Node(nt.EXPRSTMT, {
+			expression: new Node(nt.ASSIGN, {
+				left: bind,
+				right: right
+			}),
+			declareVariable: bind.name
+		});
+	};
 	var whereClausize = function(node){
 		var shift = 0;
 		while(shiftIs(shift, SEMICOLON)) shift++;
@@ -1340,11 +1339,13 @@ exports.parse = function (input, source, config) {
 			if(tokenIs(ID)){
 				stmts.push(whereClause());
 			};
-			advance(INDENT);
-			while(token && !tokenIs(OUTDENT)){
-				stmts.push(whereClause());
+			if(tokenIs(INDENT) || !stmts.length) {
+				advance(INDENT);
+				while(token && !tokenIs(OUTDENT)){
+					stmts.push(whereClause());
+				};
+				advance(OUTDENT);
 			};
-			advance(OUTDENT);
 			stmts.push(new Node(nt.RETURN, { expression: node }));
 			return new Node(nt.CALL, {
 				func: new Node(nt.MEMBER, {
@@ -1366,8 +1367,8 @@ exports.parse = function (input, source, config) {
 		var c = unary();
 		if (tokenIs(ASSIGN)){
 			var _v = token.value;
-			ensure(c.type === nt.VARIABLE || c.type === nt.ITEM ||
-			       c.type === nt.MEMBER || c.type === nt.MEMBERREFLECT || c.type === nt.TEMPVAR,
+			ensure(c.type === nt.VARIABLE || c.type === nt.MEMBER || 
+					c.type === nt.MEMBERREFLECT || c.type === nt.TEMPVAR,
 					"Invalid assignment");
 			advance();
 			return new Node(nt.ASSIGN, {
@@ -1455,7 +1456,7 @@ exports.parse = function (input, source, config) {
 		};
 	};
 	var blocky = function(node){
-		if (node.type !== nt.SCRIPT) {
+		if (!node || node.type !== nt.SCRIPT) {
 			return new Node(nt.SCRIPT, { content: [node] })
 		} else {
 			return node

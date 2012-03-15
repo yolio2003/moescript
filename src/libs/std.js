@@ -221,6 +221,8 @@ reg('object', function(p, f){
 	return o;
 });
 
+reg('seq', function(){return arguments[arguments.length - 1]})
+
 //: prototypes
 RegExp.convertFrom = function(s){
 	return new RegExp(s);

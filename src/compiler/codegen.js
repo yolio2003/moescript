@@ -315,24 +315,25 @@ exports.Generator = function(g_envs, g_config){
 
 	eSchemataDef(nt.OBJECT, function (transform) {
 		var inits = [],
-			x = 0;
+		    terms = [],
+			x = 0,
+			hasNameQ = false;
 		for (var i = 0; i < this.args.length; i++) {
+			var right = transform(ungroup(this.args[i]))
 			if (typeof this.names[i] === "string") {
-				inits.push(STRIZE(this.names[i]) + ': ' + transform(ungroup(this.args[i])));
+				hasNameQ = true;
+				inits.push(STRIZE(this.names[i]) + ': ' + right);
 			} else {
-				inits.push(STRIZE('' + x) + ': ' + transform(ungroup(this.args[i])));
+				inits.push(STRIZE('' + x) + ': ' + right);
 				x++;
-			}
+			};
+			terms.push(right);
 		};
-		return $('{%1}',
-			(this.args.length < 4 ? inits.join(', ') : '\n' + INDENT(inits.join(',\n')) + '\n'));
-	});
-	eSchemataDef(nt.ARRAY, function (transform) {
-		var args = [];
-		for (var i = 0; i < this.args.length; i++) {
-			args[i] = transform(ungroup(this.args[i]));
-		};
-		return $('[%1]', args.join(', '));
+		if(hasNameQ)
+			return $('{%1}',
+				(this.args.length < 4 ? inits.join(', ') : '\n' + INDENT(inits.join(',\n')) + '\n'));
+		else
+			return $('[%1]', terms.join(', '));
 	});
 	eSchemataDef(nt.FUNCTION, function (n, e) {
 		var	f = g_envs[this.tree - 1];
@@ -348,10 +349,6 @@ exports.Generator = function(g_envs, g_config){
 	});
 	eSchemataDef(nt.MEMBERREFLECT, function (transform) {
 		return $('%1[%2]',
-			transform(this.left), transform(this.right));
-	});
-	eSchemataDef(nt.ITEM, function (transform, env) {
-		return $('(MOE_ITEM(%1, %2))', 
 			transform(this.left), transform(this.right));
 	});
 
@@ -417,11 +414,7 @@ exports.Generator = function(g_envs, g_config){
 	});
 
 	eSchemataDef(nt.ASSIGN, function (transform, env) {
-		if(this.left.type === nt.ITEM)
-			return $('(MOE_SET_ITEM(%1, %2, %3))', 
-				transform(this.left.left), transform(this.left.right), transform(this.right));
-		else
-			return $('(%1 = %2)', transform(this.left), transform(this.right));
+		return $('(%1 = %2)', transform(this.left), transform(this.right));
 	});
 
 
@@ -438,10 +431,10 @@ exports.Generator = function(g_envs, g_config){
 	});
 
 	"Normal transformation specific rules";
-	var C_ARGS = function(node, env, skip, skips){
+	var C_ARGS = function(node, env){
 		var args = [], names = [], hasNameQ = false;
 		
-		for (var i = (skip || 0); i < node.args.length; i++) {
+		for (var i = 0; i < node.args.length; i++) {
 			if (node.names[i]) {
 				names.push(STRIZE(node.names[i]));
 				hasNameQ = true
@@ -451,68 +444,82 @@ exports.Generator = function(g_envs, g_config){
 			args.push(transform(ungroup(node.args[i])));
 		};
 
-		if(skip){
-			names = ['undefined'].concat(names)
-			args = skips.concat(args)
-		}
-
-		return {hasNameQ: hasNameQ, displacement: names.join(','), args: args.join(', ')};
+		return {
+			hasNameQ: hasNameQ,
+			displacement: names.join(','),
+			args: args
+		};
 	};
 
 	vmSchemataDef(nt.CALL, function (node, env) {
-		var comp;
-		var skip = 0, skips = [], pipe;
-
 		// this requires special pipeline processing:
 		var pipelineQ = node.pipeline && node.func // pipe line invocation...
 			&& !(node.func.type === nt.VARIABLE || node.func.type === nt.THIS) // and side-effective.
 
-		if (pipelineQ) {
-			var tid = makeT(env);
-			// processing pipelined invocations
-			skip = 1;
-			pipe = C_TEMP(tid) + ' = ' + transform(this.args[0])
-			skips = [C_TEMP(tid)];
-		};
-
-		var pivot, func, itemCallQ;
+		var pivot, right, func, callWQ;
 		switch (this.func.type) {
-			case nt.ITEM:
-				pivot = transform(this.func.left);
-				 func = transform(this.func.right);
-				itemCallQ = true;
-				break;
 			case nt.MEMBER:
-				pivot = transform(this.func.left);
-				 func = PART(pivot, this.func.right);
+				pivot = transform(this.func.left)
+				right = PART('', this.func.right)
+				 func = pivot + right
 				break;
 			case nt.MEMBERREFLECT:
-				pivot = transform(this.func.left);
-				 func = pivot + '[' + transform(this.func.right) + ']';
+				pivot = transform(this.func.left)
+				right = '[' + transform(this.func.right) + ']'
+				 func = pivot + right
 				break;
 			case nt.CTOR:
-				 func = 'new (' + transform(this.func.expression) + ')'
-				pivot = 'null'
+				pivot = null
+				right = transform(this.func.expression)
+				 func = right
+				callWQ= 'new'
 				break;
 			default:
-				pivot = 'null';
-				 func = transform(this.func);
+				pivot = null
+				right = transform(this.func)
+				 func = right
 				break;
 		};
-		var ca = C_ARGS(this, env, skip, skips);
+		var ca = C_ARGS(this, env);
 		
-		if(ca.hasNameQ || itemCallQ) {
-			comp = $('%1(%2, %3, [%4], [%5])', 
-					itemCallQ ? 'MOE_IINVOKE': 'MOE_NINVOKE', 
-					pivot,
-					func,
-					ca.displacement,
-					ca.args)
-		} else {
-			comp = $('%1(%2)', func, ca.args)
-		}
+		if(ca.hasNameQ || pipelineQ){
+			// Re-order arguments required...
+			var f_args = [];
+			var f_olit = [];
+			var tAssignments = [];
+			for(var i = 0; i < ca.args.length; i++){
+				var t = makeT(env);
+				tAssignments.push(C_TEMP(t) + '=' + ca.args[i]);
+				if(typeof this.names[i] === 'string'){
+					f_olit.push(STRIZE(this.names[i]) + ':' + C_TEMP(t))
+				} else {
+					f_args.push(C_TEMP(t))
+				};
+			};
+			f_args.push('{' + f_olit.join(',') + '}');
 
-		return pipe ? '(' + pipe + ', ' + comp + ')' : comp;
+			if(pivot){
+				var tP = makeT(env);
+				var tF = makeT(env);
+				tAssignments.unshift(C_TEMP(tP) + '=' + pivot,
+					C_TEMP(tF) + '=' + C_TEMP(tP) + right);
+				tAssignments.push($('%1.call(%2)', C_TEMP(tF), [C_TEMP(tP)].concat(f_args).join(',')))
+			} else {
+				var tF = makeT(env);
+				tAssignments.unshift(C_TEMP(tF) + '=' + right);
+				tAssignments.push($('%1(%2)', (callWQ ? callWQ + ' (' + C_TEMP(tF) + ')' : C_TEMP(tF)), f_args.join(',')))
+			};
+			// Pipeline adjustment
+			if(pipelineQ){
+				var pipeA = tAssignments[pivot ? 2 : 1];
+				tAssignments.splice((pivot ? 2 : 1), 1)
+				tAssignments.unshift(pipeA);
+			}
+			return '(' + tAssignments.join(',') + ')';
+		} else {
+			// Otherwise: use normal transformation.
+			return $('%1(%2)', (callWQ ? callWQ + ' (' + (func) + ')' : func), ca.args.join(','))
+		}
 	});
 
 	vmSchemataDef(nt.CONDITIONAL, function(){
@@ -726,36 +733,33 @@ exports.Generator = function(g_envs, g_config){
 
 		// obstructive expressions
 		var oC_ARGS = function(node, env, skip, skips){
-			var args = [], names = [], hasNameQ = false;
+			var args = [], olits = [], hasNameQ = false;
 			
 			for (var i = (skip || 0); i < node.args.length; i++) {
 				if (node.names[i]) {
-					names.push(STRIZE(node.names[i]));
+					olits.push(STRIZE(node.names[i]) + ':' + expPart(node.args[i]));
 					hasNameQ = true
 				} else {
-					names.push('undefined')
+					args.push(expPart(node.args[i]));
 				}
-				args.push(expPart(node.args[i]));
 			};
 
 			if(skip){
-				names = ['undefined'].concat(names)
 				args = (skips).concat(args)
+			};
+
+			if(hasNameQ){
+				args.push('{' + olits.join(',') + '}')
 			}
 
 			return {
 				hasNameQ: hasNameQ,
-				displacement: names.join(','),
-				args: args.join(', ')
+				args: args
 			};
 		};
 
 		var obsPart = function(){
 			switch (this.type) {
-				case nt.ITEM:
-					var p = expPart(this.left);
-					var f = expPush('(MOE_ITEM(' + p + ',' + expPart(this.right) + '))');
-					return { p: p, f: f }
 				case nt.MEMBER:
 					var p = expPart(this.left);
 					return { p: p, f: expPush(PART(p, this.right)) }
@@ -763,22 +767,21 @@ exports.Generator = function(g_envs, g_config){
 					var p = expPart(this.left);
 					return { p: p, f: expPush('((' + p + ')[' + expPart(this.right) + '])') }
 				case nt.CTOR:
-					return { p: 'null', f: expPush('new (' + expPart(this.expression) + ')') }
+					var f = expPart(this.expression);
+					return { p: null, f: f, b: 'new (' + f + ')' }
 				default:
 					return {
 						f : expPart(this),
-						p : 'null'
+						p : null
 					}
 			}
 		};
-
 
 		oSchemataDef(nt.CALL, function (node, env) {
 			if(this.func && this.func.type === nt.WAIT)
 				return awaitCall.apply(this, arguments);
 
-			var comp;
-			var skip = 0, skips = [], pipe;
+			var skip = 0, skips = [];
 
 			// this requires special pipeline processing:
 			var pipelineQ = node.pipeline && node.func // pipe line invocation...
@@ -789,21 +792,14 @@ exports.Generator = function(g_envs, g_config){
 				skips = [expPart(this.args[0])];
 			};
 
-			var e = obsPart.call(this.func), func = e.f, pivot = e.p;
+			var func = obsPart.call(this.func);
 			var ca = oC_ARGS(this, env, skip, skips);
-			
-			if(ca.hasNameQ) {
-				comp = $('(%1(%2, %3, [%4], [%5]))', 
-						'MOE_NINVOKE', 
-						pivot,
-						func,
-						ca.displacement,
-						ca.args)
+			if(func.p) {
+				ca.args.unshift(func.p);
+				return $('(%1.call(%2))', func.b || func.f, ca.args.join(','))
 			} else {
-				comp = $('(%1(%2))', func, ca.args)
+				return $('(%1(%2))', func.b || func.f, ca.args.join(','))
 			}
-
-			return comp
 		});
 
 		var awaitCall = function(node, env){
@@ -816,24 +812,22 @@ exports.Generator = function(g_envs, g_config){
 				skips = [expPart(this.args[0])];
 			};
 
-			var e = obsPart.call(this.func.expression);
+			var func = obsPart.call(this.func.expression);
 			var ca = oC_ARGS(this, env, skip, skips);
 			var id = obstPartID();
 			var l = label();
-			if(ca.hasNameQ) {
-				ps($('return %1(MOE_NINVOKE(%2, %3, [%4], [%5], true))',
+			ca.args.push(C_BLOCK(l));
+			if(func.p) {
+				ca.args.unshift(func.p);
+				ps($('return %1(%2.call(%3))',
 					PART(C_TEMP('SCHEMATA'), 'break'),
-					e.p,
-					e.f,
-					ca.displacement + ',' + 'undefined',
-					ca.args + ',' + C_BLOCK(l)))
+					func.b || func.f,
+					ca.args.join(',')));
 			} else {
-				ps($('return %1(%2.call(%3, %4%5))',
+				ps($('return %1(%2(%3))',
 					PART(C_TEMP('SCHEMATA'), 'break'),
-					e.f,
-					e.p,
-					ca.args ? ca.args + ", " : "",
-					C_BLOCK(l)));
+					func.b || func.f,
+					ca.args.join(',')));
 			}
 			LABEL(l);
 			ps(id + ' = _')
@@ -841,14 +835,21 @@ exports.Generator = function(g_envs, g_config){
 		};
 
 		oSchemataDef(nt.WAIT, function (n, env) {
-			var e = obsPart.call(this.expression);
+			var func = obsPart.call(this.expression);
 			var id = obstPartID();
 			var l = label();
-			ps($('return %1(%2.call(%3, %4))',
-				PART(C_TEMP('SCHEMATA'), 'break'),
-				e.f,
-				e.p,
-				C_BLOCK(l)));
+			if(func.p) {
+				ps($('return %1(%2.call(%3, %4))',
+					PART(C_TEMP('SCHEMATA'), 'break'),
+					func.b || func.f,
+					func.p,
+					C_BLOCK(l)));
+			} else {
+				ps($('return %1(%2(%3))',
+					PART(C_TEMP('SCHEMATA'), 'break'),
+					func.b || func.f,
+					C_BLOCK(l)));
+			}
 			LABEL(l);
 			ps(id + ' = _')
 			return id;

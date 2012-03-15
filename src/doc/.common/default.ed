@@ -10,6 +10,7 @@
 	:def{stylePath}{\urlPath{\getRelativePath{\dirName{\outputPath}}{\buildDir/rc/style.css}}}
 	:input{\cwd/.common/links.ed}
 	:input{\cwd/.common/pagemeta.ed}
+	:input{\cwd/.common/grammar.ed}
 	:def{pageBody}{\eval{\mBody}}
 	:fileOut{\outputPath}
 		:html5doctype

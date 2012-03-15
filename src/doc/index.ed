@@ -20,7 +20,7 @@ You can get it from \githubProject.
 
 :section{Overview}
 	First, whitespaces plays important rule in Moe, indents means structure for example. There is nothing works like `end` or `{}` in other languages. It is not required to use `;` to terminate statements (though semiclolns still works as well), and use indentation instead of surrounding statements with `{}`. Every control block is started by a symbol like `:`, `=>` or `=`, then one **unindented** statement, or a indented statement block.
-	:*moe
+	|moe
 		def max(list):
 			var m = list[0]
 			for var i in 0..list.length:
@@ -29,7 +29,7 @@ You can get it from \githubProject.
 		tracel max [5, 4, 3, 2, 1]
 
 	Newlines **around** some symbols will be ignored so that you could write long expressions or complex literals. Unlike Python, line breaks inside parentheses, which often causes syntax errors, will not be ignored.
-	:*moe
+	|moe
 		tracel \
 			1,
 			2,
@@ -61,7 +61,7 @@ You can get it from \githubProject.
 				['()', 
 					['+', ['fib', ['-', 'n', '1']],
 						['fib', ['-', 'n', '2']]]]]]]
-	:*moe
+	|moe
 		-- Wrong example: newline inside parentheses
 		--	(tracel  -- here
 		--		x,
@@ -70,7 +70,7 @@ You can get it from \githubProject.
 
 :section{Variables (and immutable ones)}
 	Variables in Moe is defined by `var` or `def`. "Variables" defined by `def` is actually a constant, which means it is impossible make any assignment to it. Scopes rule is exactly same as JavaScript, `var` and `def` **shadows** external variables.
-	:*moe
+	|moe
 		var outer = 1
 		var x = 2
 		def f = function():
@@ -85,7 +85,7 @@ You can get it from \githubProject.
 		tracel x          -- 2
 
 	`def` can only define one thing once, with `var` can declares multiple variables without initialization. However, you are able to use `def` for defining properties, which is useful processing objects. In this situation, `def` is only a simple assignment.
-	:*moe
+	|moe
 		def Number.prototype.times = function(f):
 			for var i in 0..this: f(i)
 
@@ -96,7 +96,7 @@ You can get it from \githubProject.
 
 	Functions may also have default values for arguments. Override the default value by passing an argument.
 
-	:*moe
+	|moe
 		// Define a simple function
 		-- function square: calculate square of a number
 		-- square(x <- Number) <- Number
@@ -138,7 +138,7 @@ You can get it from \githubProject.
 		fibonacci(5) // 5
 	
 	There is a notable example using the `Y` combinator. Expressions like `Y` after `def` is a **modifer**, which is useful in defining wrapped functions, for example, recursive functions produced by `Y`. Here, `fibonacci` is actually:
-	:*moe
+	|moe
 		def fibonacci_1 = function(recurse):
 			return function(n):
 				return 1 if(n <= 2),
@@ -146,14 +146,14 @@ You can get it from \githubProject.
 		def fibonacci = Y(fibonacci_1)
 	
 	No-name functions can be defined using `function`. Like what we did in `def`, you can simply replace that function name by `function`. In the same matter, `=` for automatic generated `return`s, `:` for manual.
-	:*moe
+	|moe
 		def fibonacci_2 = function(recurse)=
 			function(n)=
 				1 if(n <= 2),
 					recurse(n - 2) + recurse(n - 1)
 	
 	Another way, called **Lambdas**, is using an optional list of parameters, an arrow(`:>` or `=>`), and the function body. Unindented Lambdas will extend all the way to the right as long aspossible. The `=`-`:` rule still rules here.
-	:*moe
+	|moe
 		list.map (term, index) => term * index
 		$(element).bind "click", (event) :>
 			tracel event
@@ -165,7 +165,7 @@ You can get it from \githubProject.
 		act :> something
 	
 	The final form is wrapping **one** expression using `{}`. The wrapped expression will be the return value. Arguments are writtern inside the brackets, and wrapped by `|`'s. This is called **Delaied expression**.
-	:*moe
+	|moe
 		def repeatWhile(condition, body):
 			var c
 			while(c = condition()):
@@ -176,13 +176,13 @@ You can get it from \githubProject.
 
 :section{Objects}
 	Both object literals and array literals uses `[]`. Therefore, empty objects should use `[:]` while `[]` means empty array. Keywords can appear inside object literals without quoting.
-	:*moe
+	|moe
 		def actions = [
 			if: ((cond, fThen, fElse) => fThen() if(cond), fElse())
 		]
 
 	You can also use `object` function provided in standard libary for large objects, especially configs.
-	:*moe
+	|moe
 		-- function object: creates object using a constructor with an optional prototype.
 		-- object(oPrototype, fConstruct) <- Derives(oPrototype)
 		-- object(fConstruct) <- Object
@@ -201,7 +201,7 @@ You can get it from \githubProject.
 
 :section{Calling functions}
 	The most direct way to call a function is using brackets(`()`). Note that there **must not** be any space between the function and the brackets. If there is only one argument, and it is a delaied expression (`{expr}`), the `()` can be omitted.
-	:*moe
+	|moe
 		def f(x, y, z) = x * y + z
 		f(1, 1, 1) // 2
 
@@ -209,41 +209,37 @@ You can get it from \githubProject.
 		act{tracel 'blah!'} // short for act({tracel 'blah!'})
 	
 	You can use named arguments. All named arguments will be accumulated into an object literal passed into the function as the last argument.
-	:*moe
+	|moe
 		def f(config) = config.a + config.b
 		f(a: 1, b: 2) // 3
 	
-	在不混淆时，可以省略括弧，下面是一些案例。
-	:*moe
-		f g h a, b, c
-		x y z w
-		f
-	分别等价于
-	:*moe
-		f(g(h(a, b, c)))
-		x(y(z(w)))
-		f  // 不产生调用
-	Moe 支持的省略调用只能有「`f g h a, b, c`」这样的形式，而且省略调用和运算符不能混用（因此 `f + g h` 会产生语法错）。
+	Brackets can be omitted when it is not aminigous, for example:
+	|moe
+		f g h a, b, c   // = f(g(h(a, b, v)))
+		x y z w         // = x(y(z(w)))
+		f               // = f; No invocation.
+		square x * x    // = square(x) * x; Not square(x * x)
+
+	Omissioned calls has a lower priority than calls using brackets. Only the "`f g h a, b, c`" is supported. You can also use omissioned calls with operators togther. Omissioned calls has a higher priority than operators, therefore, `square x * x` means `square(x) * x`.
 	
-	Moe 支持一种特殊的方法来调用函数。通过使用 `|` 符号。在此符号后写上函数也表示函数调用，竖线之前者作为此次调用的第一个参数传入。您还可以追加更多的参数，写在后面。`|` 可以有很多个，串成一长串。在计算的时候，竖线之前的东西会先计算，之后才是写在竖线后的函数，因而在最终编译生成的 JavaScript 里，可能会有临时变量和赋值出现。
-	:*moe
-		def tap(value, f) = f(value) then value;
-		5 |tap {|x| tracel x} |{|x| x * 3} // 5
+	Moe supports a special calling method, by using "Pipe sign" `|`, which has an extremely low priority. The calling form `a |f b, c, d` means `f(a, b, c, d)`, or more strictly, `seq T = a, f(T, b, c, d)` due to `a` will be evaluated **before** `f`. `a |f` means `f(a)`, with reversed evaluation order, `a` before `f`.
+	|moe
+		def tap(value, f) = seq f(value), value
+		5 |tap {|x| tracel x}              // 5
+		  |{|x| x * 3}
 		  |tap {|x| tracel x}              // 15
-		 
-	JavaScript 里很常用的「链式调用」使用一个略微不同的符号 `|.`，之后接方法名。
-	:*moe
+
+	Chain calls, usually used in JavaScript, is supported by a slightly modified pipe `|.`. Add the method name after the pipe-dot sign. Both pipe forms can be combined in any order.
+	|moe
 		$ "selector"
-			|.addClass "selected"
-			|.css background: "red"
+		  |.addClass "selected"
+		  |.css background: "red"
 	
-	两种“管道调用”可以任意组合。
+	:section{Call wrappers}
+		There are some special keywords which can be called like normal function in Moe, called Call Wrappers, used to generate special codes, including object creation, prototype resending, or create "wait" calls used by asynchronous functions.
 
-	:section{伪函数}
-		Moe 中有几个关键字可以像函数那样「调用」，不过它们实际上作用于编译期，用来生成特殊的代码。它们是 `new`、`resend`、`do` 和 `wait`。它们称为伪函数。所有的伪函数都只能接受一个非命名参数（否则报语法错），不能单独出现（否则照样语法错）。一些伪函数还限制它们接受的「参数」必须拥有函数调用的形式，这样的伪函数也可以叫做调用修饰。
-
-		`new` 用来构造对象：
-		:*moe
+		Creating objects using `new`.
+		|moe
 			def Point(x, y):
 				this.x = x
 				this.y = y
@@ -251,7 +247,7 @@ You can get it from \githubProject.
 			def origin = new Point 0, 0
 		
 		`resend` 用来向其他函数封送 `this`。在面向对象编程里，常用于调用「基类」的方法。它后面必须接一个函数调用。
-		:*moe
+		|moe
 			def Man():
 				//...
 			def Man::speak(something) = tracel something;
@@ -265,7 +261,7 @@ You can get it from \githubProject.
 		`do` 的行为和 `resend` 很相似。`do` 后接函数调用时的行为同 `resend` 一致，但是 `do` 后面还可以接其他形式的表达式，此时 `do f` 相当于 `f.apply(this, arguments)`。
 
 		`wait` 用于生成回调。如果某个函数里出现了 `wait`，这个函数里的所有代码生成都会受到影响，甚至它本身也会变成其他类型。`wait` 常用于异步操作中。`wait` 后面也必须接一个函数调用。
-		:*moe
+		|moe
 			def f():
 				// 不需要书写 loadResource something, function(resource)...
 				var resource = wait loadResource(something)
@@ -275,7 +271,7 @@ You can get it from \githubProject.
 
 :section{回调和阻塞}
 	前文已经述及，`wait` 所在的函数会变成阻塞原语。阻塞原语是一个对象，结构大致是这样：
-	:*moe
+	|moe
 		// 这样的定义……
 		def obstructive(args):
 			//... wait f() ...
@@ -286,15 +282,17 @@ You can get it from \githubProject.
 	`schemata` 是一个对象，定义了一组方法（`break` 和 `return`，以后可能还会增加 `error`）来处理阻塞原语的返回值，区分阻塞原语因为阻塞返回还是真正的返回。在迭代器里，就需要区分两种情形并且对返回值进行不同的处理。（或者说区分 yield 和 return）。`args` 就是在定义时定义的传入的参数表。第三个括弧则用来启动这个阻塞原语。
 
 	通常用来定义阻塞原语的 `def` 后面都会跟些东西修饰编译生成的「裸」原语，比如 `eisa/libs/async` 提供的 `async` 就可以处理绝大多数 JavaScript 库里面的回调。
-	:*moe
+	|moe
 		def async randPrintNums(n):
-			def tasks = [];
-			for var i in 0..n:
-				tasks.push let(i) => async :>
-					wait sleep (100 * Math.random())
-					tracel i
-			wait join tasks
+		    def tasks = [];
+		    for var i in 0..n:
+		        tasks.push async :>
+		            wait sleep (100 * Math.random())
+		            tracel index
+		        where index = i;
+		    wait join tasks
 
+		randPrintNums 100
 
 :section{链接}
 	 - Moescript: \githubProject
