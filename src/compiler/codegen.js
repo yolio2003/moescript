@@ -434,13 +434,9 @@ exports.Generator = function(g_envs, g_config){
 
 	"Normal transformation specific rules";
 	var flowPush = function(flow, env, expr){
-		if(/^[\w$]+$/.test(expr))
-			return expr;
-		else {
-			var t = makeT(env);
-			flow.push(C_TEMP(t) + '=' + expr);
-			return C_TEMP(t);
-		}
+		var t = makeT(env);
+		flow.push(C_TEMP(t) + '=' + expr);
+		return C_TEMP(t);
 	};
 	var C_ARGS = function(flow, env, pipelineQ){
 		var args = [], olits = [], hasNameQ = false;
@@ -506,6 +502,7 @@ exports.Generator = function(g_envs, g_config){
 		// this requires special pipeline processing:
 		var pipelineQ = node.pipeline && node.func // pipe line invocation...
 			&& !(node.func.type === nt.VARIABLE || node.func.type === nt.THIS) // and side-effective.
+		this.names = this.names || []
 		var hasNameQ = false;
 		for(var i = 0; i < this.names.length; i++)
 			if(this.names[i])
@@ -723,7 +720,7 @@ exports.Generator = function(g_envs, g_config){
 			return expPush(ct(node));
 		};
 		var expPush = function(s){
-			if(s.match(/^[\w$]+$/))
+			if(/^\d+$|^\w+\$_$/.test(s))
 				return s;
 			var id = obstPartID();
 			ps(id + ' = (' + s + ')');
