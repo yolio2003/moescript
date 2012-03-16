@@ -109,10 +109,12 @@ You can get it from \githubProject.
 			def primes = [2, 3, 5, 7];
 			for var n in 2 ... uplimit:
 				var composite = false
-				for (var t = 0; primes[t] * primes[t] <= n; t += 1):
+				var t = 0;
+				while square primes[t] <= n:
 					if n % primes[t] == 0: 
 						composite = true;
 						break;
+					t += 1
 				if not composite:
 					primes.push n;
 					tracel n;

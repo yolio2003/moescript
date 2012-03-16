@@ -1000,7 +1000,14 @@ exports.parse = function (input, source, config) {
 						argList(m, false);
 						advance(CLOSE, RDEND);
 						m = wrapCall(m);
-					} else if (token.value === CRSTART){
+					} else if (token.value === SQSTART) { // [] operator
+						advance();
+						m = new Node(nt.MEMBERREFLECT, {
+							left: m,
+							right: callItem()
+						});
+						advance(CLOSE, SQEND);
+					} else if (token.value === CRSTART) {
 						m = wrapCall(new Node(nt.CALL, {
 							func: m,
 							args:[expressionBody()],
@@ -1253,7 +1260,7 @@ exports.parse = function (input, source, config) {
 	};
 
 	var expression = function (c) {
-		return whereClausize(ifClausize(pipeClausize(singleExpression(c || unary()))));
+		return whenClausize(pipeClausize(singleExpression(c || unary())));
 	};
 	var pipeClausize = function(node){
 		// Pipeline calls
@@ -1291,9 +1298,9 @@ exports.parse = function (input, source, config) {
 			return c;
 		};
 	};
-	var ifClausize = function(node){
-		// If affix
-		if(tokenIs(IF)){
+	var whenClausize = function(node){
+		// when affix
+		if(tokenIs(WHEN)){
 			advance(); advance(OPEN, RDSTART);
 			c = new Node(nt.CONDITIONAL, {
 				condition: expression(),
@@ -1311,23 +1318,8 @@ exports.parse = function (input, source, config) {
 			return node;
 		}
 	};
-	var whereClause = function(){
-		var bind = variable();
-		var right;
-		if(tokenIs(ASSIGN, '=')){
-			advance(ASSIGN, '=');
-			right = expression();
-		} else {
-			right = functionLiteral(true);
-		};
-		stripSemicolons();
-		return new Node(nt.EXPRSTMT, {
-			expression: new Node(nt.ASSIGN, {
-				left: bind,
-				right: right
-			}),
-			declareVariable: bind.name
-		});
+	var whereClausedExpression = function(c){
+		return whereClausize(expression(c))
 	};
 	var whereClausize = function(node){
 		var shift = 0;
@@ -1362,8 +1354,26 @@ exports.parse = function (input, source, config) {
 			return node;
 		}
 	};
+	var whereClause = function(){
+		var bind = variable();
+		var right;
+		if(tokenIs(ASSIGN, '=')){
+			advance(ASSIGN, '=');
+			right = expression();
+		} else {
+			right = functionLiteral(true);
+		};
+		stripSemicolons();
+		return new Node(nt.EXPRSTMT, {
+			expression: new Node(nt.ASSIGN, {
+				left: bind,
+				right: right
+			}),
+			declareVariable: bind.name
+		});
+	};
 
-	var assignmentExpression = function(){
+	var assignmentExpression = function(inlineQ){
 		var c = unary();
 		if (tokenIs(ASSIGN)){
 			var _v = token.value;
@@ -1375,12 +1385,12 @@ exports.parse = function (input, source, config) {
 				left: c,
 				right: _v === "=" ? expression() : new Node(nt[_v.slice(0, _v.length - 1)], {
 					left: c, 
-					right: assignmentExpression()
+					right: assignmentExpression(inlineQ)
 				}),
 				position: c.position
 			});
 		} else {
-			return expression(c);
+			return (inlineQ ? expression : whereClausedExpression)(c);
 		}
 	};
 	var callItem = function(omit){
@@ -1534,7 +1544,7 @@ exports.parse = function (input, source, config) {
 				advance();
 				return new Node(nt.ASSIGN, {
 					left: v,
-					right: expression(),
+					right: whereClausedExpression(),
 					constantQ: constantQ,
 					declareVariable: v.name
 				});
@@ -1605,77 +1615,50 @@ exports.parse = function (input, source, config) {
 		return n;
 	};
 	var forstmt = function () {
-		var node;
 		advance(FOR);
-		if(tokenIs(OPEN, RDSTART)){
-			node = new Node(nt.FOR);
-			advance(OPEN, RDSTART);
-			ensure(token);
-			if (token.type !== SEMICOLON) {
-				if (token.type === VAR) {
-					advance(VAR);
-					node.start = varstmt();
-				} else {
-					node.start = assignmentExpression();
-				}
-			};
-			advance(SEMICOLON);
-			if (token.type !== SEMICOLON) {
-				node.condition = assignmentExpression();
-			} else {
-				throw PE('The condition of a FOR loop mustn\'t be empty.');
-			}
-			advance(SEMICOLON);
-			if (token.type !== CLOSE && token.value !== RDEND) {
-				node.step = assignmentExpression();
-			};
-
-			advance(CLOSE, RDEND);
+		var node = new Node(nt.FORIN);
+		var declQ = false;
+		var decls;
+		if(tokenIs(VAR)){
+			advance(VAR);
+			declQ = true;
+		};
+		if(tokenIs(OPERATOR, '*')){
+			advance();
+			node.pass = true;
+			var passVar = variable();
+			passVar.declareVariable = passVar.name;
+			decls = new Node(nt.VAR, {terms: [passVar]});
 		} else {
-			node = new Node(nt.FORIN);
-			var declQ = false;
-			var decls;
-			if(tokenIs(VAR)){
-				advance(VAR);
-				declQ = true;
-			};
-			if(tokenIs(OPERATOR, '*')){
-				advance();
-				node.pass = true;
-				var passVar = variable();
-				passVar.declareVariable = passVar.name;
-				decls = new Node(nt.VAR, {terms: [passVar]});
-			} else {
-				decls = vardecls();
-			};
-			node.vars = decls.terms.map(function(term){return term.name});
-			if(declQ)
-				node._variableDeclares = decls;
-			advance(OPERATOR, 'in');
-			node.range = expression();
-			while(node.range.type === nt.GROUP)
-				node.range = node.range.operand;
-			if(!node.pass && (node.range.type === nt['..'] || node.range.type === nt['...'])){ // range loop simplification
-				var hightmp = makeT();
-				var d0name = decls.terms[0].name;
-				node = new Node(nt.FOR, {
-					start: new Node(nt['then'], {
-						left: new Node(nt.ASSIGN, {
-							left: new Node(nt.VARIABLE, {name: d0name}),
-							right: node.range.left}),
-						right: new Node(nt.ASSIGN, {
-							left: new Node(nt.TEMPVAR, {name: hightmp}),
-							right: node.range.right})}),
-					condition: new Node((node.range.type === nt['..'] ? nt['<'] : nt['<=']), {
+			decls = vardecls();
+		};
+		node.vars = decls.terms.map(function(term){return term.name});
+		if(declQ)
+			node._variableDeclares = decls;
+		advance(OPERATOR, 'in');
+		node.range = expression();
+		while(node.range.type === nt.GROUP)
+			node.range = node.range.operand;
+		if(!node.pass && (node.range.type === nt['..'] || node.range.type === nt['...'])){ // range loop simplification
+			var hightmp = makeT();
+			var d0name = decls.terms[0].name;
+			node = new Node(nt.FOR, {
+				start: new Node(nt['then'], {
+					left: new Node(nt.ASSIGN, {
 						left: new Node(nt.VARIABLE, {name: d0name}),
-						right: new Node(nt.TEMPVAR, {name: hightmp})}),
-					step: new Node(nt.ASSIGN, {
-						left: new Node(nt.VARIABLE, {name: d0name}), 
-						right: new Node(nt['+'], {
-							left: new Node(nt.VARIABLE, {name: d0name}),
-							right: new Node(nt.LITERAL, {value: 1})})}),
-					_variableDeclares: declQ ? decls : null});
-			}
+						right: node.range.left}),
+					right: new Node(nt.ASSIGN, {
+						left: new Node(nt.TEMPVAR, {name: hightmp}),
+						right: node.range.right})}),
+				condition: new Node((node.range.type === nt['..'] ? nt['<'] : nt['<=']), {
+					left: new Node(nt.VARIABLE, {name: d0name}),
+					right: new Node(nt.TEMPVAR, {name: hightmp})}),
+				step: new Node(nt.ASSIGN, {
+					left: new Node(nt.VARIABLE, {name: d0name}), 
+					right: new Node(nt['+'], {
+						left: new Node(nt.VARIABLE, {name: d0name}),
+						right: new Node(nt.LITERAL, {value: 1})})}),
+				_variableDeclares: declQ ? decls : null});
 		};
 		node.body = contBlock();
 		return node;
