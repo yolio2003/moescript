@@ -412,9 +412,11 @@ exports.Generator = function(g_envs, g_config){
 	eSchemataDef(nt.NOT, function (transform) {
 		return '(!(' + transform(this.operand) + '))';
 	});
-
 	eSchemataDef(nt.ASSIGN, function (transform, env) {
 		return $('(%1 = %2)', transform(this.left), transform(this.right));
+	});
+	eSchemataDef(nt.CTOR, function(transform){
+		return 'new (' + transform(this.expression) + ')'
 	});
 
 
@@ -431,94 +433,99 @@ exports.Generator = function(g_envs, g_config){
 	});
 
 	"Normal transformation specific rules";
-	var C_ARGS = function(node, env){
-		var args = [], names = [], hasNameQ = false;
+	var flowPush = function(flow, env, expr){
+		if(/^[\w$]+$/.test(expr))
+			return expr;
+		else {
+			var t = makeT(env);
+			flow.push(C_TEMP(t) + '=' + expr);
+			return C_TEMP(t);
+		}
+	};
+	var C_ARGS = function(flow, env, pipelineQ){
+		var args = [], olits = [], hasNameQ = false;
+
+		if(pipelineQ){
+			var t = makeT(env);
+			flow.unshift(C_TEMP(t) + '=' + transform(ungroup(this.args[0])));
+			args.push(C_TEMP(t));
+		}
 		
-		for (var i = 0; i < node.args.length; i++) {
-			if (node.names[i]) {
-				names.push(STRIZE(node.names[i]));
-				hasNameQ = true
+		for (var i = (pipelineQ ? 1 : 0); i < this.args.length; i++) {
+			if (this.names[i]) {
+				var tn = flowPush(flow, env, transform(ungroup(this.args[i])));
+				olits.push(STRIZE(this.names[i]) + ':' + tn);
+				hasNameQ = true;
 			} else {
-				names.push('undefined')
+				var tn = flowPush(flow, env, transform(ungroup(this.args[i])));
+				args.push(tn);
 			}
-			args.push(transform(ungroup(node.args[i])));
 		};
 
-		return {
-			hasNameQ: hasNameQ,
-			displacement: names.join(','),
-			args: args
+		if(hasNameQ){
+			args.push('{' + olits.join(',') + '}');
+		}
+
+		return args;
+	};
+
+	var flowFuncParts = function(flow){
+		var pivot, right, b;
+		switch (this.type) {
+			case nt.MEMBER:
+				pivot = transform(this.left)
+				right = PART('', this.right)
+				break;
+			case nt.MEMBERREFLECT:
+				pivot = transform(this.left)
+				right = '[' + transform(this.right) + ']'
+				break;
+			case nt.CTOR:
+				pivot = null
+				right = transform(this.expression)
+				    b = 'new'
+				break;
+			default:
+				pivot = null
+				right = transform(this)
+				break;
 		};
+		if(pivot){
+			var tP = flowPush(flow, env, pivot);
+			var tF = flowPush(flow, env, tP + right);
+		} else {
+			var tF = flowPush(flow, env, right);
+		};
+		if(b) tF = b + '(' + tF + ')';
+		return {
+			p: tP, f: tF
+		}
 	};
 
 	vmSchemataDef(nt.CALL, function (node, env) {
 		// this requires special pipeline processing:
 		var pipelineQ = node.pipeline && node.func // pipe line invocation...
 			&& !(node.func.type === nt.VARIABLE || node.func.type === nt.THIS) // and side-effective.
+		var hasNameQ = false;
+		for(var i = 0; i < this.names.length; i++)
+			if(this.names[i])
+				hasNameQ = true;
+		var specialOrderQ = hasNameQ || pipelineQ;
 
-		var pivot, right, func, callWQ;
-		switch (this.func.type) {
-			case nt.MEMBER:
-				pivot = transform(this.func.left)
-				right = PART('', this.func.right)
-				 func = pivot + right
-				break;
-			case nt.MEMBERREFLECT:
-				pivot = transform(this.func.left)
-				right = '[' + transform(this.func.right) + ']'
-				 func = pivot + right
-				break;
-			case nt.CTOR:
-				pivot = null
-				right = transform(this.func.expression)
-				 func = right
-				callWQ= 'new'
-				break;
-			default:
-				pivot = null
-				right = transform(this.func)
-				 func = right
-				break;
-		};
-		var ca = C_ARGS(this, env);
-		
-		if(ca.hasNameQ || pipelineQ){
-			// Re-order arguments required...
-			var f_args = [];
-			var f_olit = [];
-			var tAssignments = [];
-			for(var i = 0; i < ca.args.length; i++){
-				var t = makeT(env);
-				tAssignments.push(C_TEMP(t) + '=' + ca.args[i]);
-				if(typeof this.names[i] === 'string'){
-					f_olit.push(STRIZE(this.names[i]) + ':' + C_TEMP(t))
-				} else {
-					f_args.push(C_TEMP(t))
-				};
-			};
-			f_args.push('{' + f_olit.join(',') + '}');
-
-			if(pivot){
-				var tP = makeT(env);
-				var tF = makeT(env);
-				tAssignments.unshift(C_TEMP(tP) + '=' + pivot,
-					C_TEMP(tF) + '=' + C_TEMP(tP) + right);
-				tAssignments.push($('%1.call(%2)', C_TEMP(tF), [C_TEMP(tP)].concat(f_args).join(',')))
+		if(specialOrderQ){
+			var flow = [];
+			var func = flowFuncParts.call(this.func, flow, env);
+			var args = C_ARGS.call(this, flow, env, pipelineQ);
+			if(func.p){
+				args.unshift(func.p);
+				flow.push(func.f + '.call(' + args.join(',') + ')')
 			} else {
-				var tF = makeT(env);
-				tAssignments.unshift(C_TEMP(tF) + '=' + right);
-				tAssignments.push($('%1(%2)', (callWQ ? callWQ + ' (' + C_TEMP(tF) + ')' : C_TEMP(tF)), f_args.join(',')))
-			};
-			// Pipeline adjustment
-			if(pipelineQ){
-				var pipeA = tAssignments[pivot ? 2 : 1];
-				tAssignments.splice((pivot ? 2 : 1), 1)
-				tAssignments.unshift(pipeA);
+				flow.push(func.f + '(' + args.join(',') + ')')
 			}
-			return '(' + tAssignments.join(',') + ')';
+			return '(' + flow.join(',') + ')';
 		} else {
 			// Otherwise: use normal transformation.
-			return $('%1(%2)', (callWQ ? callWQ + ' (' + (func) + ')' : func), ca.args.join(','))
+			return $('%1(%2)', transform(this.func), this.args.map(transform))
 		}
 	});
 
@@ -579,14 +586,14 @@ exports.Generator = function(g_envs, g_config){
 	vmSchemataDef(nt.WHILE, function () {
 		return $('while(%1){%2}', transform(ungroup(this.condition)), transform(this.body));
 	});
-	vmSchemataDef(nt.FOR, function(){
+	vmSchemataDef(nt.OLD_FOR, function(){
 		return $('for(%1; %2; %3){%4}',
 			this.start ? transform(this.start) : '',
 			transform(ungroup(this.condition)),
 			this.step ? transform(ungroup(this.step)) : '',
 			transform(this.body));
 	});
-	vmSchemataDef(nt.FORIN, function (nd, e) {
+	vmSchemataDef(nt.FOR, function (nd, e) {
 		var tEnum = makeT(e);
 		var tYV = makeT(e);
 
@@ -970,7 +977,7 @@ exports.Generator = function(g_envs, g_config){
 			lNearest = bk;
 			return '';
 		});
-		oSchemataDef(nt.FOR, function () {
+		oSchemataDef(nt.OLD_FOR, function () {
 			var lLoop = label();
 			var bk = lNearest;
 			var lEnd = lNearest = label();
@@ -984,7 +991,7 @@ exports.Generator = function(g_envs, g_config){
 			lNearest = bk;
 			return '';
 		});
-		oSchemataDef(nt.FORIN, function(node, env){
+		oSchemataDef(nt.FOR, function(node, env){
 			var tEnum = makeT(env);
 			var tYV = makeT(env);
 

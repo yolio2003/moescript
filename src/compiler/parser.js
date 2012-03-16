@@ -1616,7 +1616,7 @@ exports.parse = function (input, source, config) {
 	};
 	var forstmt = function () {
 		advance(FOR);
-		var node = new Node(nt.FORIN);
+		var node = new Node(nt.FOR);
 		var declQ = false;
 		var decls;
 		if(tokenIs(VAR)){
@@ -1642,7 +1642,7 @@ exports.parse = function (input, source, config) {
 		if(!node.pass && (node.range.type === nt['..'] || node.range.type === nt['...'])){ // range loop simplification
 			var hightmp = makeT();
 			var d0name = decls.terms[0].name;
-			node = new Node(nt.FOR, {
+			node = new Node(nt.OLD_FOR, {
 				start: new Node(nt['then'], {
 					left: new Node(nt.ASSIGN, {
 						left: new Node(nt.VARIABLE, {name: d0name}),

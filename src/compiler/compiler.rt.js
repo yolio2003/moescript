@@ -74,7 +74,6 @@ var NodeType = exports.NodeType = function () {
 		'or', '||',
 		'..', '...',
 		'as', 
-		'then',
 		// Conditional
 		'CONDITIONAL',
 		// Assignment
@@ -82,7 +81,7 @@ var NodeType = exports.NodeType = function () {
 
 		// Statements
 		'EXPRSTMT', 
-		'IF', 'FOR', 'FORIN', 'WHILE', 'REPEAT', 'CASE', 
+		'IF', 'FOR', 'OLD_FOR', 'WHILE', 'REPEAT', 'CASE', 
 		'PIECEWISE', 'VAR', 'BREAK', 'LABEL', 'RETURN',
 		// Large-scale
 		'BLOCK', 'FUNCTION', 'PARAMETERS', 'SCRIPT'];
