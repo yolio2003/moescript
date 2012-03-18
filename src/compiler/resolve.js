@@ -60,9 +60,7 @@ exports.resolve = function(ast, cInitVariables, PE, PW, cWarn){
 					  node.type === nt.ARGUMENTS ? 'argsOccurs' : 'argnOccurs'] = true;
 				} else if(node.type === nt.TEMPVAR){
 					current.useTemp(node.name, node.processing)
-				} else if(node.type === nt.WAIT){
-					current.oProto = true
-				}; 
+				};
 				moecrt.walkNode(node, fWalk);
 			}
 		};
@@ -85,7 +83,7 @@ exports.resolve = function(ast, cInitVariables, PE, PW, cWarn){
 				obs = true;
 				oProtoQ = oProtoQ || node.type === nt.WAIT;
 			};
-			obs = obs || moecrt.walkNode(node, fWalk);
+			obs = moecrt.walkNode(node, fWalk) || obs;
 			if(obs) node.obstructive = true;
 			return obs;
 		};
