@@ -18,6 +18,7 @@ exports.resolve = function(ast, cInitVariables, PE, PW, cWarn){
 					current.nest.push(s.id);
 				};
 				s.parameters = node.parameters;
+				s.rebind = node.rebind;
 				s.ready();
 				s.code = node.code;
 				scopes[scopes.length] = s;
@@ -51,13 +52,16 @@ exports.resolve = function(ast, cInitVariables, PE, PW, cWarn){
 					current.usedVariablesAssignOcc[node.left.name] = node.left.position;
 				};
 				if(node.type === nt.VARIABLE){
-					current.useVar(node.name, node.position);
-				} else if(node.type === nt.THIS){
-					current.thisOccurs = true;
+					current.useVar(node.name, node.position)
+				} else if(node.type === nt.THIS || node.type === nt.ARGUMENTS || node.type === nt.ARGN){
+					var e = current;
+					while(e.rebind) e = e.parent;
+					e[node.type === nt.THIS ? 'thisOccurs' : 
+					  node.type === nt.ARGUMENTS ? 'argsOccurs' : 'argnOccurs'] = true;
 				} else if(node.type === nt.TEMPVAR){
 					current.useTemp(node.name, node.processing)
 				} else if(node.type === nt.WAIT){
-					current.oProto = true;
+					current.oProto = true
 				}; 
 				moecrt.walkNode(node, fWalk);
 			}

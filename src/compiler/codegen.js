@@ -66,18 +66,18 @@ var JOIN_STMTS = function (statements) {
 
 //:func{THIS_BIND}{Binds T_THIS() value `this`.}
 var THIS_BIND = function (env) {
-	return (!env.thisOccurs) ? '' : 'var ' + T_THIS() + ' = (this === MOE_M_TOP ? null : this)'
-}
+	return (env.thisOccurs) ? 'var ' + T_THIS() + ' = (this === MOE_M_TOP ? null : this)' : ''
+};
 var ARGS_BIND = function (env) {
-	return (!env.argsOccurs) ? '' : 'var ' + T_ARGS() + ' = MOE_SLICE(arguments, 0)'
-}
+	return (env.argsOccurs) ? 'var ' + T_ARGS() + ' = MOE_SLICE(arguments, 0)' : ''
+};
 var ARGN_BIND = function (env) {
 	return (env.argnOccurs) ? 
 		'var ' + T_ARGN() + ' = MOE_CNARG(arguments[arguments.length - 1])' : ''
-}
+};
 var TEMP_BIND = function (env, tempName) {
 	return C_TEMP(tempName);
-}
+};
 
 //:func{$}
 //	:takes{string*}
@@ -293,18 +293,12 @@ exports.Generator = function(g_envs, g_config){
 		return '(' + transform(ungroup(this.operand)) + ')'
 	});
 	eSchemataDef(nt.THIS, function (transform, e) {
-		var s = e;
-		s.thisOccurs = true;
 		return T_THIS(e);
 	});
 	eSchemataDef(nt.ARGN, function (transform, e){
-		e.argnOccurs = true;
-		e.argsOccurs = true;
 		return T_ARGN();
 	});
 	eSchemataDef(nt.ARGUMENTS, function (transform, e) {
-		var s = e;
-		s.argsOccurs = true;
 		return T_ARGS();
 	});
 	eSchemataDef(nt.PARAMETERS, function () {
@@ -450,7 +444,8 @@ exports.Generator = function(g_envs, g_config){
 		for (var i = (pipelineQ ? 1 : 0); i < this.args.length; i++) {
 			if (this.names[i]) {
 				var tn = flowPush(flow, env, transform(ungroup(this.args[i])));
-				olits.push(STRIZE(this.names[i]) + ':' + tn);
+				olits.push(STRIZE(this.names[i]));
+				olits.push(tn);
 				hasNameQ = true;
 			} else {
 				var tn = flowPush(flow, env, transform(ungroup(this.args[i])));
@@ -459,7 +454,7 @@ exports.Generator = function(g_envs, g_config){
 		};
 
 		if(hasNameQ){
-			args.push('{' + olits.join(',') + '}');
+			args.push('new MOE_NARGS(' + olits.join(',') + ')');
 		}
 
 		return args;
@@ -741,7 +736,8 @@ exports.Generator = function(g_envs, g_config){
 			
 			for (var i = (skip || 0); i < node.args.length; i++) {
 				if (node.names[i]) {
-					olits.push(STRIZE(node.names[i]) + ':' + expPart(node.args[i]));
+					olits.push(STRIZE(node.names[i]));
+					olits.push(expPart(node.args[i]));
 					hasNameQ = true
 				} else {
 					args.push(expPart(node.args[i]));
@@ -753,8 +749,8 @@ exports.Generator = function(g_envs, g_config){
 			};
 
 			if(hasNameQ){
-				args.push('{' + olits.join(',') + '}')
-			}
+				args.push('new MOE_NARGS(' + olits.join(',') + ')')
+			};
 
 			return {
 				hasNameQ: hasNameQ,

@@ -1343,7 +1343,8 @@ exports.parse = function (input, source, config) {
 				func: new Node(nt.MEMBER, {
 					left: new Node(nt.FUNCTION, {
 						parameters: new Node(nt.PARAMETERS, {names: []}),
-						code: new Node(nt.SCRIPT, {content: stmts})
+						code: new Node(nt.SCRIPT, {content: stmts}),
+						rebind: true
 					}),
 					right: 'call'
 				}),

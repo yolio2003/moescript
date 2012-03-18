@@ -123,7 +123,7 @@ var compile = exports.compile = function (source, config) {
 	if(ast.debugQ){
 		generatedSource = generateSourceMap(generatedSource)
 	} else {
-//		generatedSource = generatedSource.replace(/^\s*\/\/.*\n/gm, '');
+		generatedSource = generatedSource.replace(/^\s*\/\/.*\n/gm, '');
 	}
 
 	return {

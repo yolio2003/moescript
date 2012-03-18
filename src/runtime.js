@@ -78,26 +78,6 @@ var MOE_CNARG = function(a) {
 
 //: AUX-METHODS
 var MOE_M_TOP = function() {return this}();
-var MOE_IINVOKE = function(p, s, displacement, args) {
-	return MOE_NINVOKE(p, MOE_ITEM(p, s), displacement, args)
-}
-var MOE_NINVOKE = function(p, f, displacement, args, asyncQ) {
-	var na = new NamedArguments();
-	var ca = [];
-	for(var i = 0; i < displacement.length; i++) {
-		if(typeof displacement[i] === 'string')
-			na[displacement[i]] = args[i]
-		else
-			ca.push(args[i])
-	};
-	var invokeArgs = ca.concat(na);
-	if(asyncQ){
-		t = invokeArgs[invokeArgs.length - 1]
-		invokeArgs[invokeArgs.length - 1] = invokeArgs[invokeArgs.length - 2]
-		invokeArgs[invokeArgs.length - 2] = t
-	}
-	return f.apply(p, invokeArgs);
-}
 var MOE_RMETHOD = function(l, r, m) {
 	return r[m](l)
 }
@@ -455,8 +435,6 @@ var moe = exports;
 
 moe.runtime = moe.rt = {
 	CNARG: MOE_CNARG,
-	IINVOKE: MOE_IINVOKE,
-	NINVOKE: MOE_NINVOKE,
 	M_TOP: MOE_M_TOP,
 	OBSTRUCTIVE: MOE_OBSTRUCTIVE,
 	OBSTRUCTIVE_SCHEMATA_M: MOE_OBSTRUCTIVE_SCHEMATA_M,
@@ -473,7 +451,8 @@ moe.runtime = moe.rt = {
 	ITEM: MOE_ITEM,
 	SET_ITEM: MOE_SET_ITEM,
 	RANGE_EX: MOE_RANGE_EX,
-	RANGE_INCL: MOE_RANGE_INCL
+	RANGE_INCL: MOE_RANGE_INCL,
+	NARGS: NamedArguments
 };
 
 moe.derive = MOE_derive;
