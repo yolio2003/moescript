@@ -89,11 +89,6 @@ var MOE_YIELDVALUE = function(a, restart) {
 var MOE_RETURNVALUE = function(x) {
 	this.value = x
 }
-var MOE_OBSTRUCTIVE = function(f) {
-	return {
-		build: f
-	}
-}
 //: OBSTRUCTIVE_SCHEMATA_M
 var MOE_OBSTRUCTIVE_SCHEMATA_M = {
 	'return': function(t, a, v) {
@@ -389,6 +384,17 @@ if (!Array.prototype.forEach) {
 	};
 }
 
+var generateEmitter = function(d){
+	var emitRestart = d;
+	var emit = function(){
+		var v = emitRestart();
+		if(v.restart && v.values){
+			emitRestart = v.restart;
+			return v;
+		}
+	};
+	return emit
+};
 
 var MOE_RANGE_EX = function(left, right){
 	return new ExclusiveAscRange(left, right)
@@ -405,13 +411,14 @@ ExclusiveAscRange.prototype.getEnumerator = function(){
 	var low = this.left;
 	var high = this.right;
 	var i = low;
-	return {emit: function(){
+	var f = function(){
 		if(i >= high) {
 			return new MOE_RETURNVALUE();
 		} else {
-			return new MOE_YIELDVALUE([i++]);
+			return new MOE_YIELDVALUE([i++], f);
 		}
-	}}
+	}
+	return generateEmitter(f);
 };
 var InclusiveAscRange = function(left, right){
 	this.left = left;
@@ -421,13 +428,14 @@ InclusiveAscRange.prototype.getEnumerator = function(){
 	var low = this.left;
 	var high = this.right;
 	var i = low;
-	return {emit: function(){
+	var f = function(){
 		if(i > high) {
 			return new MOE_RETURNVALUE();
 		} else {
-			return new MOE_YIELDVALUE([i++]);
+			return new MOE_YIELDVALUE([i++], f);
 		}
-	}}
+	}
+	return generateEmitter(f);
 };
 
 //: moe-master
@@ -436,7 +444,6 @@ var moe = exports;
 moe.runtime = moe.rt = {
 	CNARG: MOE_CNARG,
 	M_TOP: MOE_M_TOP,
-	OBSTRUCTIVE: MOE_OBSTRUCTIVE,
 	OBSTRUCTIVE_SCHEMATA_M: MOE_OBSTRUCTIVE_SCHEMATA_M,
 	OWNS: MOE_OWNS,
 	RETURNVALUE: MOE_RETURNVALUE,
@@ -457,3 +464,4 @@ moe.runtime = moe.rt = {
 
 moe.derive = MOE_derive;
 moe.Nai = Nai;
+moe.generateEmitter = generateEmitter;
