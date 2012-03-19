@@ -1545,7 +1545,7 @@ exports.parse = function (input, source, config) {
 				advance();
 				return new Node(nt.ASSIGN, {
 					left: v,
-					right: whereClausedExpression(),
+					right: assignmentExpression(),
 					constantQ: constantQ,
 					declareVariable: v.name
 				});

@@ -192,7 +192,7 @@
 				var infoout = G_TRACE('info');
 				var tracel = infoout.tracel;
 				var tracer = infoout.traceraw;
-				eisa_using(['moe/libs/std', 'moe/libs/internl', 'moe/libs/stdenum', 'moe/libs/async', output, { log: function(){console.log.apply(console, arguments)} }],
+				eisa_using(['moe/libs/std', 'moe/libs/stdenum', 'moe/libs/async', output, { log: function(){console.log.apply(console, arguments)} }],
 					function(initvs, inita){
 						var lfc = require('moe/compiler/compiler');
 						var varMaps = function(f){inita(function(v, n){f(null, n)})};

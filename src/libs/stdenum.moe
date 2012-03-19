@@ -1,21 +1,14 @@
 def enum = enumeration;
-def upto = exports.upto = Enumerable function(m, n):
-	for(var i = m; i <= n; i += 1):
-		enum.yield! i
-def up = exports.up = Enumerable function(n):
-	for(var i = n; true; i += 1):
-		enum.yield! i
-def downto = exports.downto = Enumerable function(m, n):
-	for(var i = m; i >= n; i -= 1):
-		enum.yield! i
-def down = exports.down = Enumerable function(n):
-	for(var i = n; true; i -= 1):
-		enum.yield! i
+-- function takeWhile: Wraps an enumerable object, emits terms until it satisifies the condition
+-- takeWhile(I <- Enumerable, condition(x) <- Boolean) <- Enumerable
 def takeWhile = exports.takeWhile = Enumerable function(I, condition):
 	for var *a in I:
 		if not condition.apply(null, a): 
 			return undefined;
 		enum.bypass! a
+
+-- function select: Wraps an enumerable object, only emits terms satisifying the condition
+-- select(I <- Enumerable, condition(x) <- Boolean) <- Enumerable
 def select = exports.select = Enumerable function(I, condition):
 	for var *a in I:
 		if condition.apply(null, a):

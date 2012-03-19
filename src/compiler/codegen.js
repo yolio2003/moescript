@@ -406,9 +406,6 @@ exports.Generator = function(g_envs, g_config){
 	eSchemataDef(nt.NOT, function (transform) {
 		return '(!(' + transform(this.operand) + '))';
 	});
-	eSchemataDef(nt.ASSIGN, function (transform, env) {
-		return $('(%1 = %2)', transform(this.left), transform(this.right));
-	});
 	eSchemataDef(nt.CTOR, function(transform){
 		return 'new (' + transform(this.expression) + ')'
 	});
@@ -427,12 +424,16 @@ exports.Generator = function(g_envs, g_config){
 	});
 
 	"Normal transformation specific rules";
+	vmSchemataDef(nt.ASSIGN, function () {
+		return $('(%1 = %2)', transform(this.left), transform(this.right));
+	});
+
 	var flowPush = function(flow, env, expr){
 		var t = makeT(env);
 		flow.push(C_TEMP(t) + '=' + expr);
 		return C_TEMP(t);
 	};
-	var C_ARGS = function(flow, env, pipelineQ){
+	var irregularOrderArgs = function(flow, env, pipelineQ){
 		var args = [], olits = [], hasNameQ = false;
 
 		if(pipelineQ){
@@ -450,6 +451,25 @@ exports.Generator = function(g_envs, g_config){
 			} else {
 				var tn = flowPush(flow, env, transform(ungroup(this.args[i])));
 				args.push(tn);
+			}
+		};
+
+		if(hasNameQ){
+			args.push('new MOE_NARGS(' + olits.join(',') + ')');
+		}
+
+		return args;
+	};
+	var regularOrderArgs = function(){
+		var args = [], olits = [], hasNameQ = false;
+		
+		for (var i = 0; i < this.args.length; i++) {
+			if (this.names[i]) {
+				olits.push(STRIZE(this.names[i]));
+				olits.push(transform(ungroup(this.args[i])));
+				hasNameQ = true;
+			} else {
+				args.push(transform(ungroup(this.args[i])));
 			}
 		};
 
@@ -499,15 +519,20 @@ exports.Generator = function(g_envs, g_config){
 			&& !(node.func.type === nt.VARIABLE || node.func.type === nt.THIS) // and side-effective.
 		this.names = this.names || []
 		var hasNameQ = false;
-		for(var i = 0; i < this.names.length; i++)
+		var specialOrderQ = false;
+		for(var i = 0; i < this.names.length; i++) {
 			if(this.names[i])
 				hasNameQ = true;
-		var specialOrderQ = hasNameQ || pipelineQ;
+			// Irregular evaluation order found.
+			if(hasNameQ && !this.names[i])
+				specialOrderQ = true;
+		}
+		var specialOrderQ = specialOrderQ || pipelineQ;
 
 		if(specialOrderQ){
 			var flow = [];
 			var func = flowFuncParts.call(this.func, flow, env);
-			var args = C_ARGS.call(this, flow, env, pipelineQ);
+			var args = irregularOrderArgs.call(this, flow, env, pipelineQ);
 			if(func.p){
 				args.unshift(func.p);
 				flow.push(func.f + '.call(' + args.join(',') + ')')
@@ -517,7 +542,7 @@ exports.Generator = function(g_envs, g_config){
 			return '(' + flow.join(',') + ')';
 		} else {
 			// Otherwise: use normal transformation.
-			return $('%1(%2)', transform(this.func), this.args.map(transform))
+			return $('%1(%2)', transform(this.func), regularOrderArgs.call(this).join(','))
 		}
 	});
 
@@ -729,6 +754,19 @@ exports.Generator = function(g_envs, g_config){
 		// Labels
 		var lNearest = 0;
 		var scopeLabels = {};
+
+		oSchemataDef(nt.ASSIGN, function () {
+			if(this.left.type === nt.MEMBER){
+				var pivot = expPart(this.left.left);
+				return $('(%1 = %2)', PART(pivot, this.left.right), expPart(this.right));
+			} else if(this.left.type === nt.MEMBERREFLECT) {
+				var pivot = expPart(this.left.left);
+				var member = expPart(this.left.right);
+				return $('(%1[%2] = %3)', pivot, member, expPart(this.right));
+			} else {
+				return $('(%1 = %2)', transform(this.left), expPart(this.right));
+			}
+		});
 
 		// obstructive expressions
 		var oC_ARGS = function(node, env, skip, skips){

@@ -15,7 +15,7 @@ dirs:
 moeRTMods = $(MOD)/runtime.js $(MOD)/dummy.js
 $(moeRTMods): $(MOD)/%.js: src/%.js
 	cp $< $@
-moeLibMods = $(MOD)/libs/std.js $(MOD)/libs/internl.js $(MOD)/libs/async.js
+moeLibMods = $(MOD)/libs/std.js $(MOD)/libs/async.js
 $(moeLibMods): $(MOD)/libs/%.js: src/libs/%.js
 	cp $< $@
 

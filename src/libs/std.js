@@ -246,3 +246,10 @@ Array.method_('getEnumerator', function(){
 	};
 	return generateEmitter(f);
 });
+
+reg('Object', Object);
+reg('Number', Number);
+reg('Boolean', Boolean);
+reg('Array', Array);
+reg('Function', Function);
+reg('String', String);
