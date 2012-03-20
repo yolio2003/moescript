@@ -73,6 +73,7 @@ var ID = TokenType('Identifier'),
 	MY = TokenType('My sign'),
 	PROTOMEMBER = TokenType('Prototype member symbol'),
 	ASSIGN = TokenType('Assign symbol'),
+	BIND = TokenType('Bind symbol'),
 	BACKSLASH = TokenType('Backslash'),
 
 	SQSTART = '[', SQEND = ']', 
@@ -191,6 +192,7 @@ var symbolTypes = {
 	'*=': ASSIGN,
 	'/=': ASSIGN,
 	'%=': ASSIGN,
+	'<-': BIND,
 	':>': LAMBDA,
 	'=>': LAMBDA,
 	'#': SHARP,
@@ -274,6 +276,7 @@ var lex = exports.lex = function (input, cfgMap) {
 			case COLON:
 			case ASSIGN:
 			case LAMBDA:
+			case BIND:
 				make(t, s, n);
 				break;
 
@@ -347,7 +350,7 @@ var lex = exports.lex = function (input, cfgMap) {
 		identifier: rIdentifier
 	});
 	var rNumber = /0[xX][a-fA-F0-9]+|\d+(?:\.\d+(?:[eE]-?\d+)?)?/;
-	var rSymbol = /\.{1,3}|[+\-*\/<>=!%~|&][<>=~|&]*|:[:>]|[()\[\]\{\}@\\;,#:]/;
+	var rSymbol = /\.{1,3}|<-|[+\-*\/<>=!%~|&][<>=~|&]*|:[:>]|[()\[\]\{\}@\\;,#:]/;
 	var rIgnore = /[+\-*\/<>&|\.,)\]}]|[=!][=~]|::/
 	var rNewline = composeRex(/\n(?!\s*(?:#ignore))(?:[ \t]*\n)*[ \t]*/, {ignore: rIgnore});
 	var rToken = composeRex(/(#comment)|(?:#option)|(#identifier)|(#string)|(#number)|(#symbol)|(#newline)/gm, {
@@ -1386,19 +1389,7 @@ exports.parse = function (input, source, config) {
 					c.type === nt.MEMBERREFLECT || c.type === nt.TEMPVAR,
 					"Invalid assignment");
 			var _v = advance().value;
-			if(tokenIs(EXCLAM)){
-				advance();
-				var right = new Node(nt.CALL, {
-					func: new Node(nt.BINDPOINT, {expression: new Node(nt.MEMBER, {
-						left: new Node(nt.TEMPVAR, {name: 'SCHEMATA'}),
-						right: "bind"
-					})}),
-					args: [assignmentExpression(inlineQ)],
-					names: [null]
-				});
-			} else {
-				var right = assignmentExpression(inlineQ);
-			};
+			var right = assignmentExpression(inlineQ);
 			return new Node(nt.ASSIGN, {
 				left: c,
 				right: _v === "=" ? right : new Node(nt[_v.slice(0, _v.length - 1)], {
@@ -1406,6 +1397,19 @@ exports.parse = function (input, source, config) {
 					right: right
 				}),
 				position: c.position
+			});
+		} else if(tokenIs(BIND)){
+			advance();
+			return new Node(nt.ASSIGN, {
+				left: c,
+				right: new Node(nt.CALL, {
+					func: new Node(nt.BINDPOINT, {expression: new Node(nt.MEMBER, {
+						left: new Node(nt.TEMPVAR, {name: 'SCHEMATA'}),
+						right: "bind"
+					})}),
+					args: [assignmentExpression(inlineQ)],
+					names: [null]
+				})
 			});
 		} else {
 			return (inlineQ ? expression : whereClausedExpression)(c);
@@ -1514,6 +1518,7 @@ exports.parse = function (input, source, config) {
 
 	var DEF_ASSIGNMENT = 1;
 	var DEF_FUNCTIONAL = 2;
+	var DEF_BIND = 3;
 	var parlistQ = function(tSpecific){
 		var shift = 0;
 		while(true){
@@ -1550,6 +1555,7 @@ exports.parse = function (input, source, config) {
 	};
 	var defPartQ = function(){
 		if(tokenIs(ASSIGN, '=')) return DEF_ASSIGNMENT;
+		else if(tokenIs(BIND)) return DEF_BIND;
 		else if(tokenIs(COLON)) return DEF_FUNCTIONAL;
 		else return parlistQ();
 	};
@@ -1571,6 +1577,20 @@ exports.parse = function (input, source, config) {
 					left: v,
 					right: functionLiteral(true),
 					constantQ: constantQ,
+					declareVariable: v.name
+				});
+			} else if (defType === DEF_BIND){
+				advance();
+				return new Node(nt.ASSIGN, {
+					left: v,
+					right: new Node(nt.CALL, {
+						func: new Node(nt.BINDPOINT, {expression: new Node(nt.MEMBER, {
+							left: new Node(nt.TEMPVAR, {name: 'SCHEMATA'}),
+							right: "bind"
+						})}),
+						args: [assignmentExpression()],
+						names: [null]
+					}),
 					declareVariable: v.name
 				});
 			}

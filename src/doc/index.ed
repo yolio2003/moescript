@@ -300,28 +300,27 @@ You can get it from \githubProject.
 
 		for var x in "this is a string": tracel x
 
-	Even more interesting things could be implemented by monadic primitives, due to it is actually an abstraction of flow control. In some situation, callbacks is not called only once, produces "strange" behaviours, for example, list comprehension.
+	Even more interesting things could be implemented by monadic primitives, due to it is actually an abstraction of flow control. In some situation, callbacks is not called only once, produces "strange" behaviours, for example, enumerator comprehension:
 	|moe
-		-- List monad
-		var tableSchemata = [break: fBreak, return: fReturn, bind: fBind]
+		-- Enumerator comprehension monad
+		var ecSchemata = [break: fBreak, return: fReturn, bind: fBind]
 		where 
-			fReturn(x) = 
-				if(x != undefined): [x]
-				else: []
-			fBreak(x) = x
-			fBind(list, callback) = 
-				var ans = []
-				for var x in list: 
-					ans.push callback x
-				return [].concat.apply [], ans;
+		    fReturn = Enumerable function(x):
+		        if x != undefined:
+		            enumeration.yield! x
+		    fBreak(x) = x
+		    fBind = Enumerable function(list, callback):
+		        for var x in list: 
+		            for var y in callback x:
+		                enumeration.yield! y;            
 
-		var Table(G)() =
-			var f = G.build tableSchemata
-			f.apply(this, arguments)();
+		var Generator(G)() =
+		    var f = G.build ecSchemata
+		    f.apply(this, arguments)();
+		def generate(f) = (Generator f)()
 
-		def table(f) = (Table f)()
-
-		tracel table {|x, y| x =! (1...5); y =! (6...10); if (x+y) % 2: x * y}
+		var t = generate { var x <- (1...5); var y <- (6...10); if (x+y) % 2: x * y }
+		for var item in t: tracel item
 
 :section{Links}
 	 - Moescript: \githubProject
