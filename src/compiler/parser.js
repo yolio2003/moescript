@@ -709,9 +709,8 @@ exports.parse = function (input, source, config) {
 			parameters.names = parlist();
 			advance(PIPE);
 		};
-		var code = new Node(nt.SCRIPT, {
-			content:[new Node(nt.RETURN, {expression: assignmentExpression()})]
-		});
+		var code = onelineStatements();
+		implicitReturn(code);
 		advance(CLOSE, CREND);
 		return new Node(nt.FUNCTION, { parameters: parameters, code: code });
 	};
@@ -987,7 +986,7 @@ exports.parse = function (input, source, config) {
 		out: while (tokenIs(OPEN) && !token.spaced || tokenIs(DOT) || tokenIs(EXCLAM) && !token.spaced || tokenIs(PROTOMEMBER)) {
 			switch (token.type) {
 				case EXCLAM:
-					var m = new Node(nt.WAIT, { expression: m });
+					var m = new Node(nt.BINDPOINT, { expression: m });
 					advance();
 					continue;
 				case OPEN:
@@ -1085,7 +1084,7 @@ exports.parse = function (input, source, config) {
 	callWrappers[WAIT] = function(n){
 		if(n.type === nt.CALL){
 			return new Node(nt.CALL, {
-				func: new Node(nt.WAIT, { expression: n.func }),
+				func: new Node(nt.BINDPOINT, { expression: n.func }),
 				args: n.args,
 				names: n.names
 			});
@@ -1324,7 +1323,13 @@ exports.parse = function (input, source, config) {
 	var whereClausize = function(node){
 		var shift = 0;
 		while(shiftIs(shift, SEMICOLON)) shift++;
-		if(shiftIs(shift, WHERE)) {
+		if(shiftIs(shift, INDENT) && shiftIs(shift + 1, WHERE)){
+			stripSemicolons();
+			advance(INDENT);
+			var r = whereClausize(node);
+			advance(OUTDENT);
+			return r;
+		} else if(shiftIs(shift, WHERE)) {
 			stripSemicolons();
 			advance(WHERE);
 			var stmts = [];
@@ -1377,16 +1382,28 @@ exports.parse = function (input, source, config) {
 	var assignmentExpression = function(inlineQ){
 		var c = unary();
 		if (tokenIs(ASSIGN)){
-			var _v = token.value;
 			ensure(c.type === nt.VARIABLE || c.type === nt.MEMBER || 
 					c.type === nt.MEMBERREFLECT || c.type === nt.TEMPVAR,
 					"Invalid assignment");
-			advance();
+			var _v = advance().value;
+			if(tokenIs(EXCLAM)){
+				advance();
+				var right = new Node(nt.CALL, {
+					func: new Node(nt.BINDPOINT, {expression: new Node(nt.MEMBER, {
+						left: new Node(nt.TEMPVAR, {name: 'SCHEMATA'}),
+						right: "bind"
+					})}),
+					args: [assignmentExpression(inlineQ)],
+					names: [null]
+				});
+			} else {
+				var right = assignmentExpression(inlineQ);
+			};
 			return new Node(nt.ASSIGN, {
 				left: c,
-				right: _v === "=" ? expression() : new Node(nt[_v.slice(0, _v.length - 1)], {
+				right: _v === "=" ? right : new Node(nt[_v.slice(0, _v.length - 1)], {
 					left: c, 
-					right: assignmentExpression(inlineQ)
+					right: right
 				}),
 				position: c.position
 			});
@@ -1756,6 +1773,18 @@ exports.parse = function (input, source, config) {
 			return script;
 		}
 	};
+	var onelineStatements = function(){
+		var script = new Node(nt.SCRIPT, {content: []});
+		var _t = endS, s;
+		do {
+			endS = false;
+			while(tokenIs(SEMICOLON, 1)) advance();
+			if (tokenIs(CLOSE)) break;
+			script.content.push(statement());
+		} while(endS && token);
+		endS = _t;
+		return script;
+	}
 
 
 	///

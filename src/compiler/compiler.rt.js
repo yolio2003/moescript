@@ -57,7 +57,7 @@ var NodeType = exports.NodeType = function () {
 		'VARIABLE', 'TEMPVAR', 'THIS', 'LITERAL', 'ARRAY', 'OBJECT',
 		'ARGUMENTS', 'CALLEE', 'ARGN', 'GROUP', 'CALLWRAP',
 		// Wrappers
-		'WAIT', 'CTOR',
+		'BINDPOINT', 'CTOR',
 		// Membering
 		'MEMBER', 'ITEM', 'MEMBERREFLECT', 
 		// Invocation

@@ -74,23 +74,23 @@ exports.resolve = function(ast, cInitVariables, PE, PW, cWarn){
 		return scopes;
 	};
 
-	var generateObstructivness = function(scope){
-		var oProtoQ = false;
+	var generateBindRequirement = function(scope){
+		var mPrimQ = false;
 		var fWalk = function (node) {
 			if(!node || !node.type) return false;
 			var obs = false;
-			if(node.type === nt.WAIT || node.type === nt.BREAK || node.type === nt.RETURN){
+			if(node.type === nt.BINDPOINT || node.type === nt.BREAK || node.type === nt.RETURN){
 				obs = true;
-				oProtoQ = oProtoQ || node.type === nt.WAIT;
+				mPrimQ = mPrimQ || node.type === nt.BINDPOINT;
 			};
 			obs = moecrt.walkNode(node, fWalk) || obs;
-			if(obs) node.obstructive = true;
+			if(obs) node.bindPoint = true;
 			return obs;
 		};
 		moecrt.walkNode(scope.code, fWalk);
-		if(oProtoQ) {
-			scope.oProto = true;
-			scope.code.obstructive = true
+		if(mPrimQ) {
+			scope.mPrim = true;
+			scope.code.bindPoint = true
 		};
 	};
 
@@ -119,7 +119,7 @@ exports.resolve = function(ast, cInitVariables, PE, PW, cWarn){
 	var checkFunction = function(s){
 		checkBreakPosition(s);
 		checkCallWrap(s);
-		generateObstructivness(s);
+		generateBindRequirement(s);
 	};
 
 	// Variables resolve

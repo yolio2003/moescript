@@ -164,7 +164,7 @@ exports.Generator = function(g_envs, g_config){
 		// Generates code for normal function.
 		// Skip when necessary.
 		if (tree.transformed) return tree.transformed;
-		if (tree.oProto) return compileOProto(tree);
+		if (tree.mPrim) return compileMPrim(tree);
 		var backupenv = env;
 		env = tree;
 
@@ -205,13 +205,13 @@ exports.Generator = function(g_envs, g_config){
 	};
 
 	"Obstructive Protos";
-	var compileOProto = function(tree){
+	var compileMPrim = function(tree){
 		// Generates code for OPs.
 		if(tree.transformed) return tree.transformed;
 		var backupenv = env;
 		env = tree;
 		
-		var s = transformOProto(tree);
+		var s = transformMPrim(tree);
 
 		tree.useTemp('SCHEMATA', ScopedScript.SPECIALTEMP);
 
@@ -250,12 +250,12 @@ exports.Generator = function(g_envs, g_config){
 	};
 
 	"Transforming Utils";
-	// vmSchemata: Transformation schemata for non-obstructive parts
+	// vmSchemata: Transformation schemata for non-bindPoint parts
 	var vmSchemata = [];
 	var vmSchemataDef = function (tf, trans) {
 		vmSchemata[tf] = trans;
 	};
-	// epSchemata: Transformation schemata for both non- and obstructive nodes.
+	// epSchemata: Transformation schemata for both non- and bindPoint nodes.
 	// Used for expressions only.
 	var epSchemata = [];
 	var eSchemataDef = function(type, f){
@@ -331,7 +331,7 @@ exports.Generator = function(g_envs, g_config){
 	});
 	eSchemataDef(nt.FUNCTION, function (n, e) {
 		var	f = g_envs[this.tree - 1];
-		var s = (f.oProto ? compileOProto : compileFunctionBody)(f);
+		var s = (f.mPrim ? compileMPrim : compileFunctionBody)(f);
 		return s;
 	});
 
@@ -455,7 +455,7 @@ exports.Generator = function(g_envs, g_config){
 		};
 
 		if(hasNameQ){
-			args.push('new MOE_NARGS(' + olits.join(',') + ')');
+			args.push('new MOE_NARGS(' + olits.join(', ') + ')');
 		}
 
 		return args;
@@ -474,7 +474,7 @@ exports.Generator = function(g_envs, g_config){
 		};
 
 		if(hasNameQ){
-			args.push('new MOE_NARGS(' + olits.join(',') + ')');
+			args.push('new MOE_NARGS(' + olits.join(', ') + ')');
 		}
 
 		return args;
@@ -519,30 +519,29 @@ exports.Generator = function(g_envs, g_config){
 			&& !(node.func.type === nt.VARIABLE || node.func.type === nt.THIS) // and side-effective.
 		this.names = this.names || []
 		var hasNameQ = false;
-		var specialOrderQ = false;
+		var irregularOrderQ = pipelineQ;
 		for(var i = 0; i < this.names.length; i++) {
 			if(this.names[i])
 				hasNameQ = true;
 			// Irregular evaluation order found.
 			if(hasNameQ && !this.names[i])
-				specialOrderQ = true;
-		}
-		var specialOrderQ = specialOrderQ || pipelineQ;
+				irregularOrderQ = true;
+		};
 
-		if(specialOrderQ){
+		if(irregularOrderQ){
 			var flow = [];
 			var func = flowFuncParts.call(this.func, flow, env);
 			var args = irregularOrderArgs.call(this, flow, env, pipelineQ);
 			if(func.p){
 				args.unshift(func.p);
-				flow.push(func.f + '.call(' + args.join(',') + ')')
+				flow.push(func.f + '.call(' + args.join(', ') + ')')
 			} else {
-				flow.push(func.f + '(' + args.join(',') + ')')
+				flow.push(func.f + '(' + args.join(', ') + ')')
 			}
 			return '(' + flow.join(',') + ')';
 		} else {
 			// Otherwise: use normal transformation.
-			return $('%1(%2)', transform(this.func), regularOrderArgs.call(this).join(','))
+			return $('%1(%2)', transform(this.func), regularOrderArgs.call(this).join(', '))
 		}
 	});
 
@@ -652,7 +651,7 @@ exports.Generator = function(g_envs, g_config){
 	});
 	
 	"Obstructive Proto Flow";
-	var oProtoFlow = function(ct){
+	var mPrimFlow = function(ct){
 		var block = [];
 		var labelPlacements = [];
 		var joint = function(){
@@ -696,7 +695,7 @@ exports.Generator = function(g_envs, g_config){
 		var pushStatement = function(s){
 			if(s) block.push(s);
 		};
-		var obstPartID = function(){
+		var bindPartID = function(){
 			return C_TEMP(makeT(env));
 		};
 
@@ -707,29 +706,29 @@ exports.Generator = function(g_envs, g_config){
 			LABEL: LABEL,
 			label: label_dispatch,
 			joint: joint,
-			obstPartID: obstPartID
+			bindPartID: bindPartID
 		}
 	};
 
 	"Obstructive Protos Transformer";
-	var transformOProto = function(tree){
+	var transformMPrim = function(tree){
 		// Get a flow manager
-		var flowM = oProtoFlow(ct);
+		var flowM = mPrimFlow(ct);
 		var ps = flowM.ps,
 			label = flowM.label,
 			GOTO = flowM.GOTO,
 			LABEL = flowM.LABEL,
-			obstPartID = flowM.obstPartID;
+			bindPartID = flowM.bindPartID;
 		var pct = function(node){ return ps(ct(node))};
 
 		// Obstructive schemata
 		// Note that it is flow-dependent
-		var oSchemata = vmSchemata.slice(0);
+		var mSchemata = vmSchemata.slice(0);
 		var ct = function (node) {
-			if (!node.obstructive)
+			if (!node.bindPoint)
 				return transform(node);
-			if (oSchemata[node.type]) {
-				return oSchemata[node.type].call(node, node, env, g_envs);
+			if (mSchemata[node.type]) {
+				return mSchemata[node.type].call(node, node, env, g_envs);
 			} else if(epSchemata[node.type]) {
 				return epSchemata[node.type].call(node, expPart, env)
 			} else {
@@ -742,20 +741,20 @@ exports.Generator = function(g_envs, g_config){
 		var expPush = function(s){
 			if(/^\d+$|^\w+\$_$/.test(s))
 				return s;
-			var id = obstPartID();
+			var id = bindPartID();
 			ps(id + ' = (' + s + ')');
 			return id;
 		};
-		var oSchemataDef = function(){
+		var mSchemataDef = function(){
 			var func = arguments[arguments.length - 1];
-			for(var i = arguments.length - 2; i >= 0; i--) oSchemata[arguments[i]] = func;
+			for(var i = arguments.length - 2; i >= 0; i--) mSchemata[arguments[i]] = func;
 		};
 
 		// Labels
 		var lNearest = 0;
 		var scopeLabels = {};
 
-		oSchemataDef(nt.ASSIGN, function () {
+		mSchemataDef(nt.ASSIGN, function () {
 			if(this.left.type === nt.MEMBER){
 				var pivot = expPart(this.left.left);
 				return $('(%1 = %2)', PART(pivot, this.left.right), expPart(this.right));
@@ -768,8 +767,8 @@ exports.Generator = function(g_envs, g_config){
 			}
 		});
 
-		// obstructive expressions
-		var oC_ARGS = function(node, env, skip, skips){
+		// bindPoint expressions
+		var mArgsList = function(node, env, skip, skips){
 			var args = [], olits = [], hasNameQ = false;
 			
 			for (var i = (skip || 0); i < node.args.length; i++) {
@@ -796,7 +795,7 @@ exports.Generator = function(g_envs, g_config){
 			};
 		};
 
-		var obsPart = function(){
+		var bindFunctionPart = function(){
 			switch (this.type) {
 				case nt.MEMBER:
 					var p = expPart(this.left);
@@ -815,8 +814,8 @@ exports.Generator = function(g_envs, g_config){
 			}
 		};
 
-		oSchemataDef(nt.CALL, function (node, env) {
-			if(this.func && this.func.type === nt.WAIT)
+		mSchemataDef(nt.CALL, function (node, env) {
+			if(this.func && this.func.type === nt.BINDPOINT)
 				return awaitCall.apply(this, arguments);
 
 			var skip = 0, skips = [];
@@ -830,8 +829,8 @@ exports.Generator = function(g_envs, g_config){
 				skips = [expPart(this.args[0])];
 			};
 
-			var func = obsPart.call(this.func);
-			var ca = oC_ARGS(this, env, skip, skips);
+			var func = bindFunctionPart.call(this.func);
+			var ca = mArgsList(this, env, skip, skips);
 			if(func.p) {
 				ca.args.unshift(func.p);
 				return $('(%1.call(%2))', func.b || func.f, ca.args.join(','))
@@ -850,9 +849,9 @@ exports.Generator = function(g_envs, g_config){
 				skips = [expPart(this.args[0])];
 			};
 
-			var func = obsPart.call(this.func.expression);
-			var ca = oC_ARGS(this, env, skip, skips);
-			var id = obstPartID();
+			var func = bindFunctionPart.call(this.func.expression);
+			var ca = mArgsList(this, env, skip, skips);
+			var id = bindPartID();
 			var l = label();
 			ca.args.push(C_BLOCK(l));
 			if(func.p) {
@@ -872,9 +871,9 @@ exports.Generator = function(g_envs, g_config){
 			return id;
 		};
 
-		oSchemataDef(nt.WAIT, function (n, env) {
-			var func = obsPart.call(this.expression);
-			var id = obstPartID();
+		mSchemataDef(nt.BINDPOINT, function (n, env) {
+			var func = bindFunctionPart.call(this.expression);
+			var id = bindPartID();
 			var l = label();
 			if(func.p) {
 				ps($('return %1(%2.call(%3, %4))',
@@ -893,7 +892,7 @@ exports.Generator = function(g_envs, g_config){
 			return id;
 		});
 
-		oSchemataDef(nt['and'], nt['&&'], function(){
+		mSchemataDef(nt['and'], nt['&&'], function(){
 			var left = expPart(this.left);
 			var lElse = label();
 			ps('if(!(' + left + '))' + GOTO(lElse));
@@ -906,7 +905,7 @@ exports.Generator = function(g_envs, g_config){
 			return left + '&&' + right;
 		});
 
-		oSchemataDef(nt['or'], nt['||'], function(){
+		mSchemataDef(nt['or'], nt['||'], function(){
 			var left = expPart(this.left);
 			var lElse = label();
 			ps('if(' + left + ')' + GOTO(lElse));
@@ -919,7 +918,7 @@ exports.Generator = function(g_envs, g_config){
 			return left + '||' + right;
 		});
 
-		oSchemataDef(nt.CONDITIONAL, function(){
+		mSchemataDef(nt.CONDITIONAL, function(){
 			var cond = expPart(this.condition);
 			var lElse = label();
 			ps('if(!(' + cond + '))' + GOTO(lElse));
@@ -935,7 +934,7 @@ exports.Generator = function(g_envs, g_config){
 
 		// Statements
 
-		oSchemataDef(nt.IF, function(node){
+		mSchemataDef(nt.IF, function(node){
 			var lElse = label();
 			var lEnd = label();
 			ps('if(!(' + ct(this.condition) + '))' + GOTO(lElse));
@@ -951,7 +950,7 @@ exports.Generator = function(g_envs, g_config){
 			return '';
 		});
 
-		oSchemataDef(nt.PIECEWISE, nt.CASE, function () {
+		mSchemataDef(nt.PIECEWISE, nt.CASE, function () {
 			var b = [], l = [], cond = '', lElse;
 			if(this.type === nt.CASE)
 				var expr = expPart(this.expression);
@@ -996,7 +995,7 @@ exports.Generator = function(g_envs, g_config){
 			return '';
 		});
 
-		oSchemataDef(nt.WHILE, function(){
+		mSchemataDef(nt.WHILE, function(){
 			var lLoop = label();
 			var bk = lNearest;
 			var lEnd = lNearest = label();
@@ -1008,7 +1007,7 @@ exports.Generator = function(g_envs, g_config){
 			lNearest = bk;
 			return '';
 		});
-		oSchemataDef(nt.OLD_FOR, function () {
+		mSchemataDef(nt.OLD_FOR, function () {
 			var lLoop = label();
 			var bk = lNearest;
 			var lEnd = lNearest = label();
@@ -1022,7 +1021,7 @@ exports.Generator = function(g_envs, g_config){
 			lNearest = bk;
 			return '';
 		});
-		oSchemataDef(nt.FOR, function(node, env){
+		mSchemataDef(nt.FOR, function(node, env){
 			var tEnum = makeT(env);
 			var tYV = makeT(env);
 
@@ -1055,7 +1054,7 @@ exports.Generator = function(g_envs, g_config){
 	
 		});
 
-		oSchemataDef(nt.REPEAT, function(){
+		mSchemataDef(nt.REPEAT, function(){
 			var lLoop = label();
 			var bk = lNearest;
 			var lEnd = lNearest = label();
@@ -1068,25 +1067,25 @@ exports.Generator = function(g_envs, g_config){
 		});
 	
 
-		oSchemataDef(nt.RETURN, function() {
+		mSchemataDef(nt.RETURN, function() {
 			ps($('return %1["return"](%2)',
 				C_TEMP('SCHEMATA'),
 				ct(this.expression)));
 			return '';
 		});
 
-		oSchemataDef(nt.LABEL, function () {
+		mSchemataDef(nt.LABEL, function () {
 			var l = scopeLabels[this.name] = label();
 			pct(this.body);
 			(LABEL(l));
 			return ''
 		});
-		oSchemataDef(nt.BREAK, function () {
+		mSchemataDef(nt.BREAK, function () {
 			ps(GOTO(this.destination ? scopeLabels[this.destination] : lNearest));
 			return ''
 		});
 
-		oSchemataDef(nt.SCRIPT, function (n) {
+		mSchemataDef(nt.SCRIPT, function (n) {
 			var gens;
 			for (var i = 0; i < n.content.length; i++){
 				if (n.content[i]){
