@@ -1,20 +1,16 @@
 ﻿//:module: parse
 //	:author:		infinte (aka. be5invis)
 //	:info:			Parser for lofn
-
 var moe = require('moe/runtime');
 var moecrt = require('./compiler.rt');
-
 var $ = function(template, items_){
 	var a = arguments;
 	return template.replace(/%(\d+)/g, function(m, $1){
 		return a[parseInt($1, 10)] || '';
 	});
 };
-
 var NodeType = moecrt.NodeType;
 var MakeNode = moecrt.MakeNode;
-
 var tokenTypeStrs = [];
 var TokenType = function(){
 	var k = 0;
@@ -24,7 +20,6 @@ var TokenType = function(){
 		return k;
 	}
 }();
-
 var ID = TokenType('Identifier'),
 	OPERATOR = TokenType('Operator'),
 	COLON = TokenType('Colon'),
@@ -75,11 +70,9 @@ var ID = TokenType('Identifier'),
 	ASSIGN = TokenType('Assign symbol'),
 	BIND = TokenType('Bind symbol'),
 	BACKSLASH = TokenType('Backslash'),
-
-	SQSTART = '[', SQEND = ']', 
-	RDSTART = '(', RDEND = ')', 
+	SQSTART = '[', SQEND = ']',
+	RDSTART = '(', RDEND = ')',
 	CRSTART = '{', CREND = '}';
-
 var Token = function (t, v, p, s, i) {
 	this.type = t;
 	this.value = v;
@@ -217,17 +210,12 @@ var symbolTypes = {
 var symbolType = function (m) {
 	return symbolTypes[m]
 };
-
-
 var lex = exports.lex = function (input, cfgMap) {
 	input = input + "\n\n\n"
-
 	var token_err = moecrt.PEMeta(moecrt.PWMeta(input));
-
 	var tokens = [], tokl = 0, options = {}, SPACEQ = {' ': true, '\t': true};
 	var output = {};
 	var optionMaps = cfgMap || {}
-
 	var make = function (t, v, p, isn) {
 		ignoreComingNewline = false;
 		tokens[tokl++] = new Token(t, // type
@@ -269,7 +257,6 @@ var lex = exports.lex = function (input, cfgMap) {
 				make(t, s, n);
 				ignoreComingNewline = true;
 				break;
-
 			case SHARP:
 			case MY:
 			case EXCLAM:
@@ -279,24 +266,19 @@ var lex = exports.lex = function (input, cfgMap) {
 			case BIND:
 				make(t, s, n);
 				break;
-
 			case OPEN:
 				make(t, s.charAt(0), n);
 				ignoreComingNewline = true;
 				break;
-
 			case CLOSE:
 				make(t, s.charAt(0), n);
 				break;
-
 			case SEMICOLON:
 				make(t, 1, n);
 				break;
-
 			case BACKSLASH:
 				ignoreComingNewline = true;
 				break;
-
 			default:
 				throw token_err("Unexpected symbol" + s, n)
 		}
@@ -333,7 +315,6 @@ var lex = exports.lex = function (input, cfgMap) {
 		var g = r.global;
 		var i = r.ignoreCase;
 		var m = r.multiline;
-
 		source = source.replace(/#\w+/g, function(word){
 			word = word.slice(1);
 			if(o[word] instanceof RegExp) return o[word].source
@@ -341,8 +322,6 @@ var lex = exports.lex = function (input, cfgMap) {
 		});
 		return new RegExp(source, (g ? 'g' : '') + (i ? 'i' : '') + (m ? 'm' : ''));
 	};
-
-
 	var rComment = /(?:\/\/|--).*/;
 	var rOption = /^-![ \t]*(.+?)[ \t]*$/;
 	var rIdentifier = /[a-zA-Z_$][\w$]*/;
@@ -362,7 +341,6 @@ var lex = exports.lex = function (input, cfgMap) {
 		symbol: rSymbol,
 		newline: rNewline
 	});
-
 	var icomp = function(start){
 		var compare = function(a, b, p){
 			if(a === b) return 0;
@@ -410,7 +388,7 @@ var lex = exports.lex = function (input, cfgMap) {
 			};
 		};
 		var desemi = function(){
-			while(tokens[tokl - 1] && (tokens[tokl - 1].type === INDENT || 
+			while(tokens[tokl - 1] && (tokens[tokl - 1].type === INDENT ||
 					tokens[tokl - 1].type === SEMICOLON && tokens[tokl - 1].value === 0)){
 				tokl --;
 				if(tokens[tokl].type === INDENT)
@@ -424,7 +402,6 @@ var lex = exports.lex = function (input, cfgMap) {
 			desemi: desemi
 		}
 	}(input.match(/^[ \t]*/)[0]);
-
 	walkRex(rToken, input,
 		function (match, comment, opt, nme, strlit, number, symbol, newline, n) {
 			after_space = false;
@@ -450,12 +427,9 @@ var lex = exports.lex = function (input, cfgMap) {
 			if(m.trim())
 				throw token_err("Unexpected character", pos);
 		});
-
 	icomp.process('')
-
 	output.tokens = tokens;
 	output.options = options;
-
 	return output;
 };
 var HAS_DUPL = function (arr) {
@@ -464,14 +438,11 @@ var HAS_DUPL = function (arr) {
 		if (b[i] && b[i] == b[i + 1])
 			return true;
 };
-
-
-
 exports.parse = function (input, source, config) {
 	var tokens = input.tokens,
 		token = tokens[0],
-		next = tokens[1], 
-		j = 0, 
+		next = tokens[1],
+		j = 0,
 		len = tokens.length,
 		nt = NodeType,
 		token_type = token ? token.type : undefined,
@@ -483,10 +454,8 @@ exports.parse = function (input, source, config) {
 		opt_filledbrace = !!input.options.filledbrace,
 		opt_notcolony = !!input.options.notcolony,
 		opt_debug = !!input.options.debug;
-	
 	var makeT = config.makeT,
 		initInterator = config.initInterator;
-
 	// Token processor
 	var moveTo = function (position) {
 		var t = token;
@@ -512,14 +481,12 @@ exports.parse = function (input, source, config) {
 			throw PE(errorMessage || 'Unexpected token: got' + token + ' instead ' + new Token(type, test));
 		return moveNext();
 	};
-
 	var saveState = function(){
 		return {position: j}
 	};
 	var loadState = function(state){
 		moveTo(state.position)
 	};
-
 	var tokenIs = function (t, v) {
 		return token && token_type === t && (v ? token_value === v : true);
 	};
@@ -530,12 +497,11 @@ exports.parse = function (input, source, config) {
 		return tokens[j + n] && tokens[j + n].type === t && (v ? tokens[j + n].value === v : true);
 	};
 	var pos = function(){
-		if(token) 
+		if(token)
 			return token.position
-		else 
+		else
 			return source.length;
 	}
-
 	// Parse warning and error
 	var PW = moecrt.PWMeta(source, function(p){
 		return p == undefined ? (token ? token.position : source.length) : p
@@ -588,10 +554,7 @@ exports.parse = function (input, source, config) {
 			};
 		};
 	};
-
-
 	// Here we go
-
 	// Identifier: like the javascript
 	var variable = function () {
 		var t = advance(ID, undefined, "A variable is required here.");
@@ -602,11 +565,10 @@ exports.parse = function (input, source, config) {
 		return t.value;
 	};
 	var name = function () {
-		if(token && token.isName) var t = advance();	
+		if(token && token.isName) var t = advance();
 		else throw PE("A name is needed here");
 		return t.value;
 	};
-
 	// literals: number, string
 	// number: stricter than javascript, 0.0E(-)0
 	// strings: single and double quote. Single quotes only support escaping '' into '
@@ -615,7 +577,6 @@ exports.parse = function (input, source, config) {
 		var t = advance();
 		return new Node(NodeType.LITERAL, { value: t.value });
 	};
-
 	// constants
 	var consts = {
 		'true': 'true',
@@ -629,33 +590,29 @@ exports.parse = function (input, source, config) {
 	};
 	var constant = function () {
 		var t = advance();
-		return new Node(nt.LITERAL, { 
+		return new Node(nt.LITERAL, {
 			value: {map: consts[t.value]},
 			operatorType: (t.value === 'not' ? nt.NOT :
 				           t.value === 'negate' ? nt.NEGATIVE :
 				           null)
 		});
 	};
-
 	// this pointer
 	var thisp = function () {
 		var t = advance(ME);
 		return new Node(nt.THIS);
 	};
-
 	// 'my' construct: "my" Identifier
 	var thisprp = function () {
 		var t = advance(MY);
 		var n = name();
 		return new Node(nt.MEMBER, { left: new Node(nt.THIS), right: n });
 	};
-
 	// 'arguments' pointer
 	var argsp = function () {
 		var t = advance(ARGUMENTS);
 		return new Node(nt.ARGUMENTS);
 	};
-
 	var generateDefaultParameters = function(p, c){
 		var last = null;
 		for(var i = 0; i < p.names.length; i++){
@@ -673,7 +630,6 @@ exports.parse = function (input, source, config) {
 		};
 		c.content.unshift(last);
 	};
-
 	var functionLiteral = function () {
 		var f, p;
 		if (tokenIs(OPEN, RDSTART)) {
@@ -690,7 +646,6 @@ exports.parse = function (input, source, config) {
 		};
 		return f;
 	};
-
 	var lambdaExpression = function(){
 		if(tokenIs(ID)){
 			var p = new Node(nt.PARAMETERS, {names: [{name: lname()}]});
@@ -717,7 +672,6 @@ exports.parse = function (input, source, config) {
 		advance(CLOSE, CREND);
 		return new Node(nt.FUNCTION, { parameters: parameters, code: code });
 	};
-
 	var blockBody = function (p) {
 		var t = advance();
 		var parameters = p || new Node(nt.PARAMETERS, { names: [] });
@@ -727,7 +681,6 @@ exports.parse = function (input, source, config) {
 		generateDefaultParameters(parameters, code);
 		return new Node(nt.FUNCTION, {parameters: parameters, code: code});
 	};
-
 	var curryBody = function (p) {
 		var parameters = p;
 		var code = new Node(nt.SCRIPT, {
@@ -735,8 +688,6 @@ exports.parse = function (input, source, config) {
 		});
 		return new Node(nt.FUNCTION, {parameters: parameters, code: code});
 	};
-
-
 	var completeLambdaExpression = function (p) {
 		var t = advance(LAMBDA);
 		var parameters = p || new Node(nt.PARAMETERS, { names: [] });
@@ -749,7 +700,6 @@ exports.parse = function (input, source, config) {
 			code: code
 		});
 	};
-
 	var parlist = function(){
 		var arr = [];
 		var dfvArgQ = false;
@@ -765,7 +715,6 @@ exports.parse = function (input, source, config) {
 		};
 		return arr;
 	};
-
 	var parameters = function () {
 		var arr = [];
 		advance(OPEN, RDSTART);
@@ -776,7 +725,6 @@ exports.parse = function (input, source, config) {
 		ensure(!HAS_DUPL(arr), 'Parameter list contains duplicate');
 		return new Node(nt.PARAMETERS, { names: arr });
 	};
-
 	// object
 	var objectLiteral = function () {
 		advance(OPEN, SQSTART);
@@ -798,10 +746,9 @@ exports.parse = function (input, source, config) {
 		advance(CLOSE, SQEND);
 		return node;
 	};
-
 	// Let Expression
 	// let(assignments){ expression }
-	// let(assignments): 
+	// let(assignments):
 	//     statements
 	var letExpr = function(){
 		advance(LET);
@@ -821,14 +768,12 @@ exports.parse = function (input, source, config) {
 		} while(true);
 		var p = advance(CLOSE, RDEND);
 		var s = (tokenIs(LAMBDA) ? completeLambdaExpression : blockBody)(new Node(nt.PARAMETER, {names: vars}));
-
 		return new Node(nt.CALL, {
-			func: new Node(nt.MEMBER, {left: s, right: 'call'}), 
+			func: new Node(nt.MEMBER, {left: s, right: 'call'}),
 			args: [new Node(nt.THIS)].concat(args),
 			names: [null].concat(names)
 		});
 	};
-
 	var groupLike = function(){
 		if(nextIs(OPERATOR)){
 			advance(OPEN, RDSTART);
@@ -860,9 +805,10 @@ exports.parse = function (input, source, config) {
 				return r;
 			}
 		}
-		if(nextIs(CLOSE, RDEND) || nextIs(ID) && (shiftIs(2, CLOSE, RDEND) && shiftIs(3, LAMBDA) || shiftIs(2, COMMA))) {
+		if(nextIs(CLOSE, RDEND) && shiftIs(2, LAMBDA)
+			|| nextIs(ID) && (shiftIs(2, CLOSE, RDEND) && shiftIs(3, LAMBDA) || shiftIs(2, COMMA))) {
 			return lambdaExpression();
-		}
+		};
 		var state = saveState();
 		try {
 			advance(OPEN, RDSTART);
@@ -883,7 +829,6 @@ exports.parse = function (input, source, config) {
 			return new Node(nt.GROUP, {operand: r})
 		}
 	};
-
 	var esp = [];
 	esp[ID] = variable;
 	esp[NUMBER] = esp[STRING] = literal;
@@ -936,7 +881,6 @@ exports.parse = function (input, source, config) {
 	var exprStartQ = function(){
 		return token && esp[token.type];
 	};
-
 	var argStartQ = function(){
 		if(token && (token.isName || tokenIs(STRING)) && nextIs(COLON) && !(shiftIs(2, SEMICOLON) || shiftIs(2, INDENT)))
 			return 2;
@@ -944,7 +888,6 @@ exports.parse = function (input, source, config) {
 			return 1;
 		else return false;
 	};
-
 	var primary = function () {
 		ensure(token, 'Unable to get operand: missing token');
 		if(esp[token.type])
@@ -986,7 +929,7 @@ exports.parse = function (input, source, config) {
 		return m;
 	};
 	var completeCallExpression = function(m){
-		out: while (tokenIs(OPEN) && !token.spaced || tokenIs(DOT) || tokenIs(EXCLAM) && !token.spaced || tokenIs(PROTOMEMBER)) {
+		out: while (tokenIs(OPEN) && !token.spaced || tokenIs(DOT) || tokenIs(EXCLAM) || tokenIs(PROTOMEMBER)) {
 			switch (token.type) {
 				case EXCLAM:
 					var m = new Node(nt.BINDPOINT, { expression: m });
@@ -1039,9 +982,7 @@ exports.parse = function (input, source, config) {
 			} else {
 				names.push(null);
 			}
-
 			args.push(callItem(omit));
-
 			if (!tokenIs(COMMA)) {
 				break
 			};
@@ -1050,12 +991,10 @@ exports.parse = function (input, source, config) {
 		ensure(!HAS_DUPL(names), 'Named argument list contains duplicate');
 		nc.args = (nc.args || []).concat(args);
 		nc.names = (nc.names || []).concat(names);
-
-		ensure(!(nc.func && nc.func.type === nt.CTOR && nc.nameused), 
+		ensure(!(nc.func && nc.func.type === nt.CTOR && nc.nameused),
 			"Unable to use named arguments inside old-style Constructior5 invocation");
 		return nc;
 	};
-
 	var wrapCall = function(n){
 		if(n.type === nt.CALL){
 			if(n.func.type === nt.CALLWRAP && n.args.length === 1 && !n.names[0]) {
@@ -1068,7 +1007,6 @@ exports.parse = function (input, source, config) {
 		};
 		return n;
 	};
-	
 	var callWrappers = [];
 	callWrappers[RESEND] = function(n){
 		if(n.type === nt.CALL){
@@ -1132,26 +1070,23 @@ exports.parse = function (input, source, config) {
 		}
 	};
 	callWrappers.OPERATOR = function(node){
-		if((node.func.operatorType === nt.NOT || node.func.operatorType === nt.NEGATIVE) 
+		if((node.func.operatorType === nt.NOT || node.func.operatorType === nt.NEGATIVE)
 			&& (node.args.length === 1 && !node.names[0])) {
 			return new Node(node.func.operatorType, { operand: node.args[0] });
 		} else if(node.args.length === 2 && !node.names[0] && !node.names[1]) {
-			return new Node(node.func.operatorType, { 
+			return new Node(node.func.operatorType, {
 				left: node.args[0],
 				right: node.args[1]
 			});
 		}
 		return node;
 	};
-
 	var callExpression = function () {
 		return completeCallExpression(primary());
 	};
-
 	var completeOmissionCall = function(head){
 		var argTypeDetect;
 		if(!(argTypeDetect = argStartQ())) return head;
-
 		// Named arguments detected
 		if(argTypeDetect === 2){
 			var node = new Node(nt.CALL, {
@@ -1172,26 +1107,24 @@ exports.parse = function (input, source, config) {
 				return wrapCall(node);
 			} else {
 				return wrapCall(new Node(nt.CALL, {
-					func: head, 
+					func: head,
 					args: [completeOmissionCall(term)],
 					names: [null]
 				}));
 			}
 		}
 	};
-
 	var unary = function(){return completeOmissionCall(callExpression())};
-
 	var operatorPiece = function(){
 		var L = 0, R = 1, N = 2;
 		var bp = {
 			'of': 5,
 			'*': 10, '/': 10, '%': 10,
-			'+': 20, '-': 20,	
+			'+': 20, '-': 20,
 			'<': 30, '>': 30, '<=': 30, '>=': 30,
 			'is': 35, 'in': 35,
 			'==': 40, '!=': 40, '=~': 40, '!~': 40, '===':40, '!==':40,
-			'and': 50, '&&': 50, 
+			'and': 50, '&&': 50,
 			'or': 55, '||': 55,
 			'..': 57, '...': 57,
 			'as': 60
@@ -1207,13 +1140,12 @@ exports.parse = function (input, source, config) {
 			'..': N, '...': N,
 			'as': L
 		}
-
 		return function (start, progress) {
 			// operators.
 			// the "->" operator gets a "Rule" object
 			// the "is","in","as" operators are costumizable.
 			var uber = { right: start, bp: 65536 }, t, tv, operand, nbp, combining, n, node, p;
-			while (tokenIs(OPERATOR) && ensure(bp[token.value] > 0, "Invalid Operator")) { 
+			while (tokenIs(OPERATOR) && ensure(bp[token.value] > 0, "Invalid Operator")) {
 				// if is a valid operator, then...
 				t = advance(OPERATOR), tv = t.value, p = t.position;
 				operand = progress();
@@ -1253,21 +1185,21 @@ exports.parse = function (input, source, config) {
 			return new Node(nt.GROUP, {operand: uber.right});
 		};
 	}();
-
 	var singleExpression = function(c){
 		if(tokenIs(OPERATOR)){ // f + g
 			c = operatorPiece(c, unary);
 		};
+		ensure(!exprStartQ(), 'Unexpected expression termination.');
 		return c;
 	};
-
 	var expression = function (c) {
-		return whenClausize(pipeClausize(singleExpression(c || unary())));
+		var r = whenClausize(pipeClausize(singleExpression(c || unary())));
+		ensure(!exprStartQ(), 'Unexpected expression termination.');
+		return r;
 	};
 	var pipeClausize = function(node){
 		// Pipeline calls
 		if(!tokenIs(PIPE)) return node;
-
 		advance();
 		var c;
 		if (tokenIs(DOT)) {
@@ -1321,7 +1253,9 @@ exports.parse = function (input, source, config) {
 		}
 	};
 	var whereClausedExpression = function(c){
-		return whereClausize(expression(c))
+		var r = whereClausize(expression(c));
+		ensure(!exprStartQ(), 'Unexpected expression termination.');
+		return r;
 	};
 	var whereClausize = function(node){
 		var shift = 0;
@@ -1381,36 +1315,44 @@ exports.parse = function (input, source, config) {
 			declareVariable: bind.name
 		});
 	};
-
 	var assignmentExpression = function(inlineQ){
-		var c = unary();
-		if (tokenIs(ASSIGN)){
-			ensure(c.type === nt.VARIABLE || c.type === nt.MEMBER || 
-					c.type === nt.MEMBERREFLECT || c.type === nt.TEMPVAR,
-					"Invalid assignment");
-			var _v = advance().value;
-			var right = assignmentExpression(inlineQ);
-			return new Node(nt.ASSIGN, {
-				left: c,
-				right: _v === "=" ? right : new Node(nt[_v.slice(0, _v.length - 1)], {
-					left: c, 
-					right: right
-				}),
-				position: c.position
+		if(tokenIs(OPEN, RDSTART) && nextIs(CLOSE, RDEND) && shiftIs(2, BIND)){
+			advance(OPEN);
+			advance(CLOSE);
+			advance(BIND);
+			return new Node(nt.CALL, {
+				func: new Node(nt.BINDPOINT),
+				args: [assignmentExpression(inlineQ)],
+				names: [null]
 			});
-		} else if(tokenIs(BIND)){
-			advance();
-			return new Node(nt.ASSIGN, {
-				left: c,
-				right: new Node(nt.CALL, {
-					func: new Node(nt.BINDPOINT, {expression: new Node(nt.MEMBER, {
-						left: new Node(nt.TEMPVAR, {name: 'SCHEMATA'}),
-						right: "bind"
-					})}),
+		};
+		var c = unary();
+		if (tokenIs(ASSIGN) || tokenIs(BIND)){
+			ensure(c.type === nt.VARIABLE || c.type === nt.MEMBER ||
+					c.type === nt.MEMBERREFLECT || c.type === nt.TEMPVAR,
+					"Invalid assignment/bind");
+			if(tokenIs(ASSIGN)) {
+				var _v = advance().value;
+				var right = assignmentExpression(inlineQ);
+				return new Node(nt.ASSIGN, {
+					left: c,
+					right: _v === "=" ? right : new Node(nt[_v.slice(0, _v.length - 1)], {
+						left: c,
+						right: right
+					}),
+					position: c.position
+				})
+			} else {
+				var right = new Node(nt.CALL, {
+					func: new Node(nt.BINDPOINT),
 					args: [assignmentExpression(inlineQ)],
 					names: [null]
+				});
+				return new Node(nt.ASSIGN, {
+					left: c,
+					right: right
 				})
-			});
+			}
 		} else {
 			return (inlineQ ? expression : whereClausedExpression)(c);
 		}
@@ -1423,18 +1365,14 @@ exports.parse = function (input, source, config) {
 			return node;
 		}
 	};
-
-
 	var stover = function () {
-		return !token || (token.type === SEMICOLON || token.type === END || token.type === CLOSE && token.value === CREND || token.type === OUTDENT);
+		return !token || (token.type === SEMICOLON || token.type === END || token.type === CLOSE || token.type === OUTDENT);
 	};
 	var nextstover = function () {
-		return !next || (next.type === SEMICOLON || next.type === END || next.type === CLOSE && next.value === CREND || next.type === OUTDENT);
+		return !next || (next.type === SEMICOLON || next.type === END || next.type === CLOSE || next.type === OUTDENT);
 	};
 	var endS = false;
 	var stmtover = function(){endS = true}
-
-
 	var statement =  function(){
 		var begins = pos();
 		var r = statement_r.apply(this, arguments);
@@ -1515,7 +1453,6 @@ exports.parse = function (input, source, config) {
 	var defstmt = function () {
 		return new Node(nt.EXPRSTMT, {expression: varDefinition(true)});
 	};
-
 	var DEF_ASSIGNMENT = 1;
 	var DEF_FUNCTIONAL = 2;
 	var DEF_BIND = 3;
@@ -1523,12 +1460,11 @@ exports.parse = function (input, source, config) {
 		var shift = 0;
 		while(true){
 			// matches `(`
-			if(!shiftIs(shift, OPEN, RDSTART)) 
+			if(!shiftIs(shift, OPEN, RDSTART))
 				return false;
 			else
 				shift++;
-
-			if(shiftIs(shift, CLOSE, RDEND)) 
+			if(shiftIs(shift, CLOSE, RDEND))
 				shift++
 			else
 				while(true){
@@ -1559,7 +1495,6 @@ exports.parse = function (input, source, config) {
 		else if(tokenIs(COLON)) return DEF_FUNCTIONAL;
 		else return parlistQ();
 	};
-
 	var varDefinition = function(constantQ){
 		var v = member();
 		var defType;
@@ -1584,10 +1519,7 @@ exports.parse = function (input, source, config) {
 				return new Node(nt.ASSIGN, {
 					left: v,
 					right: new Node(nt.CALL, {
-						func: new Node(nt.BINDPOINT, {expression: new Node(nt.MEMBER, {
-							left: new Node(nt.TEMPVAR, {name: 'SCHEMATA'}),
-							right: "bind"
-						})}),
+						func: new Node(nt.BINDPOINT),
 						args: [assignmentExpression()],
 						names: [null]
 					}),
@@ -1607,19 +1539,17 @@ exports.parse = function (input, source, config) {
 				constantQ: rhs.constantQ,
 				declareVariable: rhs.declareVariable
 			});
-		}	
+		}
 	};
-	
 	var contBlock = function () {
 		var p = advance(COLON).position;
 		var s = block();
 		return s;
 	};
-
 	var ifstmt = function () {
 		advance(IF);
 		var n = new Node(nt.IF);
-		n.condition = expression();	
+		n.condition = expression();
 		n.thenPart = contBlock();
 		stripSemicolons();
 		if(tokenIs(ELSE)){
@@ -1632,7 +1562,6 @@ exports.parse = function (input, source, config) {
 		}
 		return n;
 	};
-
 	var whilestmt = function () {
 		advance(WHILE);
 		var n = new Node(nt.WHILE, {
@@ -1692,7 +1621,7 @@ exports.parse = function (input, source, config) {
 					left: new Node(nt.VARIABLE, {name: d0name}),
 					right: new Node(nt.TEMPVAR, {name: hightmp})}),
 				step: new Node(nt.ASSIGN, {
-					left: new Node(nt.VARIABLE, {name: d0name}), 
+					left: new Node(nt.VARIABLE, {name: d0name}),
 					right: new Node(nt['+'], {
 						left: new Node(nt.VARIABLE, {name: d0name}),
 						right: new Node(nt.LITERAL, {value: 1})})}),
@@ -1701,7 +1630,6 @@ exports.parse = function (input, source, config) {
 		node.body = contBlock();
 		return node;
 	};
-
 	var stripSemicolons = function () {
 		while (tokenIs(SEMICOLON)) advance();
 	};
@@ -1739,7 +1667,6 @@ exports.parse = function (input, source, config) {
 			}
 		};
 		advance(OUTDENT);
-
 		return n;
 	};
 	var labelstmt = function () {
@@ -1805,13 +1732,9 @@ exports.parse = function (input, source, config) {
 		endS = _t;
 		return script;
 	}
-
-
 	///
-	
 	var ws_code = statements();
 	stripSemicolons();
-
 	return {
 		tree: new Node(nt.FUNCTION, {
 			parameters: new Node(nt.PARAMETERS, { names: [] }),

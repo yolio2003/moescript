@@ -78,14 +78,14 @@ exports.resolve = function(ast, cInitVariables, PE, PW, cWarn){
 		var mPrimQ = false;
 		var fWalk = function (node) {
 			if(!node || !node.type) return false;
-			var obs = false;
+			var hasBindPointQ = false;
 			if(node.type === nt.BINDPOINT || node.type === nt.BREAK || node.type === nt.RETURN){
-				obs = true;
+				hasBindPointQ = true;
 				mPrimQ = mPrimQ || node.type === nt.BINDPOINT;
 			};
-			obs = moecrt.walkNode(node, fWalk) || obs;
-			if(obs) node.bindPoint = true;
-			return obs;
+			hasBindPointQ = moecrt.walkNode(node, fWalk) || hasBindPointQ;
+			if(hasBindPointQ) node.bindPoint = true;
+			return hasBindPointQ;
 		};
 		moecrt.walkNode(scope.code, fWalk);
 		if(mPrimQ) {

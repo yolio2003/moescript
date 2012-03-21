@@ -165,10 +165,13 @@ reg('type', Type);
 reg('outof', Type.outof);
 
 var enumeratorSchemata = {
-	'break': function(j){ return j },
 	'return': function(v){
 		return new RETURNVALUE(v)
-	}
+	},
+	'bind': function(g, restart){
+		return new YIELDVALUE(g, restart);
+	},
+	'yield': function(j){ return j }
 }
 //: enumerator
 var enumeration;

@@ -412,7 +412,13 @@ exports.Generator = function(g_envs, g_config){
 
 
 	eSchemataDef(nt.VAR, function(){return ''});
-	eSchemataDef(nt.EXPRSTMT, function(transform){
+
+	"Normal transformation specific rules";
+	vmSchemataDef(nt.ASSIGN, function () {
+		return $('(%1 = %2)', transform(this.left), transform(this.right));
+	});
+
+	vmSchemataDef(nt.EXPRSTMT, function(){
 		var s = transform(ungroup(this.expression));
 		if(this.expression.type === nt.ASSIGN && s.charAt(0) === '(')
 			s = s.slice(1, -1);
@@ -421,11 +427,6 @@ exports.Generator = function(g_envs, g_config){
 			s = '(' + s + ')';
 		};
 		return s;
-	});
-
-	"Normal transformation specific rules";
-	vmSchemataDef(nt.ASSIGN, function () {
-		return $('(%1 = %2)', transform(this.left), transform(this.right));
 	});
 
 	var flowPush = function(flow, env, expr){
@@ -672,9 +673,11 @@ exports.Generator = function(g_envs, g_config){
 				var b = basicBlocks[i];
 				var sContinue = (i < basicBlocks.length - 1 && !/^return /.test(b.statements[b.statements.length - 1]))
 					? [GOTO(basicBlocks[i + 1].id)] : []
-				ans.push('function ' + C_BLOCK(b.id) + '(_){' + JOIN_STMTS(b.statements.concat(sContinue)) + '}')
+				ans.push('function ' + C_BLOCK(b.id) + '(' + C_TEMP(b.id) + '){'
+					+ JOIN_STMTS(b.statements.concat(sContinue)) + '}')
 				for(var j = 1; j < b.labels.length; j++){
-					ans.push('var ' + C_BLOCK(b.labels[j]) + ' = ' + C_BLOCK(b.id));
+					ans.push('var ' + C_BLOCK(b.labels[j]) + ' = function(' + C_TEMP(b.labels[j]) + '){ '
+						+ 'return ' + C_BLOCK(b.id) + '(' + C_TEMP(b.labels[j]) + ')}');
 				}
 			}
 			return {s: ans.join(';\n'), enter: C_BLOCK(basicBlocks[0].id)};
@@ -767,6 +770,11 @@ exports.Generator = function(g_envs, g_config){
 			}
 		});
 
+		mSchemataDef(nt.EXPRSTMT, function(){
+			pct(this.expression);
+			return '';
+		})
+
 		// bindPoint expressions
 		var mArgsList = function(node, env, skip, skips){
 			var args = [], olits = [], hasNameQ = false;
@@ -849,47 +857,40 @@ exports.Generator = function(g_envs, g_config){
 				skips = [expPart(this.args[0])];
 			};
 
-			var func = bindFunctionPart.call(this.func.expression);
+			if(this.func.expression){
+				var func = bindFunctionPart.call(this.func.expression);
+				var finalProcess = PART(C_TEMP('SCHEMATA'), 'yield');
+			} else {
+				var func = { f: PART(C_TEMP('SCHEMATA'), 'bind') };
+				var finalProcess = ''
+			}
 			var ca = mArgsList(this, env, skip, skips);
-			var id = bindPartID();
 			var l = label();
 			ca.args.push(C_BLOCK(l));
 			if(func.p) {
 				ca.args.unshift(func.p);
 				ps($('return %1(%2.call(%3))',
-					PART(C_TEMP('SCHEMATA'), 'break'),
+					finalProcess,
 					func.b || func.f,
 					ca.args.join(',')));
 			} else {
 				ps($('return %1(%2(%3))',
-					PART(C_TEMP('SCHEMATA'), 'break'),
+					finalProcess,
 					func.b || func.f,
 					ca.args.join(',')));
 			}
 			LABEL(l);
-			ps(id + ' = _')
-			return id;
+			return C_TEMP(l);
 		};
 
 		mSchemataDef(nt.BINDPOINT, function (n, env) {
-			var func = bindFunctionPart.call(this.expression);
-			var id = bindPartID();
-			var l = label();
-			if(func.p) {
-				ps($('return %1(%2.call(%3, %4))',
-					PART(C_TEMP('SCHEMATA'), 'break'),
-					func.b || func.f,
-					func.p,
-					C_BLOCK(l)));
-			} else {
-				ps($('return %1(%2(%3))',
-					PART(C_TEMP('SCHEMATA'), 'break'),
-					func.b || func.f,
-					C_BLOCK(l)));
-			}
-			LABEL(l);
-			ps(id + ' = _')
-			return id;
+			var node = {
+				type: nt.CALL,
+				func: this,
+				args: [],
+				names: []
+			};
+			return awaitCall.call(node, node, env);
 		});
 
 		mSchemataDef(nt['and'], nt['&&'], function(){
@@ -941,11 +942,11 @@ exports.Generator = function(g_envs, g_config){
 			pct(this.thenPart);
 			if(this.elsePart){
 				ps(GOTO(lEnd));
-				(LABEL(lElse));
+				LABEL(lElse)
 				pct(this.elsePart);
-				(LABEL(lEnd));
+				LABEL(lEnd)
 			} else {
-				(LABEL(lElse));
+				LABEL(lElse)
 			}
 			return '';
 		});
@@ -965,11 +966,13 @@ exports.Generator = function(g_envs, g_config){
 				}
 			};
 
-			for (var i = 0; i < this.conditions.length; i++) if(this.type === nt.PIECEWISE){
-				ps('if (' + ct(this.conditions[i]) + '){\n' + GOTO(li) + '\n}');
-			} else {
-				ps('if (' + expr + '=== (' + ct(this.conditions[i]) + ')){\n' + GOTO(li) + '\n}');
-			};
+			for (var i = 0; i < this.conditions.length; i++) {
+				if(this.type === nt.PIECEWISE){
+					ps('if (' + ct(this.conditions[i]) + '){\n' + GOTO(l[i]) + '\n}');
+				} else {
+					ps('if (' + expr + '=== (' + ct(this.conditions[i]) + ')){\n' + GOTO(l[i]) + '\n}');
+				}
+			}
 
 			var lEnd = label();	
 			if (this.otherwise) {
@@ -980,18 +983,18 @@ exports.Generator = function(g_envs, g_config){
 			}
 
 			for(var i = 0; i < b.length; i += 1) if(b[i]) {
-				(LABEL(l[i]))
+				LABEL(l[i])
 				pct(b[i])
 				ps(GOTO(lEnd))
 			}
 
 			if (this.otherwise) {
-				(LABEL(lElse));
+				LABEL(lElse)
 				pct(this.otherwise);
 				ps(GOTO(lEnd));
 			}
 	
-			(LABEL(lEnd));
+			LABEL(lEnd)
 			return '';
 		});
 

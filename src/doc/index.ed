@@ -180,7 +180,7 @@ You can get it from \githubProject.
 	Both object literals and array literals uses `[]`. Therefore, empty objects should use `[:]` while `[]` means empty array. Keywords can appear inside object literals without quoting.
 	|moe
 		def actions = [
-			if: ((cond, fThen, fElse) => fThen() if(cond), fElse())
+			if: ((cond, fThen, fElse) => fThen() when(cond), fElse())
 		]
 
 	You can also use `object` function provided in standard libary for large objects, especially configs.
@@ -303,12 +303,12 @@ You can get it from \githubProject.
 	Even more interesting things could be implemented by monadic primitives, due to it is actually an abstraction of flow control. In some situation, callbacks is not called only once, produces "strange" behaviours, for example, enumerator comprehension:
 	|moe
 		-- Enumerator comprehension monad
-		var ecSchemata = [break: fBreak, return: fReturn, bind: fBind]
+		var ecSchemata = [yield: fYield, return: fReturn, bind: fBind]
 		where 
 		    fReturn = Enumerable function(x):
 		        if x != undefined:
 		            enumeration.yield! x
-		    fBreak(x) = x
+		    fYield(x) = x
 		    fBind = Enumerable function(list, callback):
 		        for var x in list: 
 		            for var y in callback x:
@@ -319,8 +319,14 @@ You can get it from \githubProject.
 		    f.apply(this, arguments)();
 		def generate(f) = (Generator f)()
 
-		var t = generate { var x <- (1...5); var y <- (6...10); if (x+y) % 2: x * y }
+		var t = generate =>
+			var x <- (1...9);
+			var y <- (1...9);
+			if x <= y:
+				x + ' * ' + y + ' = ' + x * y
 		for var item in t: tracel item
+
+	In this example, `x <- val` is equalivent to `x = schemata.bind! val`.
 
 :section{Links}
 	 - Moescript: \githubProject

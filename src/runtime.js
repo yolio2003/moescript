@@ -94,7 +94,8 @@ var MOE_OBSTRUCTIVE_SCHEMATA_M = {
 	'return': function(t, a, v) {
 		return v;
 	},
-	'break': function(j) { return j }
+	'yield': function(j) { return j },
+	'bind': function(v, cb){ return cb(b) }
 }
 
 //: Exceptions
