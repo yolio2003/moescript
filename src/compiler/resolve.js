@@ -102,11 +102,11 @@ exports.resolve = function(ast, cInitVariables, PE, PW, cWarn){
 
 	var checkBreakPosition = function(scope){
 		var fWalk = function (node) {
-			if(node.type === nt.WHILE || node.type === nt.FOR || node.type === nt.REPEAT || node.type === nt.CASE || node.type === nt.OLD_FOR)
+			if(node.type === nt.WHILE || node.type === nt.FOR || node.type === nt.REPEAT || node.type === nt.OLD_FOR)
 				return;
 			if(node.type === nt.EXPRSTMT) return;
 			if(node.type === nt.BREAK)
-				throw PE("Break outside a loop statement or CASE statement", node.position);
+				throw PE("Break is at the outside of a loop.", node.position);
 			return moecrt.walkNode(node, fWalk);
 		};
 		moecrt.walkNode(scope.code, fWalk);

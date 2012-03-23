@@ -579,23 +579,21 @@ exports.Generator = function(g_envs, g_config){
 		return s;
 	});
 
-	vmSchemataDef(nt.CASE, function () {
-		var s = 'switch (' + transform(ungroup(this.expression)) + '){\n';
-		var stmts = [];
-		for (var i = 0; i < this.conditions.length; i++) {
-			stmts.push('  case ' + transform(ungroup(this.conditions[i])) + ' :')
-			if (this.bodies[i]) {
-				stmts.push(transform(this.bodies[i]));
-				stmts.push('    break;');
-			}
-		}
-
-		if (this.otherwise) {
-			stmts.push('  default:', transform(this.otherwise));
-		}
-		s += stmts.join('\n');
-		s += '\n}';
-		return s;
+	vmSchemataDef(nt.CASE, function (node, env) {
+		var t = makeT(env);
+		var sAssignment = C_TEMP(t) + ' = ' + transform(ungroup(this.expression));
+		// create temp node
+		var tempNode = {
+			type: nt.PIECEWISE, 
+			bodies: this.bodies, 
+			conditions: this.conditions.map(function(right){return {
+				type: '==',
+				left: {type: nt.TEMPVAR, name: t},
+				right: right,
+			}}),
+			otherwise: this.otherwise
+		};
+		return sAssignment + ';\n' + transform(tempNode);
 	});
 	vmSchemataDef(nt.REPEAT, function () {
 		return $('do{%2}while(!(%1))', transform(ungroup(this.condition)), transform(this.body));
