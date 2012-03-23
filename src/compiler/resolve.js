@@ -9,7 +9,10 @@ exports.resolve = function(ast, cInitVariables, PE, PW, cWarn){
 	var createScopes = function(tree){
 		var scopes = [];
 		var stack = [];
-
+		var ensure = function(c, m, p){
+			if(!c) throw PE(m, p);
+			return c;
+		};
 		var fWalk = function(node){
 			if(node.type === nt.FUNCTION) {
 				var s = new ScopedScript(scopes.length + 1, current);
@@ -34,13 +37,16 @@ exports.resolve = function(ast, cInitVariables, PE, PW, cWarn){
 				node.tree = s.id;
 			} else if(node.type === nt.LABEL) {
 				var label = node.name;
-				ensure(!current.labels[label] && current.labels[label] !== 0, 'Unable to re-label a statement');
+				ensure(!current.labels[label] && current.labels[label] !== 0,
+					'Unable to re-label a statement',
+					node.position);
 				current.labels[label] = node;
 				moecrt.walkNode(node, fWalk);
 				current.labels[label] = 0
 			} else if(node.type === nt.BREAK && node.destination) {
-				ensure(current.labels[name] && current.labels[name].type === nt.LABEL, 
-					"BREAK statement used a unfound label")
+				ensure(current.labels[node.destination] && current.labels[node.destination].type === nt.LABEL, 
+					"BREAK statement used a unfound label",
+					node.position)
 			} else {
 				if(node.declareVariable){
 					try {
@@ -96,7 +102,7 @@ exports.resolve = function(ast, cInitVariables, PE, PW, cWarn){
 
 	var checkBreakPosition = function(scope){
 		var fWalk = function (node) {
-			if(node.type === nt.WHILE || node.type === nt.FOR || node.type === nt.REPEAT || node.type === nt.CASE || node.type === nt.FORIN)
+			if(node.type === nt.WHILE || node.type === nt.FOR || node.type === nt.REPEAT || node.type === nt.CASE || node.type === nt.OLD_FOR)
 				return;
 			if(node.type === nt.EXPRSTMT) return;
 			if(node.type === nt.BREAK)

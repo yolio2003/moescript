@@ -1592,7 +1592,7 @@ exports.parse = function (input, source, config) {
 		});
 		stripSemicolons();
 		advance(UNTIL);
-		n.condition = expression();
+		n.condition = contExpression();
 		return n;
 	};
 	var forstmt = function () {

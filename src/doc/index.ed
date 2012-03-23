@@ -19,7 +19,7 @@ You can get it from \githubProject.
 		require('moe/dummy')
 
 :section{Overview}
-	First, whitespaces plays important rule in Moe, indents means structure for example. There is nothing works like `end` or `{}` in other languages. It is not required to use `;` to terminate statements (though semiclolns still works as well), and use indentation instead of surrounding statements with `{}`. Every control block is started by a symbol like `:`, `=>` or `=`, then one **unindented** statement, or a indented statement block.
+	First, whitespaces plays important rule in Moe, indents means structure for example. There is nothing works like `end` or `{}` in other languages. It is not required to use `;` to terminate statements (though semiclolns still works as well), and use indentation instead of surrounding statements with `{}`. 
 	|moe
 		def max(list):
 			var m = list[0]
@@ -263,7 +263,47 @@ You can get it from \githubProject.
 				tracel resend Man::speak(something)
 				// is equalivent to tracel Man.prototype.speak.call(this, something)
 
-		`wait` is a special call wrapper related to the monadic primitive system, see below.
+		`wait` is a special call wrapper related to the monadic primitive system, see section "Coping with Callbacks".
+
+:section{Flow control}
+	Conditionals
+	|moe
+		if(condition) block
+		else if(condition)
+			block
+		else
+			block
+
+		piecewise
+			when(condition1) action1
+			when(condition2)
+			when(condition3) action2
+			otherwise        action3
+
+		case(x)
+			when(val1) action1
+			when(val2)
+			when(val3) action2
+			otherwise  action3
+	Loops
+	|moe
+		for(var x, i in range)
+			action(x, i)
+
+		for(var *terms in range)
+			action(terms) -- terms is an array containing all items yield from enumerator
+
+		while(condition)
+			action
+
+		repeat
+			action
+		until(condition)
+
+		label out: for(var x in 1..55)
+			for(var y in x..55)
+				if(x + y == 42)
+					break out
 
 :section{Coping with Callbacks}
 	The call wrapper `wait` is used for generate callback-requiring methods. A simplified form of `wait` is `f!(args)`.
