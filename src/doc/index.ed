@@ -106,7 +106,7 @@ You can get it from \githubProject.
 		-- function printPrimes: print all prime numbers not greater than an uplimit specified
 		-- printPrimes(uplimit <- Number)
 		def printPrimes(uplimit):
-			def primes = [2, 3, 5, 7];
+			def primes = [2, 3, 5, 7]
 			for(var n in 2 ... uplimit)
 				var composite = false
 				var t = 0
@@ -173,7 +173,7 @@ You can get it from \githubProject.
 			while((c = condition()))
 				body(c)
 
-		var num = 10;
+		var num = 10
 		repeatWhile {num -= 1}, {|j| tracel j}
 
 :section{Objects}
@@ -254,12 +254,12 @@ You can get it from \githubProject.
 		|moe
 			def Man():
 				//...
-			def Man::speak(something) = tracel something;
+			def Man::speak(something) = tracel something
 
 			def outof(Man) Child():
 				//...
 			def Child::speak(something):
-				tracel "Ah!";
+				tracel "Ah!"
 				tracel resend Man::speak(something)
 				// is equalivent to tracel Man.prototype.speak.call(this, something)
 
@@ -286,12 +286,12 @@ You can get it from \githubProject.
 	However, raw primitives is hard to use, so that monadic primitives is often wrapped by library functions. An useful function is `async` in `moe/libs/async`, dealing with most of callback-requiring actions in JavaScript.
 	|moe
 		def async randPrintNums(n):
-		    def tasks = [];
+		    def tasks = []
 		    for(var i in 0..n)
 		        tasks.push async :>
 		            wait sleep (100 * Math.random())
 		            tracel index
-		        where index = i;
+		        where index = i
 		    wait join tasks
 
 		randPrintNums 100
@@ -330,12 +330,11 @@ You can get it from \githubProject.
 		            for(var y in callback x)
 		                enumeration.yield! y
 
-		var Generator(G)() =
+		var table(G) =
 		    var f = G.build ecSchemata
 		    f.apply(this, arguments)()
-		def generate(f) = (Generator f)()
 
-		var t = generate =>
+		var t = table =>
 			var x <- (1...9)
 			var y <- (1...9)
 			if(x <= y)

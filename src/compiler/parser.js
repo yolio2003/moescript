@@ -1351,6 +1351,7 @@ exports.parse = function (input, source, config) {
 					position: c.position
 				})
 			} else {
+				advance();
 				var right = new Node(nt.CALL, {
 					func: new Node(nt.BINDPOINT),
 					args: [assignmentExpression(inlineQ)],
