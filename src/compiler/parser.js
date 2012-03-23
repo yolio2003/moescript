@@ -741,7 +741,7 @@ exports.parse = function (input, source, config) {
 			node.names = [];
 			node.nameused = true;
 		} else {
-			argList(node);
+			argList(node, true);
 		}
 		advance(CLOSE, SQEND);
 		return node;
@@ -914,7 +914,6 @@ exports.parse = function (input, source, config) {
 	};
 	var member = function () {
 		var m = primary();
-		// a.b.[e1].c[e2]			...
 		while (tokenIs(DOT) || tokenIs(OPEN, SQSTART) && !token.spaced || tokenIs(PROTOMEMBER))
 			if (tokenIs(DOT) || tokenIs(PROTOMEMBER)) {
 				m = memberitem(m);
@@ -929,7 +928,7 @@ exports.parse = function (input, source, config) {
 		return m;
 	};
 	var completeCallExpression = function(m){
-		out: while (tokenIs(OPEN) && !token.spaced || tokenIs(DOT) || tokenIs(EXCLAM) || tokenIs(PROTOMEMBER)) {
+		while (tokenIs(OPEN) && !token.spaced || tokenIs(DOT) || tokenIs(EXCLAM) || tokenIs(PROTOMEMBER)) {
 			switch (token.type) {
 				case EXCLAM:
 					var m = new Node(nt.BINDPOINT, { expression: m });
@@ -942,7 +941,7 @@ exports.parse = function (input, source, config) {
 							func: m
 						});
 						if (tokenIs(CLOSE, RDEND)) { m.args = []; advance(); continue; };
-						argList(m, false);
+						argList(m, true);
 						advance(CLOSE, RDEND);
 						m = wrapCall(m);
 					} else if (token.value === SQSTART) { // [] operator
@@ -958,9 +957,7 @@ exports.parse = function (input, source, config) {
 							args:[expressionBody()],
 							names: [null]
 						}));
-					} else {
-						break out;
-					}
+					};
 					continue;
 				case DOT:
 				case PROTOMEMBER:
@@ -970,7 +967,7 @@ exports.parse = function (input, source, config) {
 		};
 		return m;
 	};
-	var argList = function (nc, omit) {
+	var argList = function (nc, bracedQ) {
 		var args = [], names = [], argTypeDetect;
 		while((argTypeDetect = argStartQ())) {
 			if (argTypeDetect === 2) {
@@ -982,7 +979,7 @@ exports.parse = function (input, source, config) {
 			} else {
 				names.push(null);
 			}
-			args.push(callItem(omit));
+			args.push((bracedQ ? callItem : callExpression)());
 			if (!tokenIs(COMMA)) {
 				break
 			};
@@ -995,6 +992,15 @@ exports.parse = function (input, source, config) {
 			"Unable to use named arguments inside old-style Constructior5 invocation");
 		return nc;
 	};
+	var callItem = function(omit){
+		var node = callExpression();
+		if(tokenIs(OPERATOR)){
+			return operatorPiece(node, callExpression);
+		} else {
+			return node;
+		}
+	};
+
 	var wrapCall = function(n){
 		if(n.type === nt.CALL){
 			if(n.func.type === nt.CALLWRAP && n.args.length === 1 && !n.names[0]) {
@@ -1081,6 +1087,8 @@ exports.parse = function (input, source, config) {
 		}
 		return node;
 	};
+
+
 	var callExpression = function () {
 		return completeCallExpression(primary());
 	};
@@ -1226,7 +1234,7 @@ exports.parse = function (input, source, config) {
 		if(tokenIs(PIPE)) {
 			return pipeClausize(wrapCall(c))
 		} else if(argStartQ()) {
-			argList(c, true);
+			argList(c);
 			return pipeClausize(wrapCall(c))
 		} else {
 			return c;
@@ -1357,14 +1365,8 @@ exports.parse = function (input, source, config) {
 			return (inlineQ ? expression : whereClausedExpression)(c);
 		}
 	};
-	var callItem = function(omit){
-		var node = callExpression();
-		if(tokenIs(OPERATOR)){
-			return operatorPiece(node, callExpression);
-		} else {
-			return node;
-		}
-	};
+
+
 	var stover = function () {
 		return !token || (token.type === SEMICOLON || token.type === END || token.type === CLOSE || token.type === OUTDENT);
 	};
@@ -1541,23 +1543,35 @@ exports.parse = function (input, source, config) {
 			});
 		}
 	};
+
+
 	var contBlock = function () {
 		var p = advance(COLON).position;
 		var s = block();
 		return s;
 	};
+	var contExpression = function(){
+		advance(OPEN, RDSTART);
+		var r = expression();
+		advance(CLOSE, RDEND);
+		return r;
+	};
+	var stripSemicolons = function () {
+		while (tokenIs(SEMICOLON)) advance();
+	};
+
 	var ifstmt = function () {
 		advance(IF);
 		var n = new Node(nt.IF);
-		n.condition = expression();
-		n.thenPart = contBlock();
+		n.condition = contExpression();
+		n.thenPart = block();
 		stripSemicolons();
 		if(tokenIs(ELSE)){
 			advance(ELSE);
 			if(tokenIs(IF)){
 				n.elsePart = blocky(ifstmt());
 			} else {
-				n.elsePart = contBlock();
+				n.elsePart = block();
 			}
 		}
 		return n;
@@ -1565,14 +1579,13 @@ exports.parse = function (input, source, config) {
 	var whilestmt = function () {
 		advance(WHILE);
 		var n = new Node(nt.WHILE, {
-			condition: expression(),
-			body: contBlock()
+			condition: contExpression(),
+			body: block()
 		});
 		return n;
 	};
 	var repeatstmt = function () {
 		advance(REPEAT);
-		advance(COLON);
 		var n = new Node(nt.REPEAT, {
 			body: block()
 		});
@@ -1583,6 +1596,7 @@ exports.parse = function (input, source, config) {
 	};
 	var forstmt = function () {
 		advance(FOR);
+		advance(OPEN, RDSTART);
 		var node = new Node(nt.FOR);
 		var declQ = false;
 		var decls;
@@ -1627,41 +1641,38 @@ exports.parse = function (input, source, config) {
 						right: new Node(nt.LITERAL, {value: 1})})}),
 				_variableDeclares: declQ ? decls : null});
 		};
-		node.body = contBlock();
+		advance(CLOSE, RDEND);
+		node.body = block();
 		return node;
 	};
-	var stripSemicolons = function () {
-		while (tokenIs(SEMICOLON)) advance();
-	};
+
 	var piecewise = function (t) {
 		var n = new Node(t ? nt.CASE : nt.PIECEWISE);
 		n.conditions = [], n.bodies = [];
 		advance();
 		if (t) {
-			n.expression = callItem();
+			n.expression = contExpression();
 		};
-		advance(COLON);
 		advance(INDENT);
 		stripSemicolons();
 		ensure(token, 'Unterminated piecewise/case block');
 		while (tokenIs(WHEN) || tokenIs(OTHERWISE)) {
 			if (tokenIs(WHEN)) {
 				advance(WHEN);
-				var condition = callItem();
+				var condition = contExpression();
 				stripSemicolons();
-				if (tokenIs(COMMA) && nextIs(WHEN)) {
-					advance();
+				if (tokenIs(WHEN)) {
 					n.conditions.push(condition);
 					n.bodies.push(null);
 					continue;
 				} else {
 					n.conditions.push(condition);
-					n.bodies.push(contBlock());
+					n.bodies.push(block());
 					stripSemicolons();
 				}
 			} else {
 				advance(OTHERWISE);
-				n.otherwise = contBlock();
+				n.otherwise = block();
 				stripSemicolons();
 				break;
 			}
