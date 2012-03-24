@@ -63,6 +63,8 @@ No classes.
 
 Monadic transformation for async / enumerator / list comprehension......
 -----------------
+Asyncs
+
 	// sleep: function(dt, fCallback)
 	def async randPrintNums(n):
 		def tasks = []
@@ -74,7 +76,8 @@ Monadic transformation for async / enumerator / list comprehension......
 		join! tasks
 
 	randPrintNums 100
-	---------------------------------------------------------------
+Enumerators
+
 	def enumeration String::getEnumerator():
 		for(var i in 0..this.length)
 			enumeration.yield! this.charAt(i), i
@@ -82,7 +85,8 @@ Monadic transformation for async / enumerator / list comprehension......
 	for(var x in "this is a string")
 		trace x
 
-	---------------------------------------------------------------
+List comprehension
+
 	-- Enumerator comprehension monad
 	var ecSchemata = [yield: fYield, return: fReturn, bind: fBind]
 	where 
