@@ -26,11 +26,11 @@ You can get it from \githubProject.
 			for(var i in 0..list.length)
 				if(list[i] > m) m = list[i]
 			return m
-		tracel max [5, 4, 3, 2, 1]
+		trace max [5, 4, 3, 2, 1]
 
 	Newlines **around** some symbols will be ignored so that you could write long expressions or complex literals. Unlike Python, line breaks inside parentheses, which often causes syntax errors, will not be ignored.
 	|moe
-		tracel \
+		trace \
 			1,
 			2,
 			3 +
@@ -63,7 +63,7 @@ You can get it from \githubProject.
 						['fib', ['-', 'n', '2']]]]]]]
 	|moe
 		-- Wrong example: newline inside parentheses
-		--	(tracel  -- here
+		--	(trace  -- here
 		--		x,
 		--		y,
 		--		z)
@@ -77,12 +77,12 @@ You can get it from \githubProject.
 			var inner = 3
 			outer = 4
 			var x = 5
-			tracel inner  -- 3
-			tracel outer  -- 4
-			tracel x      -- 5
+			trace inner  -- 3
+			trace outer  -- 4
+			trace x      -- 5
 		f()
-		tracel outer      -- 4
-		tracel x          -- 2
+		trace outer      -- 4
+		trace x          -- 2
 
 	`def` can only define one thing once, with `var` can declares multiple variables without initialization. However, you are able to use `def` for defining properties, which is useful processing objects. In this situation, `def` is only a simple assignment.
 	|moe
@@ -117,11 +117,11 @@ You can get it from \githubProject.
 					t += 1
 				if(not composite)
 					primes.push n
-					tracel n
+					trace n
 
 		// Parameters with default value
 		def fill(container, liquid = "water"):
-			tracel ("Fill " + container + " with " + liquid)
+			trace ("Fill " + container + " with " + liquid)
 
 		-- function Y: Fixed point combinator
 		-- Y(g <- Function) <- Function
@@ -158,11 +158,11 @@ You can get it from \githubProject.
 	|moe
 		list.map (term, index) => term * index
 		$(element).bind "click", (event) :>
-			tracel event
+			trace event
 
 		def sleep(dt, f) = setTimeout(f, dt)
 		sleep 1000, :>
-			tracel 'Blah!'
+			trace 'Blah!'
 		// Note: different from (act) :> something
 		act :> something
 	
@@ -174,7 +174,7 @@ You can get it from \githubProject.
 				body(c)
 
 		var num = 10
-		repeatWhile {num -= 1}, {|j| tracel j}
+		repeatWhile {num -= 1}, {|j| trace j}
 
 :section{Objects}
 	Both object literals and array literals uses `[]`. Therefore, empty objects should use `[:]` while `[]` means empty array. Keywords can appear inside object literals without quoting.
@@ -208,7 +208,7 @@ You can get it from \githubProject.
 		f(1, 1, 1) // 2
 
 		def act(f) = f()
-		act{tracel 'blah!'} // short for act({tracel 'blah!'})
+		act{trace 'blah!'} // short for act({trace 'blah!'})
 	
 	You can use named arguments. All named arguments will be accumulated into an object literal passed into the function as the last argument.
 	|moe
@@ -227,9 +227,9 @@ You can get it from \githubProject.
 	Moe supports a special calling method, by using "Pipe sign" `|`, which has an extremely low priority. The calling form `a |f b, c, d` means `f(a, b, c, d)`, or more strictly, `seq T = a, f(T, b, c, d)` due to `a` will be evaluated **before** `f`. `a |f` means `f(a)`, with reversed evaluation order, `a` before `f`.
 	|moe
 		def tap(value, f) = seq f(value), value
-		5 |tap {|x| tracel x}              // 5
+		5 |tap {|x| trace x}              // 5
 		  |{|x| x * 3}
-		  |tap {|x| tracel x}              // 15
+		  |tap {|x| trace x}              // 15
 
 	Chain calls, usually used in JavaScript, is supported by a slightly modified pipe `|.`. Add the method name after the pipe-dot sign. Both pipe forms can be combined in any order.
 	|moe
@@ -254,14 +254,14 @@ You can get it from \githubProject.
 		|moe
 			def Man():
 				//...
-			def Man::speak(something) = tracel something
+			def Man::speak(something) = trace something
 
 			def outof(Man) Child():
 				//...
 			def Child::speak(something):
-				tracel "Ah!"
-				tracel resend Man::speak(something)
-				// is equalivent to tracel Man.prototype.speak.call(this, something)
+				trace "Ah!"
+				trace resend Man::speak(something)
+				// is equalivent to trace Man.prototype.speak.call(this, something)
 
 		`wait` is a special call wrapper related to the monadic primitive system, see section "Coping with Callbacks".
 
@@ -330,7 +330,7 @@ You can get it from \githubProject.
 		    for(var i in 0..n)
 		        tasks.push async :>
 		            wait sleep (100 * Math.random())
-		            tracel index
+		            trace index
 		        where index = i
 		    wait join tasks
 
@@ -343,7 +343,7 @@ You can get it from \githubProject.
 				enumeration.yield! this.charAt(i), i
 
 		for(var x in "this is a string")
-			tracel x
+			trace x
 
 	`Enumerable` is a wrap of `enumeration`, creates enumerable object constructors.
 	|moe
@@ -354,7 +354,7 @@ You can get it from \githubProject.
 				() <- x
 
 		for(var x in twiceRange(1..10))
-			tracel x
+			trace x
 
 	Even more interesting things could be implemented by monadic primitives, due to it is actually an abstraction of flow control. In some situation, callbacks is not called only once, produces "strange" behaviours, for example, enumerator comprehension:
 	|moe
@@ -379,7 +379,7 @@ You can get it from \githubProject.
 			var y <- (1...9)
 			if(x <= y)
 				x + ' * ' + y + ' = ' + x * y
-		for(var item in t) tracel item
+		for(var item in t) trace item
 
 :section{Links}
 	 - Moescript: \githubProject

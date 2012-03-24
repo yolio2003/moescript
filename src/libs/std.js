@@ -256,3 +256,18 @@ reg('Boolean', Boolean);
 reg('Array', Array);
 reg('Function', Function);
 reg('String', String);
+
+// trace and tracel
+if(typeof console === undefined){
+	console = {
+		log: function(){}
+	}
+};
+var trace = function(xs){
+	var s = '';
+	for (var i = 0; i < arguments.length; i++)
+		s += arguments[i];
+	console.log(s);
+	return arguments[arguments.length - 1];
+};
+reg('trace', trace);

@@ -104,21 +104,15 @@
 			function trace(x) {
 				var s = '';
 				for (var i = 0; i < arguments.length; i++) s += arguments[i];
-				_output.appendChild(document.createTextNode(s));
+				_output.appendChild(document.createTextNode(s + '\n'));
 				return arguments[arguments.length - 1];
 			};
-			function tracel() {
-				var v = trace.apply(this, arguments);
-				trace('\n');
-				return v;
-			};
-
 			function traceraw(s){
 				_output.innerHTML += s;
 			}
 			return {
 				trace: trace,
-				tracel: tracel,
+				tracel: trace,
 				traceraw: traceraw
 			}
 		}
