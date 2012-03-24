@@ -1,6 +1,13 @@
 Moescript
 ==============
 
+Usage
+-----------------
+
+  1. make
+  2. `moec somefile.moe -o somefile.js`
+  3. enjoy.
+
 less braces
 -----------------
 	def max(list):
@@ -65,6 +72,10 @@ Monadic transformation for async / enumerator / list comprehension......
 -----------------
 Asyncs
 
+	def asyncLib = require "moe/libs/async"
+	def async = asyncLib.async
+	def sleep = asyncLib.sleep
+
 	// sleep: function(dt, fCallback)
 	def async randPrintNums(n):
 		def tasks = []
@@ -76,6 +87,7 @@ Asyncs
 		join! tasks
 
 	randPrintNums 100
+
 Enumerators
 
 	def enumeration String::getEnumerator():
