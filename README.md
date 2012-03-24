@@ -8,8 +8,10 @@ Usage
   2. `moec somefile.moe -o somefile.js`
   3. enjoy.
 
-less braces
+Features
 -----------------
+###less braces
+
 	def max(list):
 		var m = list[0]
 		for(var i in 0..list.length)
@@ -19,8 +21,7 @@ less braces
 	// trace means "console.log" with last argument returned.
 	trace max [5, 4, 3, 2, 1]
 
-Literals: use []
-------------------
+###Literals: use []
 	def emptyObject = [:]
 	def gameConfig = [
 		player: [
@@ -37,8 +38,7 @@ Literals: use []
 		]
 	]
 
-Less keywords
------------------
+###Less keywords
 	def Y(g) =
 		// use "=" here...
 		def rec(x)(y) = g(x(x)) y
@@ -52,8 +52,7 @@ Less keywords
 
 	fibonacci(5) // 5
 
-No classes.
------------------
+###Simple "class" definition
 	def Man(name):
 		this.name = name
 	def Man::speak(something):
@@ -68,8 +67,7 @@ No classes.
 	var tom = new Child "Tom"
 	tom.speak "Thanks!"
 
-Monadic transformation for async / enumerator / list comprehension......
------------------
+###Monadic transformation for async / enumerator / list comprehension......
 Asyncs
 
 	def asyncLib = require "moe/libs/async"
