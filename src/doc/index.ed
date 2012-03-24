@@ -190,16 +190,16 @@ You can get it from \githubProject.
 		-- object(fConstruct) <- Object
 
 		def gameConfig = object =>
-		    @player = object =>
-		        @name = "tom"
-		        @type = Human
-		        @level = 1
-		        @weapon = sword
-		        @inventory = [food, food, potion, bomb]
-		    @enemy = object =>
-		        @name = "Dragon"
-		        @type = Dragon
-		        @level = 9
+			@player = object =>
+				@name = "tom"
+				@type = Human
+				@level = 1
+				@weapon = sword
+				@inventory = [food, food, potion, bomb]
+			@enemy = object =>
+				@name = "Dragon"
+				@type = Dragon
+				@level = 9
 
 :section{Calling functions}
 	The most direct way to call a function is using brackets(`()`). Note that there **must not** be any space between the function and the brackets. If there is only one argument, and it is a delaied expression (`{expr}`), the `()` can be omitted.
@@ -326,13 +326,13 @@ You can get it from \githubProject.
 	However, raw primitives is hard to use, so that monadic primitives is often wrapped by library functions. An useful function is `async` in `moe/libs/async`, dealing with most of callback-requiring actions in JavaScript.
 	|moe
 		def async randPrintNums(n):
-		    def tasks = []
-		    for(var i in 0..n)
-		        tasks.push async :>
-		            wait sleep (100 * Math.random())
-		            trace index
-		        where index = i
-		    wait join tasks
+			def tasks = []
+			for(var i in 0..n)
+				tasks.push async :>
+					wait sleep (100 * Math.random())
+					trace index
+				where index = i
+			wait join tasks
 
 		randPrintNums 100
 
@@ -361,24 +361,25 @@ You can get it from \githubProject.
 		-- Enumerator comprehension monad
 		var ecSchemata = [yield: fYield, return: fReturn, bind: fBind]
 		where 
-		    fReturn = Enumerable function(x):
-		        if(x != undefined)
-		            enumeration.yield! x
-		    fYield(x) = x
-		    fBind = Enumerable function(list, callback):
-		        for(var x in list) 
-		            for(var y in callback x)
-		                enumeration.yield! y
+			fReturn = Enumerable function(x):
+				if(x != undefined)
+					enumeration.yield! x
+			fYield(x) = x
+			fBind = Enumerable function(list, callback):
+				for(var x in list) 
+					for(var y in callback x)
+						enumeration.yield! y
 
 		var table(G) =
-		    var f = G.build ecSchemata
-		    f.apply(this, arguments)()
+			var f = G.build ecSchemata
+			f.apply(this, arguments)()
 
-		var t = table =>
-			var x <- (1...9)
-			var y <- (1...9)
-			if(x <= y)
-				x + ' * ' + y + ' = ' + x * y
+		var t = table { var x <- (1...9); var y <- (1...9); if(x <= y) x + ' * ' + y + ' = ' + x * y }
+		// t = table [build: fBuild]
+		// where fBuild(schemata)()():
+		//     schemata.bind (1...9), (x) :>
+		//         schemata.bind (1...9), (y) :>
+		//             if(x <= y) schemata.return x + ' * ' + y + ' = ' + x * y 
 		for(var item in t) trace item
 
 :section{Links}

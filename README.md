@@ -72,9 +72,14 @@ Asyncs
 
 	def asyncLib = require "moe/libs/async"
 	def async = asyncLib.async
-	def sleep = asyncLib.sleep
+	def sleep = asyncLib.sleep // sleep(f, dt) === setTimrout(dt, f)
 
-	// sleep: function(dt, fCallback)
+	def f() = process wait loadResource(something)
+	// def f = [build: fBuild]
+	// where fBuild(schemata)()():
+	//     return schemata.yield loadResource something, (resource) :>
+	//         return schemata.return process resource
+
 	def async randPrintNums(n):
 		def tasks = []
 		for(var i in 0..n)
@@ -113,9 +118,10 @@ List comprehension
 		var f = G.build ecSchemata
 		f.apply(this, arguments)()
 
-	var t = table =>
-		var x <- (1...9)
-		var y <- (1...9)
-		if(x <= y)
-			x + ' * ' + y + ' = ' + x * y
+	var t = table { var x <- (1...9); var y <- (1...9); if(x <= y) x + ' * ' + y + ' = ' + x * y }
+	// t = table [build: fBuild]
+	// where fBuild(schemata)()():
+	//     schemata.bind (1...9), (x) :>
+	//         schemata.bind (1...9), (y) :>
+	//             if(x <= y) schemata.return x + ' * ' + y + ' = ' + x * y 
 	for(var item in t) trace item
