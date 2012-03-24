@@ -610,25 +610,27 @@ exports.Generator = function(g_envs, g_config){
 	});
 	vmSchemataDef(nt.FOR, function (nd, e) {
 		var tEnum = makeT(e);
-		var tYV = makeT(e);
 
-		var varAssign;
 		if(this.pass){
-			varAssign = C_NAME(this.vars[0]) + '=' + C_TEMP(tYV) + '.values'
+			var s_enum = $('(%1 = %2())',
+				C_NAME(this.vars[0]),
+				C_TEMP(tEnum));
+			var varAssign = [];
 		} else {
-			varAssign = C_NAME(this.vars[0]) + '=' + C_TEMP(tYV) + '.value' ; // v[0] = enumerator.value
-			for(var i = 1; i < this.vars.length; i += 1)
-				varAssign += $(', %1 = %2.values[%3]', C_NAME(this.vars[i]), C_TEMP(tYV), i);
-			//varAssign += $(', %1 = %2.restart', C_TEMP(tEnum), C_TEMP(tYV));
+			var tYV = makeT(e);
+			var s_enum = $('(%1 = %2())',
+				C_TEMP(tYV),
+				C_TEMP(tEnum));
+			var varAssign = [];
+			for(var i = 0; i < this.vars.length; i += 1)
+				varAssign.push($('%1 = %2[%3]', C_NAME(this.vars[i]), C_TEMP(tYV), i + ''));
 		}
-		var s_enum = $('(%1 = %2())',
-			C_TEMP(tYV),
-			C_TEMP(tEnum));
+
 		return $('%1 = %2.getEnumerator();\nwhile(%3){\n%4;%5}',
 			C_TEMP(tEnum),
 			transform(this.range),
 			s_enum,
-			varAssign,
+			INDENT(varAssign.join(';\n')),
 			transform(this.body));
 	});
 	vmSchemataDef(nt.BREAK, function () {
@@ -1026,18 +1028,17 @@ exports.Generator = function(g_envs, g_config){
 			var tEnum = makeT(env);
 			var tYV = makeT(env);
 
-			var varAssign;
 			if(this.pass){
-				varAssign = C_NAME(this.vars[0]) + '=' + C_TEMP(tYV) + '.values'
+				var varAssign = [C_NAME(this.vars[0]) + '=' + C_TEMP(tYV)]
 			} else {
-				varAssign = C_NAME(this.vars[0]) + '=' + C_TEMP(tYV) + '.value' ; // v[0] = enumerator.value
-				for(var i = 1; i < this.vars.length; i += 1)
-					varAssign += $(', %1 = %2.values[%3]', C_NAME(this.vars[i]), C_TEMP(tYV), i);
+				var varAssign = [];
+				for(var i = 0; i < this.vars.length; i += 1)
+					varAssign.push($('%1 = %2[%3]', C_NAME(this.vars[i]), C_TEMP(tYV), i + ''));
 			}
 			var s_enum = $('(%1 = %2()) ? ( %3 ): undefined',
 				C_TEMP(tYV),
 				C_TEMP(tEnum),
-				varAssign);
+				varAssign.join(', '));
 
 			var lLoop = label();
 			var bk = lNearest;

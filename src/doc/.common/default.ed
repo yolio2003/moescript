@@ -29,4 +29,13 @@
 	:consoleOut
 		Build complete. File generated at \"{\outputPath}
 
-
+:defun{show}{content}
+	::div{class="show"}
+	:content
+:defun{smoe}{content}
+	::show
+	::moe
+	:content
+:defun{comm}{content}
+	::div{class="comm"}
+	:content

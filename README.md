@@ -123,5 +123,6 @@ List comprehension
 	// where fBuild(schemata)()():
 	//     schemata.bind (1...9), (x) :>
 	//         schemata.bind (1...9), (y) :>
-	//             if(x <= y) schemata.return x + ' * ' + y + ' = ' + x * y 
+	//             if(x <= y) schemata.return (x + ' * ' + y + ' = ' + x * y)
+	//             else schemata.return()
 	for(var item in t) trace item

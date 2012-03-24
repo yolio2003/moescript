@@ -82,7 +82,6 @@ var MOE_RMETHOD = function(l, r, m) {
 	return r[m](l)
 }
 var MOE_YIELDVALUE = function(a, restart) {
-	this.value = a[0];
 	this.values = a;
 	this.restart = restart;
 }
@@ -391,7 +390,7 @@ var generateEmitter = function(d){
 		var v = emitRestart();
 		if(v.restart && v.values){
 			emitRestart = v.restart;
-			return v;
+			return v.values;
 		}
 	};
 	return emit

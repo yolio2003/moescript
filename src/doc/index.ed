@@ -1,42 +1,147 @@
 ::document{moescript}
 
-**Moe is a new, not-very-little light Javascript-targeted language written in JavaScript.** 
+**Moe is a new, not-very-little light Javascript-targeted language written in JavaScript.** This is the documentation of Moe. In examples.
 
 You can get it from \githubProject.
 
-:section{`Moec` compiler}
-	:pre
+:section{Usage}
+	:show
+		::pre
 		moec <options> input.moe
-	:section{Options}	
+	:comm
 		 - `-o <value>`, `--output <value>`: Specify the path of output file. If it is not specified, `moec` will print generated code into STDOUT.
 		 - `-t <value>`，`--target <value>`: Specify the compilation target which affects global variable list. `-t least` will provide `require`、`module` and `exports` only for globals. `-t node` will provide all Node global variables.
 		 - `-g <value>`，`--global <value>`: Specify a global variable, e.g. `-g document`。
 		 - `-m <name>=<path>`，`--module <name>=<path>`: Map a module into a global variable, for exmaple, `-m exp=express` will map `require('express')` into the global variablr `exp` inside Moe source.
 
-:section{Moe loader}
-	The `moeDummy` makes Node possible to load `.moe` files as well as `.js`. Everything required is
-	:*js
-		require('moe/dummy')
+	:show
+		|js
+			require('moe/dummy')
+	:comm
+		The `moeDummy` makes Node possible to load `.moe` files as well as `.js`. Everything required is a `require`.
+
 
 :section{Overview}
-	First, whitespaces plays important rule in Moe, indents means structure for example. There is nothing works like `end` or `{}` in other languages. It is not required to use `;` to terminate statements (though semiclolns still works as well), and use indentation instead of surrounding statements with `{}`. 
-	|moe
+	|smoe
 		def max(list):
 			var m = list[0]
 			for(var i in 0..list.length)
 				if(list[i] > m) m = list[i]
 			return m
 		trace max [5, 4, 3, 2, 1]
+	:comm
+		First, whitespaces plays important rule in Moe, indents means structure for example. There is nothing works like `end` or `{}` in other languages. It is not required to use `;` to terminate statements (though semiclolns still works as well), and use indentation instead of surrounding statements with `{}`. 
 
-	Newlines **around** some symbols will be ignored so that you could write long expressions or complex literals. Unlike Python, line breaks inside parentheses, which often causes syntax errors, will not be ignored.
-	|moe
+	|smoe
 		trace \
 			1,
 			2,
 			3 +
 			 4
 			 + 5
+	:comm
+		Newlines **around** some symbols will be ignored so that you could write long expressions or complex literals. Unlike Python, line breaks inside parentheses, which often causes syntax errors, will not be ignored.
 
+	|smoe
+		-- Wrong example: newline inside parentheses
+		--	(trace  -- here
+		--		x,
+		--		y,
+		--		z)
+	:comm
+		Unlike python, line breaks **inside** parentheses, which often causes syntax errors, will not be ignored.
+
+:section{Variables (and immutable ones)}
+	|smoe
+		var outer = 1
+		var x = 2
+		def f = function():
+			var inner = 3
+			outer = 4
+			var x = 5
+			trace inner  -- 3
+			trace outer  -- 4
+			trace x      -- 5
+		f()
+		trace outer      -- 4
+		trace x          -- 2
+	:comm
+		Variables in Moe is defined by `var` or `def`. "Variables" defined by `def` is actually a constant, which means it is impossible make any assignment to it. Scopes rule is exactly same as JavaScript, `var` and `def` **shadows** external variables.
+
+		`def` can only define one thing once, with `var` can declares multiple variables without initialization. However, you are able to use `def` for defining properties, which is useful processing objects. In this situation, `def` is only a simple assignment.
+		|moe
+			def Number.prototype.times = function(f):
+				for(var i in 0..this) f(i)
+
+:section{Flow control}
+	|smoe
+		if(condition) block
+		else if(condition)
+			block
+		else
+			block
+
+		piecewise
+			when(condition1) action1
+			when(condition2)
+			when(condition3)
+				action2
+			otherwise        action3
+
+		case(x)
+			when(val1)
+				action1
+			when(val2)
+			when(val3) action2
+			otherwise 
+				action3
+	:comm
+		Conditionals.
+	
+	|smoe
+		for(var x, i in enumerable)
+			action(x, i)
+
+		for(var *terms in enumerable)
+			action(terms) 
+			-- terms is an array containing all items yield from enumerator
+	:comm
+		For statement. `for(x, i in range) body` means:
+		|moe
+			var enumerator = range.getEnumerator()
+			while(terms = range())
+				x = terms[0]
+				i = terms[1]
+				body
+
+		`for(*terms in range) body` means:
+		|moe
+			var enumerator = range.getEnumerator()
+			while(terms = range())
+				body
+
+		`for(var x in low..high)` means `for(var x = low; x < high; x++)` in Javascript. `for(var x in low...high)` means `for(var x = low; x <= high; x++)`.
+
+	|smoe
+		while(condition)
+			action
+
+		repeat
+			action
+		until(condition)
+	:comm
+		`while` and `repeat-until`.
+	
+	|smoe
+		label out: for(var x in 1..55)
+			for(var y in x..55)
+				if(x + y == 42)
+					break out
+	:comm
+		Break and labels.
+
+:section{Objects}
+	|smoe
 		-- A game config
 		def gameConfig = [
 			player: [
@@ -61,130 +166,18 @@ You can get it from \githubProject.
 				['()', 
 					['+', ['fib', ['-', 'n', '1']],
 						['fib', ['-', 'n', '2']]]]]]]
-	|moe
-		-- Wrong example: newline inside parentheses
-		--	(trace  -- here
-		--		x,
-		--		y,
-		--		z)
-
-:section{Variables (and immutable ones)}
-	Variables in Moe is defined by `var` or `def`. "Variables" defined by `def` is actually a constant, which means it is impossible make any assignment to it. Scopes rule is exactly same as JavaScript, `var` and `def` **shadows** external variables.
-	|moe
-		var outer = 1
-		var x = 2
-		def f = function():
-			var inner = 3
-			outer = 4
-			var x = 5
-			trace inner  -- 3
-			trace outer  -- 4
-			trace x      -- 5
-		f()
-		trace outer      -- 4
-		trace x          -- 2
-
-	`def` can only define one thing once, with `var` can declares multiple variables without initialization. However, you are able to use `def` for defining properties, which is useful processing objects. In this situation, `def` is only a simple assignment.
-	|moe
-		def Number.prototype.times = function(f):
-			for(var i in 0..this) f(i)
-
-:section{Functions}
-	The most recommended way to define a function is using `def`. Add argument list after the function name, then a `:` or `=`, then the function body.
-
-	Function bodies started by `=` will **generate `return` statements automatically**, means its last expression executed will become its return value. Therefore, it is not required to use `return` statements. On the contraty, `:`-bodies won't. You must use `return` statements explicitly to specify its return value, or the function will simply return `undefined`, like what JavaScript acts.
-
-	Functions may also have default values for arguments. Override the default value by passing an argument.
-
-	|moe
-		// Define a simple function
-		-- function square: calculate square of a number
-		-- square(x <- Number) <- Number
-		def square(x) = x * x
-
-		// A procedure.
-		-- function printPrimes: print all prime numbers not greater than an uplimit specified
-		-- printPrimes(uplimit <- Number)
-		def printPrimes(uplimit):
-			def primes = [2, 3, 5, 7]
-			for(var n in 2 ... uplimit)
-				var composite = false
-				var t = 0
-				while(square primes[t] <= n)
-					if(n % primes[t] == 0)
-						composite = true
-						break
-					t += 1
-				if(not composite)
-					primes.push n
-					trace n
-
-		// Parameters with default value
-		def fill(container, liquid = "water"):
-			trace ("Fill " + container + " with " + liquid)
-
-		-- function Y: Fixed point combinator
-		-- Y(g <- Function) <- Function
-		--     which Y(g)(x) = g(Y(g))(x)
-		def Y(g) =
-			// use "=" here...
-			def rec(x)(y) = g(x(x)) y
-			rec(rec) // ...means this value will be returned.
-		
-		// Define recursive function using Y
-		def Y fibonacci(recurse)(n) =
-			// Multiple argument lists means currying
-			if(n <= 2) 1
-			else recurse(n - 2) + recurse(n - 1)
-		
-		fibonacci(5) // 5
+	:comm
+		Both object literals and array literals uses `[]`. Therefore, expressing empty objects should use `[:]` while `[]` means empty array. 
 	
-	There is a notable example using the `Y` combinator. Expressions like `Y` after `def` is a **modifer**, which is useful in defining wrapped functions, for example, recursive functions produced by `Y`. Here, `fibonacci` is actually:
-	|moe
-		def fibonacci_1 = function(recurse):
-			return function(n):
-				return 1 when(n <= 2),
-					recurse(n - 2) + recurse(n - 1)
-		def fibonacci = Y(fibonacci_1)
-	
-	No-name functions can be defined using `function`. Like what we did in `def`, you can simply replace that function name by `function`. In the same matter, `=` for automatic generated `return`s, `:` for manual.
-	|moe
-		def fibonacci_2 = function(recurse)=
-			function(n)=
-				1 when(n <= 2),
-					recurse(n - 2) + recurse(n - 1)
-	
-	Another way, called **Lambdas**, is using an optional list of parameters, an arrow(`:>` or `=>`), and the function body. Unindented Lambdas will extend all the way to the right as long aspossible. The `=`-`:` rule still rules here.
-	|moe
-		list.map (term, index) => term * index
-		$(element).bind "click", (event) :>
-			trace event
-
-		def sleep(dt, f) = setTimeout(f, dt)
-		sleep 1000, :>
-			trace 'Blah!'
-		// Note: different from (act) :> something
-		act :> something
-	
-	The final form is wrapping **one** expression using `{}`. The wrapped expression will be the return value. Arguments are writtern inside the brackets, and wrapped by `|`'s. This is called **Delaied expression**.
-	|moe
-		def repeatWhile(condition, body):
-			var c
-			while((c = condition()))
-				body(c)
-
-		var num = 10
-		repeatWhile {num -= 1}, {|j| trace j}
-
-:section{Objects}
-	Both object literals and array literals uses `[]`. Therefore, empty objects should use `[:]` while `[]` means empty array. Keywords can appear inside object literals without quoting.
-	|moe
+	|smoe
 		def actions = [
-			if: ((cond, fThen, fElse) => fThen() when(cond), fElse())
+			if: ((cond, fThen, fElse) => fThen() when(cond), fElse()),
+			"while": ((fCond, fBody) => while(fCond()) fBody())
 		]
+	:comm
+		Keywords can appear inside object literals without quoting.
 
-	You can also use `object` function provided in standard libary for large objects, especially configs.
-	|moe
+	|smoe
 		-- function object: creates object using a constructor with an optional prototype.
 		-- object(oPrototype, fConstruct) <- Derives(oPrototype)
 		-- object(fConstruct) <- Object
@@ -200,58 +193,160 @@ You can get it from \githubProject.
 				@name = "Dragon"
 				@type = Dragon
 				@level = 9
+	:comm
+		You can also use `object` function provided in standard libary for large objects, especially configs.
+
+:section{Functions}
+	|smoe
+		// Define a simple function
+		-- function square: calculate square of a number
+		-- square(x <- Number) <- Number
+		def square(x) = x * x
+	:comm
+		To define a simple function, you can write `def functionName(argList) = result` simply.
+	
+	|smoe
+		// A procedure.
+		-- function printPrimes: print all prime numbers 
+		--  not greater than an uplimit specified
+		-- printPrimes(uplimit <- Number)
+		def printPrimes(uplimit):
+			def primes = [2, 3, 5, 7]
+			for(var n in 2 ... uplimit)
+				var composite = false
+				var t = 0
+				while(square primes[t] <= n)
+					if(n % primes[t] == 0)
+						composite = true
+						break
+					t += 1
+				if(not composite)
+					primes.push n
+					trace n
+	:comm
+		To define a more complicated function, use colon and indents. `def functionName(argList): ` requires namual written `return`'s with `def functionName(args)` not.
+
+	|smoe
+		// Parameters with default value
+		def fill(container, liquid = "water"):
+			trace ("Fill " + container + " with " + liquid)
+	:comm
+		Parameters can have default values. Specify it using `=`.
+	
+	|smoe
+		-- function Y: Fixed point combinator
+		-- Y(g <- Function) <- Function
+		--     which Y(g)(x) = g(Y(g))(x)
+		def Y(g) =
+			// use "=" here...
+			def rec(x)(y) = g(x(x)) y
+			rec(rec) // ...means this value will be returned.
+		
+		// Define recursive function using Y
+		def Y fibonacci(recurse)(n) =
+			// Multiple argument lists means currying
+			if(n <= 2) 1
+			else recurse(n - 2) + recurse(n - 1)
+		
+		fibonacci(5) // 5
+
+	:comm
+		A slightly complicated example. `Y` is the fixed point combinator, and `def Y f(args)...` means `def f = Y function(args)...`. Fibonacci is actually:
+
+		|moe
+			def fibonacci_1 = function(recurse):
+				return function(n):
+					return 1 when(n <= 2),
+						recurse(n - 2) + recurse(n - 1)
+			def fibonacci = Y(fibonacci_1)
+	
+	|smoe
+		def fibonacci_2 = function(recurse)=
+			function(n)=
+				1 when(n <= 2),
+					recurse(n - 2) + recurse(n - 1)
+	:comm
+		No-name functions can be defined using `function`. Like what we did in `def`, you can simply replace that function name by `function`. In the same matter, `=` for automatic generated `return`s, `:` for manual.
+	
+	|smoe
+		list.map (term, index) => term * index
+		$(element).bind "click", (event) :>
+			trace event
+
+		def sleep(dt, f) = setTimeout(f, dt)
+		sleep 1000, :>
+			trace 'Blah!'
+		// Note: different from (act) :> something
+		act :> something
+	:comm
+		You can also define a function using **lambda expressions**, by using an optional list of parameters, an arrow(`:>` or `=>`), and the function body. Unindented Lambdas will extend all the way to the right as long aspossible. The `=`-`:` rule still rules here.
+
+	|smoe
+		def repeatWhile(condition, body):
+			var c
+			while((c = condition()))
+				body(c)
+
+		var num = 10
+		repeatWhile {num -= 1}, {|j| trace j}
+	:comm
+		Last one. Use `{}` to wrap statements in one line. The wrapped expression will be the return value. Arguments are writtern inside the brackets, and wrapped by `|`'s.
 
 :section{Calling functions}
-	The most direct way to call a function is using brackets(`()`). Note that there **must not** be any space between the function and the brackets. If there is only one argument, and it is a delaied expression (`{expr}`), the `()` can be omitted.
-	|moe
+	|smoe
 		def f(x, y, z) = x * y + z
 		f(1, 1, 1) // 2
 
 		def act(f) = f()
 		act{trace 'blah!'} // short for act({trace 'blah!'})
+	:comm
+		Call function by `f(args)`. Note that there are no space between the function and the bracket `(`.
+
+		If there is only one argument, and it is a delaied expression (`{expr}`), the `()` can be omitted.
 	
-	You can use named arguments. All named arguments will be accumulated into an object literal passed into the function as the last argument.
-	|moe
+	|smoe
 		def f(config) = config.a + config.b
 		f(a: 1, b: 2) // 3
-	
-	Brackets can be omitted when it is not aminigous, for example:
-	|moe
+	:comm
+		You can use named arguments. All named arguments will be accumulated into an object literal passed into the function as the last argument.
+
+	|smoe
 		f g h a, b, c   // = f(g(h(a, b, v)))
 		x y z w         // = x(y(z(w)))
 		f               // = f; No invocation.
 		square x * x    // = square(x) * x; Not square(x * x)
-
-	Omissioned calls has a lower priority than calls using brackets. Only the "`f g h a, b, c`" is supported. You can also use omissioned calls with operators togther. Omissioned calls has a higher priority than operators, therefore, `square x * x` means `square(x) * x`.
+	:comm
+		Brackets can be omitted when it is not aminigous. Omissioned calls has a lower priority than calls using brackets, but higher than operators. Therefore, `square x * x` means `square(x) * x`.
 	
-	Moe supports a special calling method, by using "Pipe sign" `|`, which has an extremely low priority. The calling form `a |f b, c, d` means `f(a, b, c, d)`, or more strictly, `seq T = a, f(T, b, c, d)` due to `a` will be evaluated **before** `f`. `a |f` means `f(a)`, with reversed evaluation order, `a` before `f`.
-	|moe
+	|smoe
 		def tap(value, f) = seq f(value), value
 		5 |tap {|x| trace x}              // 5
 		  |{|x| x * 3}
 		  |tap {|x| trace x}              // 15
+	:comm
+		Moe supports a special calling method, by using "Pipe sign" `|`, which has an extremely low priority. The calling form `a |f b, c, d` means `f(a, b, c, d)`, or more strictly, `seq T = a, f(T, b, c, d)` due to `a` will be evaluated **before** `f`. `a |f` means `f(a)`, with reversed evaluation order, `a` before `f`.
 
-	Chain calls, usually used in JavaScript, is supported by a slightly modified pipe `|.`. Add the method name after the pipe-dot sign. Both pipe forms can be combined in any order.
-	|moe
+	|smoe
 		$ "selector"
 		  |.addClass "selected"
 		  |.css background: "red"
+	:comm
+		Chain calls, usually used in JavaScript, is supported by a slightly modified pipe `|.`. Add the method name after the pipe-dot sign. Both pipe forms can be combined in any order.
+
 	
 	:section{Call wrappers}
 		There are some special keywords which can be "called" like normal function in Moe, called Call Wrappers, used to generate special codes, including object creation, prototype resending, or create "wait" calls used by asynchronous functions. All call wrappers are "called" in compile time, accepts only one argument, with some of them only accepts an invocation expression as its argument.
 
-		Creating objects using `new`.
-		|moe
+		|smoe
 			def Point(x, y):
 				this.x = x
 				this.y = y
 
 			def origin = new Point 0, 0
-		
-		`resend`, followed with a function call, is used to call methods with `this` bound to `this` of current scope. `resend method(args)` stands for `method.call(this, args)`.
+		:comm
+			Creating objects using `new`.
 
-		`do` acts like `resend`. The only difference between `do` and `resend` is that `do f` means `f.apply(this, arguments)`, while `resend f` throws a syntax error. `resend` accepts function calls only.
-		|moe
+		|smoe
 			def Man():
 				//...
 			def Man::speak(something) = trace something
@@ -262,52 +357,18 @@ You can get it from \githubProject.
 				trace "Ah!"
 				trace resend Man::speak(something)
 				// is equalivent to trace Man.prototype.speak.call(this, something)
+		:comm
+			`resend`, followed with a function call, is used to call methods with `this` bound to `this` of current scope. `resend method(args)` stands for `method.call(this, args)`.
 
-		`wait` is a special call wrapper related to the monadic primitive system, see section "Coping with Callbacks".
+			`do` acts like `resend`. The only difference between `do` and `resend` is that `do f` means `f.apply(this, arguments)`, while `resend f` throws a syntax error. `resend` accepts function calls only.
+		|smoe
+			def f() = process wait loadResource(something)
 
-:section{Flow control}
-	Conditionals
-	|moe
-		if(condition) block
-		else if(condition)
-			block
-		else
-			block
-
-		piecewise
-			when(condition1) action1
-			when(condition2)
-			when(condition3) action2
-			otherwise        action3
-
-		case(x)
-			when(val1) action1
-			when(val2)
-			when(val3) action2
-			otherwise  action3
-	Loops
-	|moe
-		for(var x, i in range)
-			action(x, i)
-
-		for(var *terms in range)
-			action(terms) -- terms is an array containing all items yield from enumerator
-
-		while(condition)
-			action
-
-		repeat
-			action
-		until(condition)
-
-		label out: for(var x in 1..55)
-			for(var y in x..55)
-				if(x + y == 42)
-					break out
+		:comm
+			`wait` is a special call wrapper related to the monadic primitive system, dealing with callbacks, see section "Coping with Callbacks".
 
 :section{Coping with Callbacks}
-	The call wrapper `wait` is used for generate callback-requiring methods. A simplified form of `wait` is `f!(args)`.
-	|moe
+	|smoe
 		-- A function using `wait`...
 		def f() = process wait loadResource(something)
 
@@ -316,15 +377,16 @@ You can get it from \githubProject.
 		where fBuild(schemata)()():
 			return schemata.yield loadResource something, (resource) :>
 				return schemata.return process resource
+	:comm
+		The call wrapper `wait` is used for generate callback-requiring methods. A simplified form of `wait f(args)` is `f!(args)`.
 
-	A function containing `wait`, `!` or `<-` (called **Bind Arrow**) will be transformed into a completely different thing called **Monadic Primitive**. A monadic primitive has the form `[build: function(schemata)(args)()...]`.
+		A function containing `wait`, `!` or `<-` (called **Bind Arrow**) will be transformed into a completely different thing called **Monadic Primitive**. A monadic primitive has the form `[build: function(schemata)(args)()...]`.
 
-	In the original form of monadic primitives, `schemata` is an object with several methods, including `yield`, `bind` and `return`. Some uses of monadic primitive, including generators and list comprehension, requires this. `args` is the argument list, and the 3rd group of brackets starts the actions.
+		In the original form of monadic primitives, `schemata` is an object with several methods, including `yield`, `bind` and `return`. Some uses of monadic primitive, including generators and list comprehension, requires this. `args` is the argument list, and the 3rd group of brackets starts the actions.
 
-	Moe compiler will transform `f! args` into `schemata.yield f args, (_) => rest` where `rest` stands for the rest actions. The bind arrow, `x <- val`, will be transformed into `schemata.bind val, (x) => rest`. So that `schemata` is a key object in monad construction. It represents the type of monads.
+		Moe compiler will transform `f! args` into `schemata.yield f args, (_) => rest` where `rest` stands for the rest actions. The bind arrow, `x <- val`, will be transformed into `schemata.bind val, (x) => rest`. So that `schemata` is a key object in monad construction. It represents the type of monads.
 
-	However, raw primitives is hard to use, so that monadic primitives is often wrapped by library functions. An useful function is `async` in `moe/libs/async`, dealing with most of callback-requiring actions in JavaScript.
-	|moe
+	|smoe
 		def async randPrintNums(n):
 			def tasks = []
 			for(var i in 0..n)
@@ -335,18 +397,20 @@ You can get it from \githubProject.
 			wait join tasks
 
 		randPrintNums 100
+	:comm
+		However, raw primitives is hard to use, so that monadic primitives is often wrapped by library functions. An useful function is `async` from `moe/libs/async`, dealing with most of callback-requiring actions in JavaScript.
 
-	Another useful function is `enumeration`, creating iterators.
-	|moe
+	|smoe
 		def enumeration String::getEnumerator():
 			for(var i in 0..this.length)
 				enumeration.yield! this.charAt(i), i
 
 		for(var x in "this is a string")
 			trace x
+	:comm
+		Another useful function is `enumeration`, creating iterators.
 
-	`Enumerable` is a wrap of `enumeration`, creates enumerable object constructors.
-	|moe
+	|smoe
 		def Enumerable twiceRange(range):
 			for(var *x in range)
 				() <- x
@@ -355,9 +419,10 @@ You can get it from \githubProject.
 
 		for(var x in twiceRange(1..10))
 			trace x
+	:comm
+		`Enumerable` is a wrap of `enumeration`, creates enumerable object constructors.
 
-	Even more interesting things could be implemented by monadic primitives, due to it is actually an abstraction of flow control. In some situation, callbacks is not called only once, produces "strange" behaviours, for example, enumerator comprehension:
-	|moe
+	|smoe
 		-- Enumerator comprehension monad
 		var ecSchemata = [yield: fYield, return: fReturn, bind: fBind]
 		where 
@@ -374,13 +439,19 @@ You can get it from \githubProject.
 			var f = G.build ecSchemata
 			f.apply(this, arguments)()
 
-		var t = table { var x <- (1...9); var y <- (1...9); if(x <= y) x + ' * ' + y + ' = ' + x * y }
+		var t = table =>
+			var x <- (1...9)
+			var y <- (1...9)
+			if(x <= y) x + ' * ' + y + ' = ' + x * y
 		// t = table [build: fBuild]
-		// where fBuild(schemata)()():
-		//     schemata.bind (1...9), (x) :>
-		//         schemata.bind (1...9), (y) :>
-		//             if(x <= y) schemata.return x + ' * ' + y + ' = ' + x * y 
+		// where fBuild(schemata)()() =
+		//     schemata.bind (1...9), (x) =>
+		//         schemata.bind (1...9), (y) =>
+		//             if(x <= y) schemata.return (x + ' * ' + y + ' = ' + x * y)
+		//             else schemata.return()
 		for(var item in t) trace item
+	:comm
+		Even more interesting things could be implemented by monadic primitives, due to it is actually an abstraction of flow control. In some situation, callbacks is not called only once, produces "strange" behaviours, for example, enumerator comprehension:
 
 :section{Links}
 	 - Moescript: \githubProject
