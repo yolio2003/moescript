@@ -290,7 +290,7 @@ You can get it from \githubProject.
 		var num = 10
 		repeatWhile {num -= 1}, {|j| trace j}
 	:comm
-		Last one. Use `{}` to wrap statements in one line. The wrapped expression will be the return value. Arguments are writtern inside the brackets, and wrapped by `|`'s.
+		The last way is to use curly brackets (`{}`) enclose statements, separated by explicit semicolons, not line breaks. `return`'s will be automatically generated. Arguments are writtern inside the brackets, and wrapped by `|`'s.
 
 :section{Calling functions}
 	|smoe
@@ -335,7 +335,7 @@ You can get it from \githubProject.
 
 	
 	:section{Call wrappers}
-		There are some special keywords which can be "called" like normal function in Moe, called Call Wrappers, used to generate special codes, including object creation, prototype resending, or create "wait" calls used by asynchronous functions. All call wrappers are "called" in compile time, accepts only one argument, with some of them only accepts an invocation expression as its argument.
+		There are some special keywords, which can be "called" like normal function in Moe, called Call Wrappers, used to generate special codes, including object creation, prototype resending, or create "wait" calls used by asynchronous functions. All call wrappers are "called" in compile time, accepts only one argument, with some of them only accepts an invocation expression as its argument.
 
 		|smoe
 			def Point(x, y):
@@ -361,9 +361,9 @@ You can get it from \githubProject.
 			`resend`, followed with a function call, is used to call methods with `this` bound to `this` of current scope. `resend method(args)` stands for `method.call(this, args)`.
 
 			`do` acts like `resend`. The only difference between `do` and `resend` is that `do f` means `f.apply(this, arguments)`, while `resend f` throws a syntax error. `resend` accepts function calls only.
+		
 		|smoe
 			def f() = process wait loadResource(something)
-
 		:comm
 			`wait` is a special call wrapper related to the monadic primitive system, dealing with callbacks, see section "Coping with Callbacks".
 
@@ -398,7 +398,7 @@ You can get it from \githubProject.
 
 		randPrintNums 100
 	:comm
-		However, raw primitives is hard to use, so that monadic primitives is often wrapped by library functions. An useful function is `async` from `moe/libs/async`, dealing with most of callback-requiring actions in JavaScript.
+		However, raw primitives is hard to use, so that monadic primitives is often wrapped by library functions. A useful function is `async` from `moe/libs/async`, dealing with most of the callback-requiring actions in JavaScript.
 
 	|smoe
 		def enumeration String::getEnumerator():
@@ -439,20 +439,21 @@ You can get it from \githubProject.
 			var f = G.build ecSchemata
 			f.apply(this, arguments)()
 
-		var t = table =>
-			var x <- (1...9)
-			var y <- (1...9)
-			if(x <= y) x + ' * ' + y + ' = ' + x * y
+		// simple usage
+		for(var item in table{var x <- (1..100); x * 2 + 1}) tracel item
+		
+		// complicated usage
+		var t = table {var x <- (1...9); var y <- (1...9); if(x <= y) x + ' * ' + y + ' = ' + x * y }
 		// t = table [build: fBuild]
-		// where fBuild(schemata)()() =
-		//     schemata.bind (1...9), (x) =>
-		//         schemata.bind (1...9), (y) =>
+		// where fBuild(schemata)()():
+		//     schemata.bind (1...9), (x) :>
+		//         schemata.bind (1...9), (y) :>
 		//             if(x <= y) schemata.return (x + ' * ' + y + ' = ' + x * y)
 		//             else schemata.return()
 		for(var item in t) trace item
 	:comm
-		Even more interesting things could be implemented by monadic primitives, due to it is actually an abstraction of flow control. In some situation, callbacks is not called only once, produces "strange" behaviours, for example, enumerator comprehension:
+		Even more interesting things could be implemented by monadic primitives, due to it is actually an abstraction of flow control. In some situation, callbacks are not called only once, produces "strange" behaviors, for example, enumerator comprehension:
 
 :section{Links}
 	 - Moescript: \githubProject
-	 - 函数库说明: \page{lib/index}
+	 - Library: \page{lib/index}

@@ -118,7 +118,11 @@ List comprehension
 		var f = G.build ecSchemata
 		f.apply(this, arguments)()
 
-	var t = table { var x <- (1...9); var y <- (1...9); if(x <= y) x + ' * ' + y + ' = ' + x * y }
+	// simple usage
+	for(var item in table{var x <- (1..100); if(x % 2) x * 2 + 1}) tracel item
+	
+	// complicated usage
+	var t = table {var x <- (1...9); var y <- (1...9); if(x <= y) x + ' * ' + y + ' = ' + x * y }
 	// t = table [build: fBuild]
 	// where fBuild(schemata)()():
 	//     schemata.bind (1...9), (x) :>

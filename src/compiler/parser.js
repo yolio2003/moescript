@@ -81,7 +81,7 @@ var Token = function (t, v, p, s, i) {
 	this.isName = i;
 }
 Token.prototype.toString = function () {
-	return '[' + tokenTypeStrs[this.type] + (this.value ? ' ' + this.value : '') + ']'
+	return '[' + tokenTypeStrs[this.type] + (this.value !== undefined ? ' ' + this.value : '') + ']'
 }
 var condF = function (match, $1) {
 	if ($1.length > 1) {
@@ -274,7 +274,7 @@ var lex = exports.lex = function (input, cfgMap) {
 				make(t, s.charAt(0), n);
 				break;
 			case SEMICOLON:
-				make(t, 1, n);
+				make(t, "Explicit", n);
 				break;
 			case BACKSLASH:
 				ignoreComingNewline = true;
@@ -363,7 +363,7 @@ var lex = exports.lex = function (input, cfgMap) {
 					// outdent
 					dump(b, p);
 				} else {
-					make(SEMICOLON, 0, p);
+					make(SEMICOLON, "Implicit", p);
 				};
 				ignoreComingNewline = false;
 			}
@@ -379,7 +379,7 @@ var lex = exports.lex = function (input, cfgMap) {
 				} else {
 					make(OUTDENT, 0, p);
 				}
-				make(SEMICOLON, 0, p);
+				make(SEMICOLON, "Implicit", p);
 			};
 			if(stack[top] < b) {
 					// indent
@@ -389,7 +389,7 @@ var lex = exports.lex = function (input, cfgMap) {
 		};
 		var desemi = function(){
 			while(tokens[tokl - 1] && (tokens[tokl - 1].type === INDENT ||
-					tokens[tokl - 1].type === SEMICOLON && tokens[tokl - 1].value === 0)){
+					tokens[tokl - 1].type === SEMICOLON && tokens[tokl - 1].value === "Implicit")){
 				tokl --;
 				if(tokens[tokl].type === INDENT)
 					top --;
@@ -1737,7 +1737,7 @@ exports.parse = function (input, source, config) {
 		var _t = endS, s;
 		do {
 			endS = false;
-			while(tokenIs(SEMICOLON, 1)) advance();
+			while(tokenIs(SEMICOLON, "Explicit")) advance();
 			if (tokenIs(CLOSE)) break;
 			script.content.push(statement());
 		} while(endS && token);
