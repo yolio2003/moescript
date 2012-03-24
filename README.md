@@ -10,7 +10,7 @@ Usage
 
 Features
 -----------------
-###less braces
+### less braces. Use indent
 
 	def max(list):
 		var m = list[0]
@@ -21,7 +21,7 @@ Features
 	// trace means "console.log" with last argument returned.
 	trace max [5, 4, 3, 2, 1]
 
-###Literals: use []
+### Literals: use []
 	def emptyObject = [:]
 	def gameConfig = [
 		player: [
@@ -38,7 +38,7 @@ Features
 		]
 	]
 
-###Less keywords
+### Currying, and `def` wrappers
 	def Y(g) =
 		// use "=" here...
 		def rec(x)(y) = g(x(x)) y
@@ -52,7 +52,7 @@ Features
 
 	fibonacci(5) // 5
 
-###Simple "class" definition
+### Simple "class" definition
 	def Man(name):
 		this.name = name
 	def Man::speak(something):
@@ -67,7 +67,7 @@ Features
 	var tom = new Child "Tom"
 	tom.speak "Thanks!"
 
-###Monadic transformation for async / enumerator / list comprehension......
+### Monadic transformation for async / enumerator / list comprehension......
 Asyncs
 
 	def asyncLib = require "moe/libs/async"
