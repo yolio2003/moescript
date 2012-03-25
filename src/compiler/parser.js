@@ -516,6 +516,12 @@ exports.parse = function (input, source, config) {
 	var Node = function(t, p){
 		return MakeNode(t, p, token ? token.position: undefined)
 	};
+	var MemberNode = function(left, name){
+		return new Node(nt.MEMBER, {
+			left: left,
+			right: new Node(nt.LITERAL, {value: name})
+		})
+	};
 	// Implicit return generation
 	var implicitReturn = function(node){
 		if(!node || !node.content || node.type !== nt.SCRIPT) return node;
@@ -606,7 +612,7 @@ exports.parse = function (input, source, config) {
 	var thisprp = function () {
 		var t = advance(MY);
 		var n = name();
-		return new Node(nt.MEMBER, { left: new Node(nt.THIS), right: n });
+		return MemberNode(new Node(nt.THIS), n);
 	};
 	// 'arguments' pointer
 	var argsp = function () {
@@ -619,7 +625,7 @@ exports.parse = function (input, source, config) {
 			if(p.names[i].defaultValue){
 				last = new Node(nt.IF, {
 					condition: new Node(nt['<'], {
-						left: new Node(nt.MEMBER, {left: new Node(nt.ARGUMENTS), right: 'length'}),
+						left: MemberNode(new Node(nt.ARGUMENTS), 'length'),
 						right: new Node(nt.LITERAL, {value: i + 1})}),
 					thenPart: new Node(nt.SCRIPT, {
 						content: [last, new Node(nt.ASSIGN, {
@@ -769,7 +775,7 @@ exports.parse = function (input, source, config) {
 		var p = advance(CLOSE, RDEND);
 		var s = (tokenIs(LAMBDA) ? completeLambdaExpression : blockBody)(new Node(nt.PARAMETER, {names: vars}));
 		return new Node(nt.CALL, {
-			func: new Node(nt.MEMBER, {left: s, right: 'call'}),
+			func: MemberNode(s, 'call'),
 			args: [new Node(nt.THIS)].concat(args),
 			names: [null].concat(names)
 		});
@@ -853,12 +859,12 @@ exports.parse = function (input, source, config) {
 		// #{identifier} --> ArgNS[identifier]
 		var p = advance();
 		if (tokenIs(NUMBER) && !token.spaced) {
-			return new Node(nt.MEMBERREFLECT, {
+			return new Node(nt.MEMBER, {
 				left : new Node(nt.ARGUMENTS),
 				right : literal()
 			});
 		} else if (token && token.isName && !token.spaced) {
-			return new Node(nt.MEMBERREFLECT, {
+			return new Node(nt.MEMBER, {
 				left : new Node(nt.ARGN),
 				right : new Node(nt.LITERAL, {value: name()})
 			});
@@ -900,15 +906,15 @@ exports.parse = function (input, source, config) {
 		if(tokenIs(PROTOMEMBER)) { // P::Q prototype form
 			advance();
 			right = name();
-			return new Node(nt.MEMBER, { left: new Node(nt.MEMBER, {left: left, right: 'prototype'}), right: right });
+			return MemberNode(MemberNode(left, 'prototype'), right);
 		} else {
 			advance();
 			if (tokenIs(STRING)) {
 				right = literal();
-				return new Node(nt.MEMBERREFLECT, { left: left, right: right });
+				return new Node(nt.MEMBER, { left: left, right: right });
 			} else { // . Identifier  format
 				right = name();
-				return new Node(nt.MEMBER, { left: left, right: right });
+				return MemberNode(left, right);
 			}
 		}
 	};
@@ -919,7 +925,7 @@ exports.parse = function (input, source, config) {
 				m = memberitem(m);
 			} else {
 				advance();
-				m = new Node(nt.MEMBERREFLECT, {
+				m = new Node(nt.MEMBER, {
 					left: m,
 					right: callItem()
 				});
@@ -946,7 +952,7 @@ exports.parse = function (input, source, config) {
 						m = wrapCall(m);
 					} else if (token.value === SQSTART) { // [] operator
 						advance();
-						m = new Node(nt.MEMBERREFLECT, {
+						m = new Node(nt.MEMBER, {
 							left: m,
 							right: callItem()
 						});
@@ -1017,10 +1023,7 @@ exports.parse = function (input, source, config) {
 	callWrappers[RESEND] = function(n){
 		if(n.type === nt.CALL){
 			return new Node(nt.CALL, {
-				func: new Node(nt.MEMBER, {
-					left: n.func,
-					right: 'call'
-				}),
+				func: MemberNode(n.func, 'call'),
 				args: [new Node(nt.THIS, {})].concat(n.args),
 				names:[null].concat(n.names)
 			});
@@ -1051,10 +1054,7 @@ exports.parse = function (input, source, config) {
 			});
 		} else {
 			return new Node(nt.CALL, {
-				func: new Node(nt.MEMBER, {
-					left: n,
-					right: 'apply'
-				}),
+				func: MemberNode(n, 'apply'),
 				args: [new Node(nt.THIS, {}), new Node(nt.ARGUMENTS, {})],
 				names:[null, null]
 			});
@@ -1215,10 +1215,7 @@ exports.parse = function (input, source, config) {
 			advance(DOT);
 			ensure(token && token.isName, 'Missing identifier for Chain invocation');
 			c = new Node(nt.CALL, {
-				func: new Node(nt.MEMBER, {
-					left: node,
-					right: name()
-				}),
+				func: MemberNode(node, name()),
 				args: [],
 				names: []
 			});
@@ -1290,14 +1287,13 @@ exports.parse = function (input, source, config) {
 			};
 			stmts.push(new Node(nt.RETURN, { expression: node }));
 			return new Node(nt.CALL, {
-				func: new Node(nt.MEMBER, {
-					left: new Node(nt.FUNCTION, {
+				func: MemberNode(
+					new Node(nt.FUNCTION, {
 						parameters: new Node(nt.PARAMETERS, {names: []}),
 						code: new Node(nt.SCRIPT, {content: stmts}),
 						rebind: true
 					}),
-					right: 'call'
-				}),
+					'call'),
 				args: [new Node(nt.THIS)],
 				names: [null]
 			})
@@ -1336,8 +1332,7 @@ exports.parse = function (input, source, config) {
 		};
 		var c = unary();
 		if (tokenIs(ASSIGN) || tokenIs(BIND)){
-			ensure(c.type === nt.VARIABLE || c.type === nt.MEMBER ||
-					c.type === nt.MEMBERREFLECT || c.type === nt.TEMPVAR,
+			ensure(c.type === nt.VARIABLE || c.type === nt.MEMBER || c.type === nt.TEMPVAR,
 					"Invalid assignment/bind");
 			if(tokenIs(ASSIGN)) {
 				var _v = advance().value;

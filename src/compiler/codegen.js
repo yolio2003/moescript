@@ -336,14 +336,11 @@ exports.Generator = function(g_envs, g_config){
 	});
 
 	eSchemataDef(nt.MEMBER, function (transform) {
-		if(this.left.type === nt.LITERAL && typeof this.left.value === "number")
-			return '(' + PART('(' + transform(this.left) + ')', this.right) + ')';
-		else
-			return PART(transform(this.left), this.right);
-	});
-	eSchemataDef(nt.MEMBERREFLECT, function (transform) {
-		return $('%1[%2]',
-			transform(this.left), transform(this.right));
+		if(this.right.type === nt.LITERAL && typeof this.right.value === 'string' && !(this.left.type === nt.LITERAL && typeof this.left.value === 'number')) {
+			return PART(transform(this.left), this.right.value);
+		} else {
+			return $('%1[%2]', transform(this.left), transform(this.right))
+		}
 	});
 
 	var binoper = function (operator, tfoper) {
@@ -485,10 +482,6 @@ exports.Generator = function(g_envs, g_config){
 		var pivot, right, b;
 		switch (this.type) {
 			case nt.MEMBER:
-				pivot = transform(this.left)
-				right = PART('', this.right)
-				break;
-			case nt.MEMBERREFLECT:
 				pivot = transform(this.left)
 				right = '[' + transform(this.right) + ']'
 				break;
@@ -758,10 +751,7 @@ exports.Generator = function(g_envs, g_config){
 		var scopeLabels = {};
 
 		mSchemataDef(nt.ASSIGN, function () {
-			if(this.left.type === nt.MEMBER){
-				var pivot = expPart(this.left.left);
-				return $('(%1 = %2)', PART(pivot, this.left.right), expPart(this.right));
-			} else if(this.left.type === nt.MEMBERREFLECT) {
+			if(this.left.type === nt.MEMBER) {
 				var pivot = expPart(this.left.left);
 				var member = expPart(this.left.right);
 				return $('(%1[%2] = %3)', pivot, member, expPart(this.right));
@@ -806,9 +796,6 @@ exports.Generator = function(g_envs, g_config){
 		var bindFunctionPart = function(){
 			switch (this.type) {
 				case nt.MEMBER:
-					var p = expPart(this.left);
-					return { p: p, f: expPush(PART(p, this.right)) }
-				case nt.MEMBERREFLECT:
 					var p = expPart(this.left);
 					return { p: p, f: expPush('((' + p + ')[' + expPart(this.right) + '])') }
 				case nt.CTOR:

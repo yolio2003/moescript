@@ -59,7 +59,7 @@ var NodeType = exports.NodeType = function () {
 		// Wrappers
 		'BINDPOINT', 'CTOR',
 		// Membering
-		'MEMBER', 'ITEM', 'MEMBERREFLECT', 
+		'MEMBER', 
 		// Invocation
 		'CALL',
 		// Operators
