@@ -1,13 +1,14 @@
 body {
   margin: 0;
   padding: 0;
-  font-family: "Linux Libertine", Georgia, Times;
+  font-family: "CS Kirisame Latin D", Arial, sans-serif;
   background: #f7f7f7;
+  font-size: 14px;
 }
 
 #contents {
-  width: 720px;
-  padding: 0.2em 40px 5em 20px;
+  max-width: 720px;
+  padding: 0.2em 16px 5em;
   margin-left: 120px;
   text-align: justify;
   line-height: 1.4;
@@ -29,6 +30,7 @@ body {
   background: #e7e7e7;
   border-bottom-left-radius: 6px;
   border-bottom-right-radius: 6px;
+  overflow: hidden;
 }
 .show > :first-child, .comm > :first-child{
   margin-top: 0;
@@ -45,8 +47,8 @@ body {
 }
 
 #headarea {
-  margin: -0.2em -40px 0 -20px;
-  padding: 0.2em 40px 0 20px;
+  margin: -0.2em -16px 0;
+  padding: 0.2em 16px 0;
   border-bottom: 1px solid #ddd
 }
 
@@ -56,7 +58,6 @@ body {
 }
 
 h1, h2, h3, h4, h5, h6 {
-  font-family: "Linux Libertine", Palatino, Garamond, Times, Georgia;
   line-height: 1.2;
   font-weight: normal;
   margin-top: 1.2em;
@@ -91,10 +92,11 @@ h2[id]:hover:after {
 }
 
 /* pre, code, kbd, and blockquote */
-pre, code, kbd, blockquote { font-size: 0.9em }
+blockquote { font-size: 0.9em }
 
 pre, code, kbd {
-  font-family: "DejaVu Sans Mono", monospace;
+  font-family: "CS Kirisame Latin Mono", "Consolas", "DejaVu Sans Mono", monospace;
+  font-size: 1em;
 }
 
 code i {
@@ -105,6 +107,15 @@ code i {
 pre {
   white-space: pre-wrap;
   text-align: left;
+}
+.comm > pre {
+  background: #eee;
+  margin-left: -10px;
+  margin-right: -10px;
+  padding: 5px 10px;
+}
+.comm > pre:last-child{
+  margin-bottom: -10px;
 }
 
 blockquote {

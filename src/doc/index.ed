@@ -1,14 +1,24 @@
 ::document{moescript}
 
-**Moe is a new, not-very-little light Javascript-targeted language written in JavaScript.** This is the documentation of Moe. In examples.
+**Moe is a new, not-very-little Javascript-targeted language written in JavaScript.** It is aimed to deal with common troubles in JavaScript development. Moe has neatly crafted grammar so that most JavaScript development will be simplified.
+
+This document is an introduction of Moescript in examples. You can try Moescript online on ......
 
 You can get it from \githubProject.
+:section{Build}
+	:show
+		::pre
+		> make
+	:comm
+		Just `make`. You will get everything needed in `dist/` and a web testing environment in `webtest/`.
 
 :section{Usage}
 	:show
 		::pre
-		moec <options> input.moe
+		> moec <options> input.moe
 	:comm
+		Options:
+
 		 - `-o <value>`, `--output <value>`: Specify the path of output file. If it is not specified, `moec` will print generated code into STDOUT.
 		 - `-t <value>`，`--target <value>`: Specify the compilation target which affects global variable list. `-t least` will provide `require`、`module` and `exports` only for globals. `-t node` will provide all Node global variables.
 		 - `-g <value>`，`--global <value>`: Specify a global variable, e.g. `-g document`。
@@ -30,26 +40,31 @@ You can get it from \githubProject.
 			return m
 		trace max [5, 4, 3, 2, 1]
 	:comm
-		First, whitespaces plays important rule in Moe, indents means structure for example. There is nothing works like `end` or `{}` in other languages. It is not required to use `;` to terminate statements (though semiclolns still works as well), and use indentation instead of surrounding statements with `{}`. 
+		First, whitespaces plays important rule in Moe, indents means structure for example. There is nothing works like `end` or `{}` in other languages. It is not required to use `;` to terminate statements (though semiclolns still works as well), and use indentation instead of surrounding statements with `{}`.
 
 	|smoe
 		trace \
+			1, 2,
+			(3 +
+			 4
+			 + 5)
+		var list = [
 			1,
 			2,
-			3 +
-			 4
-			 + 5
+			3
+		]
 	:comm
-		Newlines **around** some symbols will be ignored so that you could write long expressions or complex literals. Unlike Python, line breaks inside parentheses, which often causes syntax errors, will not be ignored.
-
+		Newlines **around** some symbols will be ignored so that you could write long expressions or complex literals.
 	|smoe
-		-- Wrong example: newline inside parentheses
+		// Wrong example: newline inside parentheses
 		--	(trace  -- here
 		--		x,
 		--		y,
 		--		z)
 	:comm
 		Unlike python, line breaks **inside** parentheses, which often causes syntax errors, will not be ignored.
+
+		As what you seen, `//` and `--` leads comments.
 
 :section{Variables (and immutable ones)}
 	|smoe
@@ -223,28 +238,38 @@ You can get it from \githubProject.
 				if(not composite)
 					primes.push n
 					trace n
+
+		def outNum(x): tracel (x - 0)
 	:comm
-		To define a more complicated function, use colon and indents. `def functionName(argList): ` requires namual written `return`'s with `def functionName(args)` not.
+		To define a more complicated function, use colon and indents.
+
+	|smoe
+		def Y(g) =
+			def rec(x)(y) = g(x(x)) y
+			rec(rec)
+		def Y1(g):
+			def rec(x)(y) = g(x(x)) y
+			return rec(rec)		
+	:comm
+		In Moe, colon-forms requires to write `return` statement explicitly, while functions using equal sign (`=`) does not. Functions indicated by equals will contain automatically generated `return`'s.
 
 	|smoe
 		// Parameters with default value
 		def fill(container, liquid = "water"):
 			trace ("Fill " + container + " with " + liquid)
 	:comm
-		Parameters can have default values. Specify it using `=`.
+		Parameters can have default values. Specify it by using `=`.
 	
 	|smoe
 		-- function Y: Fixed point combinator
 		-- Y(g <- Function) <- Function
 		--     which Y(g)(x) = g(Y(g))(x)
 		def Y(g) =
-			// use "=" here...
 			def rec(x)(y) = g(x(x)) y
-			rec(rec) // ...means this value will be returned.
+			rec(rec)
 		
 		// Define recursive function using Y
 		def Y fibonacci(recurse)(n) =
-			// Multiple argument lists means currying
 			if(n <= 2) 1
 			else recurse(n - 2) + recurse(n - 1)
 		
@@ -257,16 +282,15 @@ You can get it from \githubProject.
 			def fibonacci_1 = function(recurse):
 				return function(n):
 					return 1 when(n <= 2),
-						recurse(n - 2) + recurse(n - 1)
+					recurse(n - 2) + recurse(n - 1)
 			def fibonacci = Y(fibonacci_1)
 	
 	|smoe
-		def fibonacci_2 = function(recurse)=
-			function(n)=
-				1 when(n <= 2),
-					recurse(n - 2) + recurse(n - 1)
+		def fibonacci = function(n)=
+			1 when(n <= 2),
+			fibonacci(n - 2) + fibonacci(n - 1)
 	:comm
-		No-name functions can be defined using `function`. Like what we did in `def`, you can simply replace that function name by `function`. In the same matter, `=` for automatic generated `return`s, `:` for manual.
+		No-name functions can be defined using `function` keyword, followed by argument lists, a colon or an equal sign, then the function body. Like functions in `def`, `=` for automatic generated `return`s, `:` for manual.
 	
 	|smoe
 		list.map (term, index) => term * index
@@ -279,7 +303,7 @@ You can get it from \githubProject.
 		// Note: different from (act) :> something
 		act :> something
 	:comm
-		You can also define a function using **lambda expressions**, by using an optional list of parameters, an arrow(`:>` or `=>`), and the function body. Unindented Lambdas will extend all the way to the right as long aspossible. The `=`-`:` rule still rules here.
+		You can also define a function using **lambda expressions**, by using an optional list of parameters, an arrow(`:>` or `=>`), and the function body. Unindented Lambdas will extend all the way to the right as long aspossible. The colon-equal rule still rules here.
 
 	|smoe
 		def repeatWhile(condition, body):
@@ -290,7 +314,7 @@ You can get it from \githubProject.
 		var num = 10
 		repeatWhile {num -= 1}, {|j| trace j}
 	:comm
-		The last way is to use curly brackets (`{}`) enclose statements, separated by explicit semicolons, not line breaks. `return`'s will be automatically generated. Arguments are writtern inside the brackets, and wrapped by `|`'s.
+		The last way is to use curly brackets (`{}`) enclose statements, separated by explicit semicolons, not line breaks. `return`'s will be automatically generated. Arguments are writtern inside the brackets, and wrapped by `|`'s, when necessary.
 
 :section{Calling functions}
 	|smoe
@@ -300,9 +324,9 @@ You can get it from \githubProject.
 		def act(f) = f()
 		act{trace 'blah!'} // short for act({trace 'blah!'})
 	:comm
-		Call function by `f(args)`. Note that there are no space between the function and the bracket `(`.
+		Call function by `f(args)`. There **should not be any space** between the function and the bracket `(`.
 
-		If there is only one argument, and it is a delaied expression (`{expr}`), the `()` can be omitted.
+		`f({func})` could be simplified into `f{func}`.
 	
 	|smoe
 		def f(config) = config.a + config.b
