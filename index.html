@@ -1,5 +1,5 @@
 <!DOCTYPE HTML><html ><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><head ><title >moescript</title><style >@import url(rc/style.css);</style></head><body ><div id="contents"><div id="headarea"><h1>moescript</h1>
-<div class="pageinfo"> Last update: 2012-03-27</div></div><p><strong>Moe is a new, not-very-little Javascript-targeted language written in JavaScript.</strong> It is aimed to deal with common troubles in JavaScript development. Moe has neatly crafted grammar so that most JavaScript development will be simplified.</p>
+<div class="pageinfo"> Last update: 2012-03-28</div></div><p><strong>Moe is a new, not-very-little Javascript-targeted language written in JavaScript.</strong> It is aimed to deal with common troubles in JavaScript development. Moe has neatly crafted grammar so that most JavaScript development will be simplified.</p>
 <p>This document is an introduction of Moescript in examples. You can try Moescript online on ......</p>
 <p>You can get it from <a href="http://github.com/be5invis/moescript">http://github.com/be5invis/moescript</a>.</p>
 <h2>Usage</h2>
@@ -293,9 +293,9 @@
 <span class="comment">// complicated usage</span>
 <span class="keyword">var</span> <span class="identifier">t</span> <span class="operator">=</span> <span class="identifier">table</span> <span class="punctor">{</span><span class="keyword">var</span> <span class="identifier">x</span> <span class="operator">&lt;-</span> <span class="punctor">(</span><span class="number literal">1</span><span class="operator">...</span><span class="number literal">9</span><span class="punctor">)</span><span class="punctor">;</span> <span class="keyword">var</span> <span class="identifier">y</span> <span class="operator">&lt;-</span> <span class="punctor">(</span><span class="number literal">1</span><span class="operator">...</span><span class="number literal">9</span><span class="punctor">)</span><span class="punctor">;</span> <span class="keyword flowctrl">if</span><span class="punctor">(</span><span class="identifier">x</span> <span class="operator">&lt;=</span> <span class="identifier">y</span><span class="punctor">)</span> <span class="identifier">x</span> <span class="operator">+</span> <span class="string literal">' * '</span> <span class="operator">+</span> <span class="identifier">y</span> <span class="operator">+</span> <span class="string literal">' = '</span> <span class="operator">+</span> <span class="identifier">x</span> <span class="operator">*</span> <span class="identifier">y</span> <span class="punctor">}</span>
 <span class="comment">// t = table [build: fBuild]</span>
-<span class="comment">// where fBuild(schemata)()():</span>
-<span class="comment">//     schemata.bind (1...9), (x) :></span>
-<span class="comment">//         schemata.bind (1...9), (y) :></span>
+<span class="comment">// where fBuild(schemata)()() =</span>
+<span class="comment">//     schemata.bind (1...9), (x) =></span>
+<span class="comment">//         schemata.bind (1...9), (y) =></span>
 <span class="comment">//             if(x &lt;= y) schemata.return (x + ' * ' + y + ' = ' + x * y)</span>
 <span class="comment">//             else schemata.return()</span>
 <span class="keyword flowctrl">for</span><span class="punctor">(</span><span class="keyword">var</span> <span class="identifier">item</span> <span class="operator">in</span> <span class="identifier">t</span><span class="punctor">)</span> <span class="identifier">trace</span> <span class="identifier">item</span></pre></div><div class="comm">Even more interesting things could be implemented by monadic primitives, due to it is actually an abstraction of flow control. In some situation, callbacks are not called only once, produces "strange" behaviors, for example, enumerator comprehension:</div><h2>Links</h2>
