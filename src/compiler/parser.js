@@ -288,12 +288,12 @@ var lex = exports.lex = function (input, cfgMap) {
 		if(char0 === "`")
 			return make(STRING, match.slice(1), n);
 		if(char0 === "'")
-			return make(STRING, match.slice(1, -1).replace(/''/g, "'"), n);
-		if(char0 === '"') {
-			if(match.charAt(1) === '"')
+			if(match.charAt(1) === "'")
 				return make(STRING, match.slice(3, -3), n);
 			else
-				return make(STRING, lfUnescape(match.slice(1, -1)), n);
+				return make(STRING, match.slice(1, -1).replace(/''/g, "'"), n);
+		if(char0 === '"') {
+			return make(STRING, lfUnescape(match.slice(1, -1)), n);
 		}
 	};
 	var walkRex = function(r, s, fMatch, fGap){
