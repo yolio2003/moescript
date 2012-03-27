@@ -5,12 +5,6 @@
 This document is an introduction of Moescript in examples. You can try Moescript online on ......
 
 You can get it from \githubProject.
-:section{Build}
-	:show
-		::pre
-		> make
-	:comm
-		Just `make`. You will get everything needed in `dist/` and a web testing environment in `webtest/`.
 
 :section{Usage}
 	:show

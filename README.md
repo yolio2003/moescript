@@ -4,7 +4,7 @@ Moescript
 Usage
 -----------------
 
-  1. make
+  1. make (requires `make`, `cp`, `mkdir`)
   2. `moec somefile.moe -o somefile.js`
   3. enjoy.
 
