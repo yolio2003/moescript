@@ -384,17 +384,7 @@ if (!Array.prototype.forEach) {
 	};
 }
 
-var generateEmitter = function(d){
-	var emitRestart = d;
-	var emit = function(){
-		var v = emitRestart();
-		if(v.restart && v.values){
-			emitRestart = v.restart;
-			return v.values;
-		}
-	};
-	return emit
-};
+
 
 var MOE_RANGE_EX = function(left, right){
 	return new ExclusiveAscRange(left, right)
@@ -411,14 +401,13 @@ ExclusiveAscRange.prototype.getEnumerator = function(){
 	var low = this.left;
 	var high = this.right;
 	var i = low;
-	var f = function(){
+	return function(){
 		if(i >= high) {
-			return new MOE_RETURNVALUE();
+			return;
 		} else {
-			return new MOE_YIELDVALUE([i++], f);
+			return [i++];
 		}
 	}
-	return generateEmitter(f);
 };
 var InclusiveAscRange = function(left, right){
 	this.left = left;
@@ -428,14 +417,13 @@ InclusiveAscRange.prototype.getEnumerator = function(){
 	var low = this.left;
 	var high = this.right;
 	var i = low;
-	var f = function(){
+	return function(){
 		if(i > high) {
-			return new MOE_RETURNVALUE();
+			return;
 		} else {
-			return new MOE_YIELDVALUE([i++], f);
+			return [i++]
 		}
 	}
-	return generateEmitter(f);
 };
 
 //: moe-master
@@ -464,4 +452,3 @@ moe.runtime = moe.rt = {
 
 moe.derive = MOE_derive;
 moe.Nai = Nai;
-moe.generateEmitter = generateEmitter;

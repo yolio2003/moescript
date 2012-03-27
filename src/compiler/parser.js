@@ -504,7 +504,7 @@ exports.parse = function (input, source, config) {
 	}
 	// Parse warning and error
 	var PW = moecrt.PWMeta(source, function(p){
-		return p == undefined ? (token ? token.position : source.length) : p
+		return p == undefined ? (token && token.position >= 0 ? token.position : source.length) : p
 	});
 	var PE = moecrt.PEMeta(PW);
 	// Assert
@@ -512,6 +512,7 @@ exports.parse = function (input, source, config) {
 		if(!c) throw PE(m, p);
 		return c;
 	};
+
 	// Node constructor
 	var Node = function(t, p){
 		return MakeNode(t, p, token ? token.position: undefined)
@@ -522,6 +523,7 @@ exports.parse = function (input, source, config) {
 			right: new Node(nt.LITERAL, {value: name})
 		})
 	};
+
 	// Implicit return generation
 	var implicitReturn = function(node){
 		if(!node || !node.content || node.type !== nt.SCRIPT) return node;
@@ -560,6 +562,8 @@ exports.parse = function (input, source, config) {
 			};
 		};
 	};
+
+
 	// Here we go
 	// Identifier: like the javascript
 	var variable = function () {
@@ -1302,6 +1306,7 @@ exports.parse = function (input, source, config) {
 		}
 	};
 	var whereClause = function(){
+		var begins = pos();
 		var bind = variable();
 		var right;
 		if(tokenIs(ASSIGN, '=')){
@@ -1316,17 +1321,19 @@ exports.parse = function (input, source, config) {
 				left: bind,
 				right: right
 			}),
-			declareVariable: bind.name
+			declareVariable: bind.name,
+			begins: begins,
+			ends: pos()
 		});
 	};
-	var assignmentExpression = function(inlineQ){
+	var assignmentExpression = function(){
 		if(tokenIs(OPEN, RDSTART) && nextIs(CLOSE, RDEND) && shiftIs(2, BIND)){
 			advance(OPEN);
 			advance(CLOSE);
 			advance(BIND);
 			return new Node(nt.CALL, {
 				func: new Node(nt.BINDPOINT),
-				args: [assignmentExpression(inlineQ)],
+				args: [assignmentExpression()],
 				names: [null]
 			});
 		};
@@ -1358,7 +1365,7 @@ exports.parse = function (input, source, config) {
 				})
 			}
 		} else {
-			return (inlineQ ? expression : whereClausedExpression)(c);
+			return whereClausedExpression(c);
 		}
 	};
 
@@ -1370,7 +1377,7 @@ exports.parse = function (input, source, config) {
 		return !next || (next.type === SEMICOLON || next.type === END || next.type === CLOSE || next.type === OUTDENT);
 	};
 	var endS = false;
-	var stmtover = function(){endS = true}
+	var stmtover = function(){endS = true};
 	var statement =  function(){
 		var begins = pos();
 		var r = statement_r.apply(this, arguments);
@@ -1382,12 +1389,51 @@ exports.parse = function (input, source, config) {
 		};
 		return r;
 	};
+	var block = function(){
+		if(tokenIs(INDENT)){
+			return statements()
+		} else {
+			return blocky(statement());
+		};
+	};
+	var statements = function () {
+		if(tokenIs(INDENT)){
+			advance(INDENT);
+			var r = statements();
+			advance(OUTDENT);
+			return r;
+		} else {
+			var script = new Node(nt.SCRIPT, {content: []});
+			var _t = endS, s;
+			do {
+				endS = false;
+				stripSemicolons();
+				if (tokenIs(OUTDENT)) break;
+				script.content.push(statement());
+			} while(endS && token);
+			endS = _t;
+			return script;
+		}
+	};
+	var onelineStatements = function(){
+		var script = new Node(nt.SCRIPT, {content: []});
+		var _t = endS, s;
+		do {
+			endS = false;
+			while(tokenIs(SEMICOLON, "Explicit")) advance();
+			if (tokenIs(CLOSE)) break;
+			script.content.push(statement());
+		} while(endS && token);
+		endS = _t;
+		return script;
+	};
+
 	var statement_r = function () {
 		if (token)
 			switch (token.type) {
 			case RETURN:
 				advance();
-				return new Node(nt.RETURN, { expression: expression() });
+				return new Node(nt.RETURN, { expression: whereClausedExpression() });
 			case IF:
 				return ifstmt();
 			case WHILE:
@@ -1701,44 +1747,6 @@ exports.parse = function (input, source, config) {
 			return new Node(nt.BREAK, { destination: null });
 		}
 	};
-	var block = function(){
-		if(tokenIs(INDENT)){
-			return statements()
-		} else {
-			return blocky(statement());
-		};
-	};
-	var statements = function () {
-		if(tokenIs(INDENT)){
-			advance(INDENT);
-			var r = statements();
-			advance(OUTDENT);
-			return r;
-		} else {
-			var script = new Node(nt.SCRIPT, {content: []});
-			var _t = endS, s;
-			do {
-				endS = false;
-				stripSemicolons();
-				if (tokenIs(OUTDENT)) break;
-				script.content.push(statement());
-			} while(endS && token);
-			endS = _t;
-			return script;
-		}
-	};
-	var onelineStatements = function(){
-		var script = new Node(nt.SCRIPT, {content: []});
-		var _t = endS, s;
-		do {
-			endS = false;
-			while(tokenIs(SEMICOLON, "Explicit")) advance();
-			if (tokenIs(CLOSE)) break;
-			script.content.push(statement());
-		} while(endS && token);
-		endS = _t;
-		return script;
-	}
 	///
 	var ws_code = statements();
 	stripSemicolons();

@@ -22,7 +22,9 @@ exports.resolve = function(ast, cInitVariables, PE, PW, cWarn){
 				};
 				s.parameters = node.parameters;
 				s.rebind = node.rebind;
-				s.ready();
+				for (var i = 0; i < s.parameters.names.length; i++) {
+					s.newVar(s.parameters.names[i].name, true)
+				};
 				s.code = node.code;
 				scopes[scopes.length] = s;
 				stack.push(s);
@@ -49,10 +51,12 @@ exports.resolve = function(ast, cInitVariables, PE, PW, cWarn){
 					node.position)
 			} else {
 				if(node.declareVariable){
+					var e = current;
+					while(e.rebind && e.parent) e = e.parent;
 					try {
-						current.newVar(node.declareVariable, false, false, node.constantQ);
-					} catch(e) {
-						throw PE(e, node.position)
+						e.newVar(node.declareVariable, false, node.constantQ);
+					} catch(ex) {
+						throw PE(ex, node.begins || node.position)
 					}
 				} else if(node.type === nt.ASSIGN && node.left.type === nt.VARIABLE){
 					current.usedVariablesAssignOcc[node.left.name] = node.left.position;
@@ -61,7 +65,7 @@ exports.resolve = function(ast, cInitVariables, PE, PW, cWarn){
 					current.useVar(node.name, node.position)
 				} else if(node.type === nt.THIS || node.type === nt.ARGUMENTS || node.type === nt.ARGN){
 					var e = current;
-					while(e.rebind) e = e.parent;
+					while(e.rebind && e.parent) e = e.parent;
 					e[node.type === nt.THIS ? 'thisOccurs' : 
 					  node.type === nt.ARGUMENTS ? 'argsOccurs' : 'argnOccurs'] = true;
 				} else if(node.type === nt.TEMPVAR){
@@ -146,7 +150,7 @@ exports.resolve = function(ast, cInitVariables, PE, PW, cWarn){
 			} else {
 				var livingScope = trees[scope.variables[each] - 1];
 				livingScope.locals.push(each);
-				if(scope.constVariables[each]) {
+				if(scope.varIsConst[each]) {
 					var s = scope;
 					do {
 						if(s.usedVariablesAssignOcc[each] >= 0)

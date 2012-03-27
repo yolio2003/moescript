@@ -484,9 +484,9 @@ You can get it from \githubProject.
 		// complicated usage
 		var t = table {var x <- (1...9); var y <- (1...9); if(x <= y) x + ' * ' + y + ' = ' + x * y }
 		// t = table [build: fBuild]
-		// where fBuild(schemata)()():
-		//     schemata.bind (1...9), (x) :>
-		//         schemata.bind (1...9), (y) :>
+		// where fBuild(schemata)()() =
+		//     schemata.bind (1...9), (x) =>
+		//         schemata.bind (1...9), (y) =>
 		//             if(x <= y) schemata.return (x + ' * ' + y + ' = ' + x * y)
 		//             else schemata.return()
 		for(var item in t) trace item

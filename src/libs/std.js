@@ -8,7 +8,6 @@
 var moe = require('moe/runtime');
 var derive = moe.derive;
 var Nai = moe.Nai;
-var generateEmitter = moe.generateEmitter;
 
 var CNARG = moe.runtime.CNARG;
 var CREATERULE = moe.runtime.CREATERULE;
@@ -172,7 +171,18 @@ var enumeratorSchemata = {
 		return new YIELDVALUE(g, restart);
 	},
 	'yield': function(j){ return j }
-}
+};
+var generateEmitter = function(d){
+	var emitRestart = d;
+	var emit = function(){
+		var v = emitRestart();
+		if(v.restart && v.values){
+			emitRestart = v.restart;
+			return v.values;
+		}
+	};
+	return emit
+};
 //: enumerator
 var enumeration;
 reg('enumeration', enumeration = function(){
@@ -225,29 +235,19 @@ String.method_('stripMargins', function(){
 	return this.replace(/^\s*\|/gm, '')
 });
 
-Function['new'] = function (args, body) { return new Function(args, body) };
-Function.method_('shiftIn', function(g){
-	var f = this;
-	return function(){
-		return f(g.apply(this, arguments))
-	}
-});
-
 //: .Array-getEnumerator
 Array.method_('getEnumerator', function(){
-	var t = this;
+	var t = this.slice(0);
 	var low = 0;
 	var high = t.length;
 	var i = low;
-	debugger;
-	var f = function(){
+	return function(){
 		if(i >= high) {
-			return new RETURNVALUE();
+			return;
 		} else {
-			return new YIELDVALUE([t[i], i++], f);
+			return [t[i], i++]
 		}
 	};
-	return generateEmitter(f);
 });
 
 reg('Object', Object);

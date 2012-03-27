@@ -20,26 +20,24 @@ var PW_flatLine = function(line){
 }
 
 var PWMeta = exports.PWMeta = function(source, positionGetter){
-	source = '\n' + source + '\n';
 	positionGetter = positionGetter || function(p){ return p == undefined ? source.length : p };
+	var lines = source.split('\n');
+	lines.unshift('');
+	lines.push('', '');
 	return function(message, p){
-		var pos = positionGetter(p);
-		var lineno = ((source.slice(0, pos)).match(/\n/g) || '').length;
-		if(source.charAt(pos) === '\n'){
-			var sp = pos, fp = source.indexOf('\n', pos + 1);
-		} else {
-			var sp = source.lastIndexOf('\n', pos), fp = source.indexOf('\n', pos);
-		}
-		var sp_prev = source.lastIndexOf('\n', sp - 1);
-		var line_front = PW_flatLine(source.slice(sp, pos));
-		var prev_line = PW_flatLine(source.slice(sp_prev, sp));
-		var line = PW_flatLine(source.slice(sp, fp));
-		message = $('%1 (at line %2)\n] %3\n] %4\n%5---^',
+		var pos = 2 + positionGetter(p);
+		var posSofar = 0;
+		for(var i = 0; i < lines.length; i++){
+			posSofar += 1 + lines[i].length;
+			if(posSofar >= pos) break;
+		};
+		var line = lines[i];
+		var lineFront = line.slice(0, line.length - posSofar + pos);
+		message = $('%1 \n %2: %3\n---%4^',
 				message,
-				lineno,
-				prev_line,
+				i,
 				line,
-				line_front.replace(/./g, '-'));
+				(i + lineFront).replace(/./g, '-'));
 		return message;
 	};
 };
@@ -99,7 +97,7 @@ var ScopedScript = exports.ScopedScript = function (id, env) {
 	this.code = {type: NodeType.SCRIPT};
 	this.variables = env ? derive(env.variables) : new Nai;
 	this.varIsArg = new Nai;
-	this.constVariables = env ? derive(env.constVariables) : new Nai;
+	this.varIsConst = env ? derive(env.varIsConst) : new Nai;
 	this.labels = {};
 	this.upper = null;
 	this.type = NodeType.SCOPE;
@@ -119,20 +117,20 @@ var ScopedScript = exports.ScopedScript = function (id, env) {
 	this.initHooks = {};
 };
 
-ScopedScript.prototype.newVar = function (name, isarg, useQ, constQ) {
-	return ScopedScript.registerVariable(this, name, isarg, useQ, constQ);
+ScopedScript.prototype.newVar = function (name, parQ, constQ) {
+	if (this.variables[name] === this.id && (this.varIsConst[name] || constQ)) {
+		throw "Attempt to redefine constant " + name;
+	}
+	if (this.variables[name] === this.id) return;
+
+	this.varIsArg[name] = parQ === true;
+	this.varIsConst[name] = constQ;
+	return this.variables[name] = this.id;
 };
 ScopedScript.prototype.useVar = function (name, position) {
 	this.usedVariables[name] = true;
 	if(this.usedVariablesOcc[name] === undefined)
 		this.usedVariablesOcc[name] = position;
-};
-ScopedScript.prototype.ready = function () {
-	if (this.parameters) {
-		for (var i = 0; i < this.parameters.names.length; i++) {
-			this.newVar(this.parameters.names[i].name, true)
-		}
-	}
 };
 ScopedScript.prototype.cleanup = function(){
 	delete this.sharpNo;
@@ -140,15 +138,6 @@ ScopedScript.prototype.cleanup = function(){
 	delete this.variables;
 	delete this.usedVariablesOcc;
 };
-
-ScopedScript.generateQueue = function(scope, trees, arr){
-	if(!arr) arr = [];
-	for(var i = 0; i < scope.nest.length; i++)
-		ScopedScript.generateQueue(trees[scope.nest[i]], trees, (arr));
-	arr.push(scope);
-	return arr;
-};
-
 ScopedScript.prototype.useTemp = function(name, processing){
 	// Processing:
 	// 0: As variable
@@ -159,18 +148,6 @@ ScopedScript.prototype.useTemp = function(name, processing){
 ScopedScript.VARIABLETEMP = 0;
 ScopedScript.PARAMETERTEMP = 1;
 ScopedScript.SPECIALTEMP = 2;
-
-ScopedScript.registerVariable = function(scope, name, argQ, useQ, constQ) {
-	if (scope.variables[name] === scope.id && (scope.constVariables[name] || constQ)) {
-		throw "Attempt to redefine constant " + name;
-	}
-	if (scope.variables[name] === scope.id) return;
-	// scope.locals.push(name);
-	scope.varIsArg[name] = argQ === true;
-	if(useQ) scope.usedVariables[name] = true;
-	scope.constVariables[name] = constQ;
-	return scope.variables[name] = scope.id;
-};
 
 exports.walkNode = function(node, f, aux){
 	if(!node) return;
