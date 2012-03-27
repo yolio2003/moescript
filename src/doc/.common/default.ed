@@ -1,7 +1,6 @@
-:input{\dirName{\execPath}/marcos/html.ed}
-:input{\dirName{\execPath}/marcos/util.ed}
-:input{\dirName{\execPath}/marcos/source.ed}
-
+:useInternalPackage{html}
+:useInternalPackage{util}
+:useInternalPackage{source}
 
 :defun_{document}{mTitle}{mBody}
 	:def{buildDir}{\normalizePath{\cwd/../../doc}}
@@ -15,7 +14,7 @@
 	:fileOut{\outputPath}
 		:html5doctype
 		::html
-		:__raw{{<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />}}
+		:utf8meta
 		:head
 			:title{\mTitle}
 			:style
