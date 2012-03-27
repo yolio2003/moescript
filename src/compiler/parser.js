@@ -325,7 +325,7 @@ var lex = exports.lex = function (input, cfgMap) {
 	var rComment = /(?:\/\/|--).*/;
 	var rOption = /^-![ \t]*(.+?)[ \t]*$/;
 	var rIdentifier = /[a-zA-Z_$][\w$]*/;
-	var rString = composeRex(/`#identifier|'[^'\n]*(?:''[^'\n]*)*'|"""[\s\S]*?"""|"[^\\"\n]*(?:\\.[^\\"\n]*)*"/, {
+	var rString = composeRex(/`#identifier|'''[\s\S]*?'''|'[^'\n]*(?:''[^'\n]*)*'|"[^\\"\n]*(?:\\.[^\\"\n]*)*"/, {
 		identifier: rIdentifier
 	});
 	var rNumber = /0[xX][a-fA-F0-9]+|\d+(?:\.\d+(?:[eE]-?\d+)?)?/;

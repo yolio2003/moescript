@@ -60,6 +60,27 @@ You can get it from \githubProject.
 
 		As what you seen, `//` and `--` leads comments.
 
+	|smoe
+		// Strings here
+		"This is a string. [\n] <- Newline here. \u4e00"
+		'This is a single quoted string. \no backslashes. '' <- single quote here.'
+		'''
+			Multiple
+			Line
+			Strings.'''
+	:comm
+		Single quoted string have changed into a much simpler form. Backslashes in single-quoteds is not an escape character now. Double the quote sign to express the quote sumbol (`'`) itself.
+
+		You can also use Python-style multiple-line strings. Also, no escapes.
+	|smoe
+		0xCAFE9527
+		1
+		1.5
+		1.5e5
+		1.5e-5
+	:comm
+		Parts of numbers in Moe cannot be omitted, so that `.5` is not a valid number.
+
 :section{Variables (and immutable ones)}
 	|smoe
 		var outer = 1
