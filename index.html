@@ -1,88 +1,294 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset='utf-8'>
+<!DOCTYPE HTML><html ><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><head ><title >moescript</title><style >@import url(rc/style.css);</style></head><body ><div id="contents"><div id="headarea"><h1>moescript</h1>
+<div class="pageinfo"> Last update: 2012-03-27</div></div><p><strong>Moe is a new, not-very-little Javascript-targeted language written in JavaScript.</strong> It is aimed to deal with common troubles in JavaScript development. Moe has neatly crafted grammar so that most JavaScript development will be simplified.</p>
+<p>This document is an introduction of Moescript in examples. You can try Moescript online on ......</p>
+<p>You can get it from <a href="http://github.com/be5invis/moescript">http://github.com/be5invis/moescript</a>.</p>
+<h2>Usage</h2>
+<div class="show"><pre >&gt; moec &lt;options&gt; input.moe</pre></div><div class="comm"><p>Options:</p>
+<ul><li><code>-o &lt;value&gt;</code>, <code>--output &lt;value&gt;</code>: Specify the path of output file. If it is not specified, <code>moec</code> will print generated code into STDOUT.
+</li>
+<li><code>-t &lt;value&gt;</code>，<code>--target &lt;value&gt;</code>: Specify the compilation target which affects global variable list. <code>-t least</code> will provide <code>require</code>、<code>module</code> and <code>exports</code> only for globals. <code>-t node</code> will provide all Node global variables.
+</li>
+<li><code>-g &lt;value&gt;</code>，<code>--global &lt;value&gt;</code>: Specify a global variable, e.g. <code>-g document</code>。
+</li>
+<li><code>-m &lt;name&gt;=&lt;path&gt;</code>，<code>--module &lt;name&gt;=&lt;path&gt;</code>: Map a module into a global variable, for exmaple, <code>-m exp=express</code> will map <code>require('express')</code> into the global variablr <code>exp</code> inside Moe source.
+</li>
+</ul></div><div class="show"><pre class="mghl source javascript"><span class="identifier id">require</span><span class="punctor open">(</span><span class="string quote">'moe/dummy'</span><span class="punctor close">)</span></pre></div><div class="comm">The <code>moeDummy</code> makes Node possible to load <code>.moe</code> files as well as <code>.js</code>. Everything required is a <code>require</code>.</div><h2>Overview</h2>
+<div class="show"><pre class="mghl source moe"><span class="keyword">def</span> <span class="identifier">max</span><span class="punctor">(</span><span class="identifier">list</span><span class="punctor">)</span><span class="punctor">:</span>
+    <span class="keyword">var</span> <span class="identifier">m</span> <span class="operator">=</span> <span class="identifier">list</span><span class="punctor">[</span><span class="number literal">0</span><span class="punctor">]</span>
+    <span class="keyword flowctrl">for</span><span class="punctor">(</span><span class="keyword">var</span> <span class="identifier">i</span> <span class="operator">in</span> <span class="number literal">0</span><span class="operator">..</span><span class="identifier">list</span><span class="punctor">.</span><span class="identifier">length</span><span class="punctor">)</span>
+        <span class="keyword flowctrl">if</span><span class="punctor">(</span><span class="identifier">list</span><span class="punctor">[</span><span class="identifier">i</span><span class="punctor">]</span> <span class="operator">></span> <span class="identifier">m</span><span class="punctor">)</span> <span class="identifier">m</span> <span class="operator">=</span> <span class="identifier">list</span><span class="punctor">[</span><span class="identifier">i</span><span class="punctor">]</span>
+    <span class="keyword flowctrl">return</span> <span class="identifier">m</span>
+<span class="identifier">trace</span> <span class="identifier">max</span> <span class="punctor">[</span><span class="number literal">5</span><span class="punctor">,</span> <span class="number literal">4</span><span class="punctor">,</span> <span class="number literal">3</span><span class="punctor">,</span> <span class="number literal">2</span><span class="punctor">,</span> <span class="number literal">1</span><span class="punctor">]</span></pre></div><div class="comm">First, whitespaces plays important rule in Moe, indents means structure for example. There is nothing works like <code>end</code> or <code>{}</code> in other languages. It is not required to use <code>;</code> to terminate statements (though semiclolns still works as well), and use indentation instead of surrounding statements with <code>{}</code>.</div><div class="show"><pre class="mghl source moe"><span class="identifier">trace</span> <span class="punctor">\</span>
+    <span class="number literal">1</span><span class="punctor">,</span> <span class="number literal">2</span><span class="punctor">,</span>
+    <span class="punctor">(</span><span class="number literal">3</span> <span class="operator">+</span>
+     <span class="number literal">4</span>
+     <span class="operator">+</span> <span class="number literal">5</span><span class="punctor">)</span>
+<span class="keyword">var</span> <span class="identifier">list</span> <span class="operator">=</span> <span class="punctor">[</span>
+    <span class="number literal">1</span><span class="punctor">,</span>
+    <span class="number literal">2</span><span class="punctor">,</span>
+    <span class="number literal">3</span>
+<span class="punctor">]</span></pre></div><div class="comm">Newlines <strong>around</strong> some symbols will be ignored so that you could write long expressions or complex literals.</div><div class="show"><pre class="mghl source moe"><span class="comment">// Wrong example: newline inside parentheses</span>
+<span class="comment">--	(trace  -- here</span>
+<span class="comment">--		x,</span>
+<span class="comment">--		y,</span>
+<span class="comment">--		z)</span></pre></div><div class="comm"><p>Unlike python, line breaks <strong>inside</strong> parentheses, which often causes syntax errors, will not be ignored.</p>
+<p>As what you seen, <code>//</code> and <code>--</code> leads comments.</p>
+</div><h2>Variables (and immutable ones)</h2>
+<div class="show"><pre class="mghl source moe"><span class="keyword">var</span> <span class="identifier">outer</span> <span class="operator">=</span> <span class="number literal">1</span>
+<span class="keyword">var</span> <span class="identifier">x</span> <span class="operator">=</span> <span class="number literal">2</span>
+<span class="keyword">def</span> <span class="identifier">f</span> <span class="operator">=</span> <span class="keyword function">function</span><span class="punctor">(</span><span class="punctor">)</span><span class="punctor">:</span>
+    <span class="keyword">var</span> <span class="identifier">inner</span> <span class="operator">=</span> <span class="number literal">3</span>
+    <span class="identifier">outer</span> <span class="operator">=</span> <span class="number literal">4</span>
+    <span class="keyword">var</span> <span class="identifier">x</span> <span class="operator">=</span> <span class="number literal">5</span>
+    <span class="identifier">trace</span> <span class="identifier">inner</span>  <span class="comment">-- 3</span>
+    <span class="identifier">trace</span> <span class="identifier">outer</span>  <span class="comment">-- 4</span>
+    <span class="identifier">trace</span> <span class="identifier">x</span>      <span class="comment">-- 5</span>
+<span class="identifier">f</span><span class="punctor">(</span><span class="punctor">)</span>
+<span class="identifier">trace</span> <span class="identifier">outer</span>      <span class="comment">-- 4</span>
+<span class="identifier">trace</span> <span class="identifier">x</span>          <span class="comment">-- 2</span></pre></div><div class="comm"><p>Variables in Moe is defined by <code>var</code> or <code>def</code>. "Variables" defined by <code>def</code> is actually a constant, which means it is impossible make any assignment to it. Scopes rule is exactly same as JavaScript, <code>var</code> and <code>def</code> <strong>shadows</strong> external variables.</p>
+<p><code>def</code> can only define one thing once, with <code>var</code> can declares multiple variables without initialization. However, you are able to use <code>def</code> for defining properties, which is useful processing objects. In this situation, <code>def</code> is only a simple assignment.</p>
+<pre class="mghl source moe"><span class="keyword">def</span> <span class="identifier">Number</span><span class="punctor">.</span><span class="identifier">prototype</span><span class="punctor">.</span><span class="identifier">times</span> <span class="operator">=</span> <span class="keyword function">function</span><span class="punctor">(</span><span class="identifier">f</span><span class="punctor">)</span><span class="punctor">:</span>
+    <span class="keyword flowctrl">for</span><span class="punctor">(</span><span class="keyword">var</span> <span class="identifier">i</span> <span class="operator">in</span> <span class="number literal">0</span><span class="operator">..</span><span class="keyword">this</span><span class="punctor">)</span> <span class="identifier">f</span><span class="punctor">(</span><span class="identifier">i</span><span class="punctor">)</span></pre></div><h2>Flow control</h2>
+<div class="show"><pre class="mghl source moe"><span class="keyword flowctrl">if</span><span class="punctor">(</span><span class="identifier">condition</span><span class="punctor">)</span> <span class="identifier">block</span>
+<span class="keyword flowctrl">else</span> <span class="keyword flowctrl">if</span><span class="punctor">(</span><span class="identifier">condition</span><span class="punctor">)</span>
+    <span class="identifier">block</span>
+<span class="keyword flowctrl">else</span>
+    <span class="identifier">block</span>
 
-  <title>be5invis/moescript @ GitHub</title>
+<span class="keyword flowctrl">piecewise</span>
+    <span class="keyword flowctrl">when</span><span class="punctor">(</span><span class="identifier">condition1</span><span class="punctor">)</span> <span class="identifier">action1</span>
+    <span class="keyword flowctrl">when</span><span class="punctor">(</span><span class="identifier">condition2</span><span class="punctor">)</span>
+    <span class="keyword flowctrl">when</span><span class="punctor">(</span><span class="identifier">condition3</span><span class="punctor">)</span>
+        <span class="identifier">action2</span>
+    <span class="keyword flowctrl">otherwise</span>        <span class="identifier">action3</span>
 
-  <style type="text/css">
-    body {
-      margin-top: 1.0em;
-      background-color: #a94746;
-      font-family: Helvetica, Arial, FreeSans, san-serif;
-      color: #ffffff;
-    }
-    #container {
-      margin: 0 auto;
-      width: 700px;
-    }
-    h1 { font-size: 3.8em; color: #56b8b9; margin-bottom: 3px; }
-    h1 .small { font-size: 0.4em; }
-    h1 a { text-decoration: none }
-    h2 { font-size: 1.5em; color: #56b8b9; }
-    h3 { text-align: center; color: #56b8b9; }
-    a { color: #56b8b9; }
-    .description { font-size: 1.2em; margin-bottom: 30px; margin-top: 30px; font-style: italic;}
-    .download { float: right; }
-    pre { background: #000; color: #fff; padding: 15px;}
-    hr { border: 0; width: 80%; border-bottom: 1px solid #aaa}
-    .footer { text-align:center; padding-top:30px; font-style: italic; }
-  </style>
-</head>
+<span class="keyword flowctrl">case</span><span class="punctor">(</span><span class="identifier">x</span><span class="punctor">)</span>
+    <span class="keyword flowctrl">when</span><span class="punctor">(</span><span class="identifier">val1</span><span class="punctor">)</span>
+        <span class="identifier">action1</span>
+    <span class="keyword flowctrl">when</span><span class="punctor">(</span><span class="identifier">val2</span><span class="punctor">)</span>
+    <span class="keyword flowctrl">when</span><span class="punctor">(</span><span class="identifier">val3</span><span class="punctor">)</span> <span class="identifier">action2</span>
+    <span class="keyword flowctrl">otherwise</span> 
+        <span class="identifier">action3</span></pre></div><div class="comm">Conditionals.</div><div class="show"><pre class="mghl source moe"><span class="keyword flowctrl">for</span><span class="punctor">(</span><span class="keyword">var</span> <span class="identifier">x</span><span class="punctor">,</span> <span class="identifier">i</span> <span class="operator">in</span> <span class="identifier">enumerable</span><span class="punctor">)</span>
+    <span class="identifier">action</span><span class="punctor">(</span><span class="identifier">x</span><span class="punctor">,</span> <span class="identifier">i</span><span class="punctor">)</span>
 
-<body>
-  <a href="https://github.com/be5invis/moescript"><img style="position: absolute; top: 0; right: 0; border: 0;" src="http://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" alt="Fork me on GitHub" /></a>
+<span class="keyword flowctrl">for</span><span class="punctor">(</span><span class="keyword">var</span> <span class="operator">*</span><span class="identifier">terms</span> <span class="operator">in</span> <span class="identifier">enumerable</span><span class="punctor">)</span>
+    <span class="identifier">action</span><span class="punctor">(</span><span class="identifier">terms</span><span class="punctor">)</span> 
+    <span class="comment">-- terms is an array containing all items yield from enumerator</span></pre></div><div class="comm"><p>For statement. <code>for(x, i in range) body</code> means:</p>
+<pre class="mghl source moe"><span class="keyword">var</span> <span class="identifier">enumerator</span> <span class="operator">=</span> <span class="identifier">range</span><span class="punctor">.</span><span class="identifier">getEnumerator</span><span class="punctor">(</span><span class="punctor">)</span>
+<span class="keyword flowctrl">while</span><span class="punctor">(</span><span class="identifier">terms</span> <span class="operator">=</span> <span class="identifier">range</span><span class="punctor">(</span><span class="punctor">)</span><span class="punctor">)</span>
+    <span class="identifier">x</span> <span class="operator">=</span> <span class="identifier">terms</span><span class="punctor">[</span><span class="number literal">0</span><span class="punctor">]</span>
+    <span class="identifier">i</span> <span class="operator">=</span> <span class="identifier">terms</span><span class="punctor">[</span><span class="number literal">1</span><span class="punctor">]</span>
+    <span class="identifier">body</span></pre><p><code>for(*terms in range) body</code> means:</p>
+<pre class="mghl source moe"><span class="keyword">var</span> <span class="identifier">enumerator</span> <span class="operator">=</span> <span class="identifier">range</span><span class="punctor">.</span><span class="identifier">getEnumerator</span><span class="punctor">(</span><span class="punctor">)</span>
+<span class="keyword flowctrl">while</span><span class="punctor">(</span><span class="identifier">terms</span> <span class="operator">=</span> <span class="identifier">range</span><span class="punctor">(</span><span class="punctor">)</span><span class="punctor">)</span>
+    <span class="identifier">body</span></pre><p><code>for(var x in low..high)</code> means <code>for(var x = low; x &lt; high; x++)</code> in Javascript. <code>for(var x in low...high)</code> means <code>for(var x = low; x &lt;= high; x++)</code>.</p>
+</div><div class="show"><pre class="mghl source moe"><span class="keyword flowctrl">while</span><span class="punctor">(</span><span class="identifier">condition</span><span class="punctor">)</span>
+    <span class="identifier">action</span>
 
-  <div id="container">
+<span class="keyword flowctrl">repeat</span>
+    <span class="identifier">action</span>
+<span class="keyword flowctrl">until</span><span class="punctor">(</span><span class="identifier">condition</span><span class="punctor">)</span></pre></div><div class="comm"><code>while</code> and <code>repeat-until</code>.</div><div class="show"><pre class="mghl source moe"><span class="keyword flowctrl">label</span> <span class="identifier">out</span><span class="punctor">:</span> <span class="keyword flowctrl">for</span><span class="punctor">(</span><span class="keyword">var</span> <span class="identifier">x</span> <span class="operator">in</span> <span class="number literal">1</span><span class="operator">..</span><span class="number literal">55</span><span class="punctor">)</span>
+    <span class="keyword flowctrl">for</span><span class="punctor">(</span><span class="keyword">var</span> <span class="identifier">y</span> <span class="operator">in</span> <span class="identifier">x</span><span class="operator">..</span><span class="number literal">55</span><span class="punctor">)</span>
+        <span class="keyword flowctrl">if</span><span class="punctor">(</span><span class="identifier">x</span> <span class="operator">+</span> <span class="identifier">y</span> <span class="operator">==</span> <span class="number literal">42</span><span class="punctor">)</span>
+            <span class="keyword flowctrl">break</span> <span class="identifier">out</span></pre></div><div class="comm">Break and labels.</div><h2>Objects</h2>
+<div class="show"><pre class="mghl source moe"><span class="comment">-- A game config</span>
+<span class="keyword">def</span> <span class="identifier">gameConfig</span> <span class="operator">=</span> <span class="punctor">[</span>
+    <span class="identifier">player</span><span class="punctor">:</span> <span class="punctor">[</span>
+        <span class="identifier">name</span><span class="punctor">:</span> <span class="string literal">"tom"</span><span class="punctor">,</span>
+        <span class="identifier">type</span><span class="punctor">:</span> <span class="identifier">Human</span><span class="punctor">,</span>
+        <span class="identifier">level</span><span class="punctor">:</span> <span class="number literal">1</span><span class="punctor">,</span>
+        <span class="identifier">weapon</span><span class="punctor">:</span> <span class="identifier">sword</span><span class="punctor">,</span>
+        <span class="identifier">inventory</span><span class="punctor">:</span> <span class="punctor">[</span><span class="identifier">food</span><span class="punctor">,</span> <span class="identifier">food</span><span class="punctor">,</span> <span class="identifier">potion</span><span class="punctor">,</span> <span class="identifier">bomb</span><span class="punctor">]</span>
+    <span class="punctor">]</span><span class="punctor">,</span>
+    <span class="identifier">enemy</span><span class="punctor">:</span> <span class="punctor">[</span>
+        <span class="identifier">name</span><span class="punctor">:</span> <span class="string literal">"Dragon"</span><span class="punctor">,</span>
+        <span class="identifier">type</span><span class="punctor">:</span> <span class="identifier">Dragon</span><span class="punctor">,</span>
+        <span class="identifier">level</span><span class="punctor">:</span> <span class="number literal">9</span>
+    <span class="punctor">]</span>
+<span class="punctor">]</span>
 
-    <div class="download">
-      <a href="https://github.com/be5invis/moescript/zipball/master">
-        <img border="0" width="90" src="https://github.com/images/modules/download/zip.png"></a>
-      <a href="https://github.com/be5invis/moescript/tarball/master">
-        <img border="0" width="90" src="https://github.com/images/modules/download/tar.png"></a>
-    </div>
+<span class="comment">// some lisp code</span>
+<span class="keyword">def</span> <span class="identifier">code</span> <span class="operator">=</span> <span class="punctor">[</span><span class="string literal">'define'</span><span class="punctor">,</span> <span class="punctor">[</span><span class="string literal">'fib'</span><span class="punctor">,</span> <span class="string literal">'n'</span><span class="punctor">]</span><span class="punctor">,</span>
+    <span class="punctor">[</span><span class="string literal">'cond'</span><span class="punctor">,</span>
+      <span class="punctor">[</span> <span class="punctor">[</span><span class="punctor">[</span><span class="string literal">'='</span><span class="punctor">,</span> <span class="string literal">'n'</span><span class="punctor">,</span> <span class="string literal">'1'</span><span class="punctor">]</span><span class="punctor">,</span> <span class="string literal">'1'</span><span class="punctor">]</span><span class="punctor">,</span>
+        <span class="punctor">[</span><span class="punctor">[</span><span class="string literal">'='</span><span class="punctor">,</span> <span class="string literal">'n'</span><span class="punctor">,</span> <span class="string literal">'2'</span><span class="punctor">]</span><span class="punctor">,</span> <span class="string literal">'1'</span><span class="punctor">]</span><span class="punctor">,</span>
+        <span class="punctor">[</span><span class="string literal">'()'</span><span class="punctor">,</span> 
+            <span class="punctor">[</span><span class="string literal">'+'</span><span class="punctor">,</span> <span class="punctor">[</span><span class="string literal">'fib'</span><span class="punctor">,</span> <span class="punctor">[</span><span class="string literal">'-'</span><span class="punctor">,</span> <span class="string literal">'n'</span><span class="punctor">,</span> <span class="string literal">'1'</span><span class="punctor">]</span><span class="punctor">]</span><span class="punctor">,</span>
+                <span class="punctor">[</span><span class="string literal">'fib'</span><span class="punctor">,</span> <span class="punctor">[</span><span class="string literal">'-'</span><span class="punctor">,</span> <span class="string literal">'n'</span><span class="punctor">,</span> <span class="string literal">'2'</span><span class="punctor">]</span><span class="punctor">]</span><span class="punctor">]</span><span class="punctor">]</span><span class="punctor">]</span><span class="punctor">]</span><span class="punctor">]</span></pre></div><div class="comm">Both object literals and array literals uses <code>[]</code>. Therefore, expressing empty objects should use <code>[:]</code> while <code>[]</code> means empty array.</div><div class="show"><pre class="mghl source moe"><span class="keyword">def</span> <span class="identifier">actions</span> <span class="operator">=</span> <span class="punctor">[</span>
+    <span class="keyword flowctrl">if</span><span class="punctor">:</span> <span class="punctor">(</span><span class="punctor">(</span><span class="identifier">cond</span><span class="punctor">,</span> <span class="identifier">fThen</span><span class="punctor">,</span> <span class="identifier">fElse</span><span class="punctor">)</span> <span class="operator">=></span> <span class="identifier">fThen</span><span class="punctor">(</span><span class="punctor">)</span> <span class="keyword flowctrl">when</span><span class="punctor">(</span><span class="identifier">cond</span><span class="punctor">)</span><span class="punctor">,</span> <span class="identifier">fElse</span><span class="punctor">(</span><span class="punctor">)</span><span class="punctor">)</span><span class="punctor">,</span>
+    <span class="string literal">"while"</span><span class="punctor">:</span> <span class="punctor">(</span><span class="punctor">(</span><span class="identifier">fCond</span><span class="punctor">,</span> <span class="identifier">fBody</span><span class="punctor">)</span> <span class="operator">=></span> <span class="keyword flowctrl">while</span><span class="punctor">(</span><span class="identifier">fCond</span><span class="punctor">(</span><span class="punctor">)</span><span class="punctor">)</span> <span class="identifier">fBody</span><span class="punctor">(</span><span class="punctor">)</span><span class="punctor">)</span>
+<span class="punctor">]</span></pre></div><div class="comm">Keywords can appear inside object literals without quoting.</div><div class="show"><pre class="mghl source moe"><span class="comment">-- function object: creates object using a constructor with an optional prototype.</span>
+<span class="comment">-- object(oPrototype, fConstruct) &lt;- Derives(oPrototype)</span>
+<span class="comment">-- object(fConstruct) &lt;- Object</span>
 
-    <h1><a href="https://github.com/be5invis/moescript">moescript</a>
-      <span class="small">by <a href="https://github.com/be5invis">be5invis</a></span></h1>
+<span class="keyword">def</span> <span class="identifier">gameConfig</span> <span class="operator">=</span> <span class="identifier">object</span> <span class="operator">=></span>
+    <span class="operator">@</span><span class="identifier">player</span> <span class="operator">=</span> <span class="identifier">object</span> <span class="operator">=></span>
+        <span class="operator">@</span><span class="identifier">name</span> <span class="operator">=</span> <span class="string literal">"tom"</span>
+        <span class="operator">@</span><span class="identifier">type</span> <span class="operator">=</span> <span class="identifier">Human</span>
+        <span class="operator">@</span><span class="identifier">level</span> <span class="operator">=</span> <span class="number literal">1</span>
+        <span class="operator">@</span><span class="identifier">weapon</span> <span class="operator">=</span> <span class="identifier">sword</span>
+        <span class="operator">@</span><span class="identifier">inventory</span> <span class="operator">=</span> <span class="punctor">[</span><span class="identifier">food</span><span class="punctor">,</span> <span class="identifier">food</span><span class="punctor">,</span> <span class="identifier">potion</span><span class="punctor">,</span> <span class="identifier">bomb</span><span class="punctor">]</span>
+    <span class="operator">@</span><span class="identifier">enemy</span> <span class="operator">=</span> <span class="identifier">object</span> <span class="operator">=></span>
+        <span class="operator">@</span><span class="identifier">name</span> <span class="operator">=</span> <span class="string literal">"Dragon"</span>
+        <span class="operator">@</span><span class="identifier">type</span> <span class="operator">=</span> <span class="identifier">Dragon</span>
+        <span class="operator">@</span><span class="identifier">level</span> <span class="operator">=</span> <span class="number literal">9</span></pre></div><div class="comm">You can also use <code>object</code> function provided in standard libary for large objects, especially configs.</div><h2>Functions</h2>
+<div class="show"><pre class="mghl source moe"><span class="comment">// Define a simple function</span>
+<span class="comment">-- function square: calculate square of a number</span>
+<span class="comment">-- square(x &lt;- Number) &lt;- Number</span>
+<span class="keyword">def</span> <span class="identifier">square</span><span class="punctor">(</span><span class="identifier">x</span><span class="punctor">)</span> <span class="operator">=</span> <span class="identifier">x</span> <span class="operator">*</span> <span class="identifier">x</span></pre></div><div class="comm">To define a simple function, you can write <code>def functionName(argList) = result</code> simply.</div><div class="show"><pre class="mghl source moe"><span class="comment">// A procedure.</span>
+<span class="comment">-- function printPrimes: print all prime numbers </span>
+<span class="comment">--  not greater than an uplimit specified</span>
+<span class="comment">-- printPrimes(uplimit &lt;- Number)</span>
+<span class="keyword">def</span> <span class="identifier">printPrimes</span><span class="punctor">(</span><span class="identifier">uplimit</span><span class="punctor">)</span><span class="punctor">:</span>
+    <span class="keyword">def</span> <span class="identifier">primes</span> <span class="operator">=</span> <span class="punctor">[</span><span class="number literal">2</span><span class="punctor">,</span> <span class="number literal">3</span><span class="punctor">,</span> <span class="number literal">5</span><span class="punctor">,</span> <span class="number literal">7</span><span class="punctor">]</span>
+    <span class="keyword flowctrl">for</span><span class="punctor">(</span><span class="keyword">var</span> <span class="identifier">n</span> <span class="operator">in</span> <span class="number literal">2</span> <span class="operator">...</span> <span class="identifier">uplimit</span><span class="punctor">)</span>
+        <span class="keyword">var</span> <span class="identifier">composite</span> <span class="operator">=</span> <span class="literal">false</span>
+        <span class="keyword">var</span> <span class="identifier">t</span> <span class="operator">=</span> <span class="number literal">0</span>
+        <span class="keyword flowctrl">while</span><span class="punctor">(</span><span class="identifier">square</span> <span class="identifier">primes</span><span class="punctor">[</span><span class="identifier">t</span><span class="punctor">]</span> <span class="operator">&lt;=</span> <span class="identifier">n</span><span class="punctor">)</span>
+            <span class="keyword flowctrl">if</span><span class="punctor">(</span><span class="identifier">n</span> <span class="operator">%</span> <span class="identifier">primes</span><span class="punctor">[</span><span class="identifier">t</span><span class="punctor">]</span> <span class="operator">==</span> <span class="number literal">0</span><span class="punctor">)</span>
+                <span class="identifier">composite</span> <span class="operator">=</span> <span class="literal">true</span>
+                <span class="keyword flowctrl">break</span>
+            <span class="identifier">t</span> <span class="operator">+=</span> <span class="number literal">1</span>
+        <span class="keyword flowctrl">if</span><span class="punctor">(</span><span class="operator">not</span> <span class="identifier">composite</span><span class="punctor">)</span>
+            <span class="identifier">primes</span><span class="punctor">.</span><span class="identifier">push</span> <span class="identifier">n</span>
+            <span class="identifier">trace</span> <span class="identifier">n</span>
 
-    <div class="description">
-      A not-very-but-still-light Javascript-targeted language. (and its runtime and libraries.)
-    </div>
+<span class="keyword">def</span> <span class="identifier">outNum</span><span class="punctor">(</span><span class="identifier">x</span><span class="punctor">)</span><span class="punctor">:</span> <span class="identifier">tracel</span> <span class="punctor">(</span><span class="identifier">x</span> <span class="operator">-</span> <span class="number literal">0</span><span class="punctor">)</span></pre></div><div class="comm">To define a more complicated function, use colon and indents.</div><div class="show"><pre class="mghl source moe"><span class="keyword">def</span> <span class="identifier">Y</span><span class="punctor">(</span><span class="identifier">g</span><span class="punctor">)</span> <span class="operator">=</span>
+    <span class="keyword">def</span> <span class="identifier">rec</span><span class="punctor">(</span><span class="identifier">x</span><span class="punctor">)</span><span class="punctor">(</span><span class="identifier">y</span><span class="punctor">)</span> <span class="operator">=</span> <span class="identifier">g</span><span class="punctor">(</span><span class="identifier">x</span><span class="punctor">(</span><span class="identifier">x</span><span class="punctor">)</span><span class="punctor">)</span> <span class="identifier">y</span>
+    <span class="identifier">rec</span><span class="punctor">(</span><span class="identifier">rec</span><span class="punctor">)</span>
+<span class="keyword">def</span> <span class="identifier">Y1</span><span class="punctor">(</span><span class="identifier">g</span><span class="punctor">)</span><span class="punctor">:</span>
+    <span class="keyword">def</span> <span class="identifier">rec</span><span class="punctor">(</span><span class="identifier">x</span><span class="punctor">)</span><span class="punctor">(</span><span class="identifier">y</span><span class="punctor">)</span> <span class="operator">=</span> <span class="identifier">g</span><span class="punctor">(</span><span class="identifier">x</span><span class="punctor">(</span><span class="identifier">x</span><span class="punctor">)</span><span class="punctor">)</span> <span class="identifier">y</span>
+    <span class="keyword flowctrl">return</span> <span class="identifier">rec</span><span class="punctor">(</span><span class="identifier">rec</span><span class="punctor">)</span></pre></div><div class="comm">In Moe, colon-forms requires to write <code>return</code> statement explicitly, while functions using equal sign (<code>=</code>) does not. Functions indicated by equals will contain automatically generated <code>return</code>'s.</div><div class="show"><pre class="mghl source moe"><span class="comment">// Parameters with default value</span>
+<span class="keyword">def</span> <span class="identifier">fill</span><span class="punctor">(</span><span class="identifier">container</span><span class="punctor">,</span> <span class="identifier">liquid</span> <span class="operator">=</span> <span class="string literal">"water"</span><span class="punctor">)</span><span class="punctor">:</span>
+    <span class="identifier">trace</span> <span class="punctor">(</span><span class="string literal">"Fill "</span> <span class="operator">+</span> <span class="identifier">container</span> <span class="operator">+</span> <span class="string literal">" with "</span> <span class="operator">+</span> <span class="identifier">liquid</span><span class="punctor">)</span></pre></div><div class="comm">Parameters can have default values. Specify it by using <code>=</code>.</div><div class="show"><pre class="mghl source moe"><span class="comment">-- function Y: Fixed point combinator</span>
+<span class="comment">-- Y(g &lt;- Function) &lt;- Function</span>
+<span class="comment">--     which Y(g)(x) = g(Y(g))(x)</span>
+<span class="keyword">def</span> <span class="identifier">Y</span><span class="punctor">(</span><span class="identifier">g</span><span class="punctor">)</span> <span class="operator">=</span>
+    <span class="keyword">def</span> <span class="identifier">rec</span><span class="punctor">(</span><span class="identifier">x</span><span class="punctor">)</span><span class="punctor">(</span><span class="identifier">y</span><span class="punctor">)</span> <span class="operator">=</span> <span class="identifier">g</span><span class="punctor">(</span><span class="identifier">x</span><span class="punctor">(</span><span class="identifier">x</span><span class="punctor">)</span><span class="punctor">)</span> <span class="identifier">y</span>
+    <span class="identifier">rec</span><span class="punctor">(</span><span class="identifier">rec</span><span class="punctor">)</span>
 
-    
+<span class="comment">// Define recursive function using Y</span>
+<span class="keyword">def</span> <span class="identifier">Y</span> <span class="identifier">fibonacci</span><span class="punctor">(</span><span class="identifier">recurse</span><span class="punctor">)</span><span class="punctor">(</span><span class="identifier">n</span><span class="punctor">)</span> <span class="operator">=</span>
+    <span class="keyword flowctrl">if</span><span class="punctor">(</span><span class="identifier">n</span> <span class="operator">&lt;=</span> <span class="number literal">2</span><span class="punctor">)</span> <span class="number literal">1</span>
+    <span class="keyword flowctrl">else</span> <span class="identifier">recurse</span><span class="punctor">(</span><span class="identifier">n</span> <span class="operator">-</span> <span class="number literal">2</span><span class="punctor">)</span> <span class="operator">+</span> <span class="identifier">recurse</span><span class="punctor">(</span><span class="identifier">n</span> <span class="operator">-</span> <span class="number literal">1</span><span class="punctor">)</span>
 
-    
+<span class="identifier">fibonacci</span><span class="punctor">(</span><span class="number literal">5</span><span class="punctor">)</span> <span class="comment">// 5</span></pre></div><div class="comm"><p>A slightly complicated example. <code>Y</code> is the fixed point combinator, and <code>def Y f(args)...</code> means <code>def f = Y function(args)...</code>. Fibonacci is actually:</p>
+<pre class="mghl source moe"><span class="keyword">def</span> <span class="identifier">fibonacci_1</span> <span class="operator">=</span> <span class="keyword function">function</span><span class="punctor">(</span><span class="identifier">recurse</span><span class="punctor">)</span><span class="punctor">:</span>
+    <span class="keyword flowctrl">return</span> <span class="keyword function">function</span><span class="punctor">(</span><span class="identifier">n</span><span class="punctor">)</span><span class="punctor">:</span>
+        <span class="keyword flowctrl">return</span> <span class="number literal">1</span> <span class="keyword flowctrl">when</span><span class="punctor">(</span><span class="identifier">n</span> <span class="operator">&lt;=</span> <span class="number literal">2</span><span class="punctor">)</span><span class="punctor">,</span>
+        <span class="identifier">recurse</span><span class="punctor">(</span><span class="identifier">n</span> <span class="operator">-</span> <span class="number literal">2</span><span class="punctor">)</span> <span class="operator">+</span> <span class="identifier">recurse</span><span class="punctor">(</span><span class="identifier">n</span> <span class="operator">-</span> <span class="number literal">1</span><span class="punctor">)</span>
+<span class="keyword">def</span> <span class="identifier">fibonacci</span> <span class="operator">=</span> <span class="identifier">Y</span><span class="punctor">(</span><span class="identifier">fibonacci_1</span><span class="punctor">)</span></pre></div><div class="show"><pre class="mghl source moe"><span class="keyword">def</span> <span class="identifier">fibonacci</span> <span class="operator">=</span> <span class="keyword function">function</span><span class="punctor">(</span><span class="identifier">n</span><span class="punctor">)</span><span class="operator">=</span>
+    <span class="number literal">1</span> <span class="keyword flowctrl">when</span><span class="punctor">(</span><span class="identifier">n</span> <span class="operator">&lt;=</span> <span class="number literal">2</span><span class="punctor">)</span><span class="punctor">,</span>
+    <span class="identifier">fibonacci</span><span class="punctor">(</span><span class="identifier">n</span> <span class="operator">-</span> <span class="number literal">2</span><span class="punctor">)</span> <span class="operator">+</span> <span class="identifier">fibonacci</span><span class="punctor">(</span><span class="identifier">n</span> <span class="operator">-</span> <span class="number literal">1</span><span class="punctor">)</span></pre></div><div class="comm">No-name functions can be defined using <code>function</code> keyword, followed by argument lists, a colon or an equal sign, then the function body. Like functions in <code>def</code>, <code>=</code> for automatic generated <code>return</code>s, <code>:</code> for manual.</div><div class="show"><pre class="mghl source moe"><span class="identifier">list</span><span class="punctor">.</span><span class="identifier">map</span> <span class="punctor">(</span><span class="identifier">term</span><span class="punctor">,</span> <span class="identifier">index</span><span class="punctor">)</span> <span class="operator">=></span> <span class="identifier">term</span> <span class="operator">*</span> <span class="identifier">index</span>
+<span class="identifier">$</span><span class="punctor">(</span><span class="identifier">element</span><span class="punctor">)</span><span class="punctor">.</span><span class="identifier">bind</span> <span class="string literal">"click"</span><span class="punctor">,</span> <span class="punctor">(</span><span class="identifier">event</span><span class="punctor">)</span> <span class="operator">:></span>
+    <span class="identifier">trace</span> <span class="identifier">event</span>
 
-    
+<span class="keyword">def</span> <span class="identifier">sleep</span><span class="punctor">(</span><span class="identifier">dt</span><span class="punctor">,</span> <span class="identifier">f</span><span class="punctor">)</span> <span class="operator">=</span> <span class="identifier">setTimeout</span><span class="punctor">(</span><span class="identifier">f</span><span class="punctor">,</span> <span class="identifier">dt</span><span class="punctor">)</span>
+<span class="identifier">sleep</span> <span class="number literal">1000</span><span class="punctor">,</span> <span class="operator">:></span>
+    <span class="identifier">trace</span> <span class="string literal">'Blah!'</span>
+<span class="comment">// Note: different from (act) :> something</span>
+<span class="identifier">act</span> <span class="operator">:></span> <span class="identifier">something</span></pre></div><div class="comm">You can also define a function using <strong>lambda expressions</strong>, by using an optional list of parameters, an arrow(<code>:&gt;</code> or <code>=&gt;</code>), and the function body. Unindented Lambdas will extend all the way to the right as long aspossible. The colon-equal rule still rules here.</div><div class="show"><pre class="mghl source moe"><span class="keyword">def</span> <span class="identifier">repeatWhile</span><span class="punctor">(</span><span class="identifier">condition</span><span class="punctor">,</span> <span class="identifier">body</span><span class="punctor">)</span><span class="punctor">:</span>
+    <span class="keyword">var</span> <span class="identifier">c</span>
+    <span class="keyword flowctrl">while</span><span class="punctor">(</span><span class="punctor">(</span><span class="identifier">c</span> <span class="operator">=</span> <span class="identifier">condition</span><span class="punctor">(</span><span class="punctor">)</span><span class="punctor">)</span><span class="punctor">)</span>
+        <span class="identifier">body</span><span class="punctor">(</span><span class="identifier">c</span><span class="punctor">)</span>
 
-    
+<span class="keyword">var</span> <span class="identifier">num</span> <span class="operator">=</span> <span class="number literal">10</span>
+<span class="identifier">repeatWhile</span> <span class="punctor">{</span><span class="identifier">num</span> <span class="operator">-=</span> <span class="number literal">1</span><span class="punctor">}</span><span class="punctor">,</span> <span class="punctor">{</span><span class="operator">|</span><span class="identifier">j</span><span class="operator">|</span> <span class="identifier">trace</span> <span class="identifier">j</span><span class="punctor">}</span></pre></div><div class="comm">The last way is to use curly brackets (<code>{}</code>) enclose statements, separated by explicit semicolons, not line breaks. <code>return</code>'s will be automatically generated. Arguments are writtern inside the brackets, and wrapped by <code>|</code>'s, when necessary.</div><h2>Calling functions</h2>
+<div class="show"><pre class="mghl source moe"><span class="keyword">def</span> <span class="identifier">f</span><span class="punctor">(</span><span class="identifier">x</span><span class="punctor">,</span> <span class="identifier">y</span><span class="punctor">,</span> <span class="identifier">z</span><span class="punctor">)</span> <span class="operator">=</span> <span class="identifier">x</span> <span class="operator">*</span> <span class="identifier">y</span> <span class="operator">+</span> <span class="identifier">z</span>
+<span class="identifier">f</span><span class="punctor">(</span><span class="number literal">1</span><span class="punctor">,</span> <span class="number literal">1</span><span class="punctor">,</span> <span class="number literal">1</span><span class="punctor">)</span> <span class="comment">// 2</span>
 
-    
-      <h2>Authors</h2>
-      <p>Belleve Invis (infinte.cdda@hotmail.com)<br/>      </p>
-    
+<span class="keyword">def</span> <span class="identifier">act</span><span class="punctor">(</span><span class="identifier">f</span><span class="punctor">)</span> <span class="operator">=</span> <span class="identifier">f</span><span class="punctor">(</span><span class="punctor">)</span>
+<span class="identifier">act</span><span class="punctor">{</span><span class="identifier">trace</span> <span class="string literal">'blah!'</span><span class="punctor">}</span> <span class="comment">// short for act({trace 'blah!'})</span></pre></div><div class="comm"><p>Call function by <code>f(args)</code>. There <strong>should not be any space</strong> between the function and the bracket <code>(</code>.</p>
+<p><code>f({func})</code> could be simplified into <code>f{func}</code>.</p>
+</div><div class="show"><pre class="mghl source moe"><span class="keyword">def</span> <span class="identifier">f</span><span class="punctor">(</span><span class="identifier">config</span><span class="punctor">)</span> <span class="operator">=</span> <span class="identifier">config</span><span class="punctor">.</span><span class="identifier">a</span> <span class="operator">+</span> <span class="identifier">config</span><span class="punctor">.</span><span class="identifier">b</span>
+<span class="identifier">f</span><span class="punctor">(</span><span class="identifier">a</span><span class="punctor">:</span> <span class="number literal">1</span><span class="punctor">,</span> <span class="identifier">b</span><span class="punctor">:</span> <span class="number literal">2</span><span class="punctor">)</span> <span class="comment">// 3</span></pre></div><div class="comm">You can use named arguments. All named arguments will be accumulated into an object literal passed into the function as the last argument.</div><div class="show"><pre class="mghl source moe"><span class="identifier">f</span> <span class="identifier">g</span> <span class="identifier">h</span> <span class="identifier">a</span><span class="punctor">,</span> <span class="identifier">b</span><span class="punctor">,</span> <span class="identifier">c</span>   <span class="comment">// = f(g(h(a, b, v)))</span>
+<span class="identifier">x</span> <span class="identifier">y</span> <span class="identifier">z</span> <span class="identifier">w</span>         <span class="comment">// = x(y(z(w)))</span>
+<span class="identifier">f</span>               <span class="comment">// = f; No invocation.</span>
+<span class="identifier">square</span> <span class="identifier">x</span> <span class="operator">*</span> <span class="identifier">x</span>    <span class="comment">// = square(x) * x; Not square(x * x)</span></pre></div><div class="comm">Brackets can be omitted when it is not aminigous. Omissioned calls has a lower priority than calls using brackets, but higher than operators. Therefore, <code>square x * x</code> means <code>square(x) * x</code>.</div><div class="show"><pre class="mghl source moe"><span class="keyword">def</span> <span class="identifier">tap</span><span class="punctor">(</span><span class="identifier">value</span><span class="punctor">,</span> <span class="identifier">f</span><span class="punctor">)</span> <span class="operator">=</span> <span class="identifier">seq</span> <span class="identifier">f</span><span class="punctor">(</span><span class="identifier">value</span><span class="punctor">)</span><span class="punctor">,</span> <span class="identifier">value</span>
+<span class="number literal">5</span> <span class="operator">|</span><span class="identifier">tap</span> <span class="punctor">{</span><span class="operator">|</span><span class="identifier">x</span><span class="operator">|</span> <span class="identifier">trace</span> <span class="identifier">x</span><span class="punctor">}</span>              <span class="comment">// 5</span>
+  <span class="operator">|</span><span class="punctor">{</span><span class="operator">|</span><span class="identifier">x</span><span class="operator">|</span> <span class="identifier">x</span> <span class="operator">*</span> <span class="number literal">3</span><span class="punctor">}</span>
+  <span class="operator">|</span><span class="identifier">tap</span> <span class="punctor">{</span><span class="operator">|</span><span class="identifier">x</span><span class="operator">|</span> <span class="identifier">trace</span> <span class="identifier">x</span><span class="punctor">}</span>              <span class="comment">// 15</span></pre></div><div class="comm">Moe supports a special calling method, by using "Pipe sign" <code>|</code>, which has an extremely low priority. The calling form <code>a |f b, c, d</code> means <code>f(a, b, c, d)</code>, or more strictly, <code>seq T = a, f(T, b, c, d)</code> due to <code>a</code> will be evaluated <strong>before</strong> <code>f</code>. <code>a |f</code> means <code>f(a)</code>, with reversed evaluation order, <code>a</code> before <code>f</code>.</div><div class="show"><pre class="mghl source moe"><span class="identifier">$</span> <span class="string literal">"selector"</span>
+  <span class="operator">|</span><span class="punctor">.</span><span class="identifier">addClass</span> <span class="string literal">"selected"</span>
+  <span class="operator">|</span><span class="punctor">.</span><span class="identifier">css</span> <span class="identifier">background</span><span class="punctor">:</span> <span class="string literal">"red"</span></pre></div><div class="comm">Chain calls, usually used in JavaScript, is supported by a slightly modified pipe <code>|.</code>. Add the method name after the pipe-dot sign. Both pipe forms can be combined in any order.</div><h3>Call wrappers</h3>
+<p>There are some special keywords, which can be "called" like normal function in Moe, called Call Wrappers, used to generate special codes, including object creation, prototype resending, or create "wait" calls used by asynchronous functions. All call wrappers are "called" in compile time, accepts only one argument, with some of them only accepts an invocation expression as its argument.</p>
+<div class="show"><pre class="mghl source moe"><span class="keyword">def</span> <span class="identifier">Point</span><span class="punctor">(</span><span class="identifier">x</span><span class="punctor">,</span> <span class="identifier">y</span><span class="punctor">)</span><span class="punctor">:</span>
+    <span class="keyword">this</span><span class="punctor">.</span><span class="identifier">x</span> <span class="operator">=</span> <span class="identifier">x</span>
+    <span class="keyword">this</span><span class="punctor">.</span><span class="identifier">y</span> <span class="operator">=</span> <span class="identifier">y</span>
 
-    
-      <h2>Contact</h2>
-      <p>Belleve Invis (infinte.cdda@hotmail.com)<br/>      </p>
-    
+<span class="keyword">def</span> <span class="identifier">origin</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="identifier">Point</span> <span class="number literal">0</span><span class="punctor">,</span> <span class="number literal">0</span></pre></div><div class="comm">Creating objects using <code>new</code>.</div><div class="show"><pre class="mghl source moe"><span class="keyword">def</span> <span class="identifier">Man</span><span class="punctor">(</span><span class="punctor">)</span><span class="punctor">:</span>
+    <span class="comment">//...</span>
+<span class="keyword">def</span> <span class="identifier">Man</span><span class="punctor">:</span><span class="punctor">:</span><span class="identifier">speak</span><span class="punctor">(</span><span class="identifier">something</span><span class="punctor">)</span> <span class="operator">=</span> <span class="identifier">trace</span> <span class="identifier">something</span>
 
-    <h2>Download</h2>
-    <p>
-      You can download this project in either
-      <a href="https://github.com/be5invis/moescript/zipball/master">zip</a> or
-      <a href="https://github.com/be5invis/moescript/tarball/master">tar formats.
-    </p>
-    <p>You can also clone the project with <a href="http://git-scm.com">Git</a>
-      by running:
-      <pre>$ git clone git://github.com/be5invis/moescript</pre>
-    </p>
+<span class="keyword">def</span> <span class="identifier">outof</span><span class="punctor">(</span><span class="identifier">Man</span><span class="punctor">)</span> <span class="identifier">Child</span><span class="punctor">(</span><span class="punctor">)</span><span class="punctor">:</span>
+    <span class="comment">//...</span>
+<span class="keyword">def</span> <span class="identifier">Child</span><span class="punctor">:</span><span class="punctor">:</span><span class="identifier">speak</span><span class="punctor">(</span><span class="identifier">something</span><span class="punctor">)</span><span class="punctor">:</span>
+    <span class="identifier">trace</span> <span class="string literal">"Ah!"</span>
+    <span class="identifier">trace</span> <span class="keyword">resend</span> <span class="identifier">Man</span><span class="punctor">:</span><span class="punctor">:</span><span class="identifier">speak</span><span class="punctor">(</span><span class="identifier">something</span><span class="punctor">)</span>
+    <span class="comment">// is equalivent to trace Man.prototype.speak.call(this, something)</span></pre></div><div class="comm"><p><code>resend</code>, followed with a function call, is used to call methods with <code>this</code> bound to <code>this</code> of current scope. <code>resend method(args)</code> stands for <code>method.call(this, args)</code>.</p>
+<p><code>do</code> acts like <code>resend</code>. The only difference between <code>do</code> and <code>resend</code> is that <code>do f</code> means <code>f.apply(this, arguments)</code>, while <code>resend f</code> throws a syntax error. <code>resend</code> accepts function calls only.</p>
+</div><div class="show"><pre class="mghl source moe"><span class="keyword">def</span> <span class="identifier">f</span><span class="punctor">(</span><span class="punctor">)</span> <span class="operator">=</span> <span class="identifier">process</span> <span class="keyword">wait</span> <span class="identifier">loadResource</span><span class="punctor">(</span><span class="identifier">something</span><span class="punctor">)</span></pre></div><div class="comm"><code>wait</code> is a special call wrapper related to the monadic primitive system, dealing with callbacks, see section "Coping with Callbacks".</div><h2>Coping with Callbacks</h2>
+<div class="show"><pre class="mghl source moe"><span class="comment">-- A function using `wait`...</span>
+<span class="keyword">def</span> <span class="identifier">f</span><span class="punctor">(</span><span class="punctor">)</span> <span class="operator">=</span> <span class="identifier">process</span> <span class="keyword">wait</span> <span class="identifier">loadResource</span><span class="punctor">(</span><span class="identifier">something</span><span class="punctor">)</span>
 
-    <div class="footer">
-      get the source code on GitHub : <a href="https://github.com/be5invis/moescript">be5invis/moescript</a>
-    </div>
+<span class="comment">-- ...will make f into</span>
+<span class="keyword">def</span> <span class="identifier">f_1</span> <span class="operator">=</span> <span class="punctor">[</span><span class="identifier">build</span><span class="punctor">:</span> <span class="identifier">fBuild</span><span class="punctor">]</span>
+<span class="keyword">where</span> <span class="identifier">fBuild</span><span class="punctor">(</span><span class="identifier">schemata</span><span class="punctor">)</span><span class="punctor">(</span><span class="punctor">)</span><span class="punctor">(</span><span class="punctor">)</span><span class="punctor">:</span>
+    <span class="keyword flowctrl">return</span> <span class="identifier">schemata</span><span class="punctor">.</span><span class="identifier">yield</span> <span class="identifier">loadResource</span> <span class="identifier">something</span><span class="punctor">,</span> <span class="punctor">(</span><span class="identifier">resource</span><span class="punctor">)</span> <span class="operator">:></span>
+        <span class="keyword flowctrl">return</span> <span class="identifier">schemata</span><span class="punctor">.</span><span class="keyword flowctrl">return</span> <span class="identifier">process</span> <span class="identifier">resource</span></pre></div><div class="comm"><p>The call wrapper <code>wait</code> is used for generate callback-requiring methods. A simplified form of <code>wait f(args)</code> is <code>f!(args)</code>.</p>
+<p>A function containing <code>wait</code>, <code>!</code> or <code>&lt;-</code> (called <strong>Bind Arrow</strong>) will be transformed into a completely different thing called <strong>Monadic Primitive</strong>. A monadic primitive has the form <code>[build: function(schemata)(args)()...]</code>.</p>
+<p>In the original form of monadic primitives, <code>schemata</code> is an object with several methods, including <code>yield</code>, <code>bind</code> and <code>return</code>. Some uses of monadic primitive, including generators and list comprehension, requires this. <code>args</code> is the argument list, and the 3rd group of brackets starts the actions.</p>
+<p>Moe compiler will transform <code>f! args</code> into <code>schemata.yield f args, (_) =&gt; rest</code> where <code>rest</code> stands for the rest actions. The bind arrow, <code>x &lt;- val</code>, will be transformed into <code>schemata.bind val, (x) =&gt; rest</code>. So that <code>schemata</code> is a key object in monad construction. It represents the type of monads.</p>
+</div><div class="show"><pre class="mghl source moe"><span class="keyword">def</span> <span class="identifier">async</span> <span class="identifier">randPrintNums</span><span class="punctor">(</span><span class="identifier">n</span><span class="punctor">)</span><span class="punctor">:</span>
+    <span class="keyword">def</span> <span class="identifier">tasks</span> <span class="operator">=</span> <span class="punctor">[</span><span class="punctor">]</span>
+    <span class="keyword flowctrl">for</span><span class="punctor">(</span><span class="keyword">var</span> <span class="identifier">i</span> <span class="operator">in</span> <span class="number literal">0</span><span class="operator">..</span><span class="identifier">n</span><span class="punctor">)</span>
+        <span class="identifier">tasks</span><span class="punctor">.</span><span class="identifier">push</span> <span class="identifier">async</span> <span class="operator">:></span>
+            <span class="keyword">wait</span> <span class="identifier">sleep</span> <span class="punctor">(</span><span class="number literal">100</span> <span class="operator">*</span> <span class="identifier">Math</span><span class="punctor">.</span><span class="identifier">random</span><span class="punctor">(</span><span class="punctor">)</span><span class="punctor">)</span>
+            <span class="identifier">trace</span> <span class="identifier">index</span>
+        <span class="keyword">where</span> <span class="identifier">index</span> <span class="operator">=</span> <span class="identifier">i</span>
+    <span class="keyword">wait</span> <span class="identifier">join</span> <span class="identifier">tasks</span>
 
-  </div>
+<span class="identifier">randPrintNums</span> <span class="number literal">100</span></pre></div><div class="comm">However, raw primitives is hard to use, so that monadic primitives is often wrapped by library functions. A useful function is <code>async</code> from <code>moe/libs/async</code>, dealing with most of the callback-requiring actions in JavaScript.</div><div class="show"><pre class="mghl source moe"><span class="keyword">def</span> <span class="identifier">enumeration</span> <span class="identifier">String</span><span class="punctor">:</span><span class="punctor">:</span><span class="identifier">getEnumerator</span><span class="punctor">(</span><span class="punctor">)</span><span class="punctor">:</span>
+    <span class="keyword flowctrl">for</span><span class="punctor">(</span><span class="keyword">var</span> <span class="identifier">i</span> <span class="operator">in</span> <span class="number literal">0</span><span class="operator">..</span><span class="keyword">this</span><span class="punctor">.</span><span class="identifier">length</span><span class="punctor">)</span>
+        <span class="identifier">enumeration</span><span class="punctor">.</span><span class="identifier">yield</span><span class="operator">!</span> <span class="keyword">this</span><span class="punctor">.</span><span class="identifier">charAt</span><span class="punctor">(</span><span class="identifier">i</span><span class="punctor">)</span><span class="punctor">,</span> <span class="identifier">i</span>
 
-</body>
-</html>
+<span class="keyword flowctrl">for</span><span class="punctor">(</span><span class="keyword">var</span> <span class="identifier">x</span> <span class="operator">in</span> <span class="string literal">"this is a string"</span><span class="punctor">)</span>
+    <span class="identifier">trace</span> <span class="identifier">x</span></pre></div><div class="comm">Another useful function is <code>enumeration</code>, creating iterators.</div><div class="show"><pre class="mghl source moe"><span class="keyword">def</span> <span class="identifier">Enumerable</span> <span class="identifier">twiceRange</span><span class="punctor">(</span><span class="identifier">range</span><span class="punctor">)</span><span class="punctor">:</span>
+    <span class="keyword flowctrl">for</span><span class="punctor">(</span><span class="keyword">var</span> <span class="operator">*</span><span class="identifier">x</span> <span class="operator">in</span> <span class="identifier">range</span><span class="punctor">)</span>
+        <span class="punctor">(</span><span class="punctor">)</span> <span class="operator">&lt;</span><span class="operator">-</span> <span class="identifier">x</span>
+    <span class="keyword flowctrl">for</span><span class="punctor">(</span><span class="keyword">var</span> <span class="operator">*</span><span class="identifier">x</span> <span class="operator">in</span> <span class="identifier">range</span><span class="punctor">)</span>
+        <span class="punctor">(</span><span class="punctor">)</span> <span class="operator">&lt;</span><span class="operator">-</span> <span class="identifier">x</span>
+
+<span class="keyword flowctrl">for</span><span class="punctor">(</span><span class="keyword">var</span> <span class="identifier">x</span> <span class="operator">in</span> <span class="identifier">twiceRange</span><span class="punctor">(</span><span class="number literal">1</span><span class="operator">..</span><span class="number literal">10</span><span class="punctor">)</span><span class="punctor">)</span>
+    <span class="identifier">trace</span> <span class="identifier">x</span></pre></div><div class="comm"><code>Enumerable</code> is a wrap of <code>enumeration</code>, creates enumerable object constructors.</div><div class="show"><pre class="mghl source moe"><span class="comment">-- Enumerator comprehension monad</span>
+<span class="keyword">var</span> <span class="identifier">ecSchemata</span> <span class="operator">=</span> <span class="punctor">[</span><span class="identifier">yield</span><span class="punctor">:</span> <span class="identifier">fYield</span><span class="punctor">,</span> <span class="keyword flowctrl">return</span><span class="punctor">:</span> <span class="identifier">fReturn</span><span class="punctor">,</span> <span class="identifier">bind</span><span class="punctor">:</span> <span class="identifier">fBind</span><span class="punctor">]</span>
+<span class="keyword">where</span> 
+    <span class="identifier">fReturn</span> <span class="operator">=</span> <span class="identifier">Enumerable</span> <span class="keyword function">function</span><span class="punctor">(</span><span class="identifier">x</span><span class="punctor">)</span><span class="punctor">:</span>
+        <span class="keyword flowctrl">if</span><span class="punctor">(</span><span class="identifier">x</span> <span class="operator">!=</span> <span class="literal">undefined</span><span class="punctor">)</span>
+            <span class="identifier">enumeration</span><span class="punctor">.</span><span class="identifier">yield</span><span class="operator">!</span> <span class="identifier">x</span>
+    <span class="identifier">fYield</span><span class="punctor">(</span><span class="identifier">x</span><span class="punctor">)</span> <span class="operator">=</span> <span class="identifier">x</span>
+    <span class="identifier">fBind</span> <span class="operator">=</span> <span class="identifier">Enumerable</span> <span class="keyword function">function</span><span class="punctor">(</span><span class="identifier">list</span><span class="punctor">,</span> <span class="identifier">callback</span><span class="punctor">)</span><span class="punctor">:</span>
+        <span class="keyword flowctrl">for</span><span class="punctor">(</span><span class="keyword">var</span> <span class="identifier">x</span> <span class="operator">in</span> <span class="identifier">list</span><span class="punctor">)</span> 
+            <span class="keyword flowctrl">for</span><span class="punctor">(</span><span class="keyword">var</span> <span class="identifier">y</span> <span class="operator">in</span> <span class="identifier">callback</span> <span class="identifier">x</span><span class="punctor">)</span>
+                <span class="identifier">enumeration</span><span class="punctor">.</span><span class="identifier">yield</span><span class="operator">!</span> <span class="identifier">y</span>
+
+<span class="keyword">var</span> <span class="identifier">table</span><span class="punctor">(</span><span class="identifier">G</span><span class="punctor">)</span> <span class="operator">=</span>
+    <span class="keyword">var</span> <span class="identifier">f</span> <span class="operator">=</span> <span class="identifier">G</span><span class="punctor">.</span><span class="identifier">build</span> <span class="identifier">ecSchemata</span>
+    <span class="identifier">f</span><span class="punctor">.</span><span class="identifier">apply</span><span class="punctor">(</span><span class="keyword">this</span><span class="punctor">,</span> <span class="keyword">arguments</span><span class="punctor">)</span><span class="punctor">(</span><span class="punctor">)</span>
+
+<span class="comment">// simple usage</span>
+<span class="keyword flowctrl">for</span><span class="punctor">(</span><span class="keyword">var</span> <span class="identifier">item</span> <span class="operator">in</span> <span class="identifier">table</span><span class="punctor">{</span><span class="keyword">var</span> <span class="identifier">x</span> <span class="operator">&lt;</span><span class="operator">-</span> <span class="punctor">(</span><span class="number literal">1</span><span class="operator">..</span><span class="number literal">100</span><span class="punctor">)</span><span class="punctor">;</span> <span class="identifier">x</span> <span class="operator">*</span> <span class="number literal">2</span> <span class="operator">+</span> <span class="number literal">1</span><span class="punctor">}</span><span class="punctor">)</span> <span class="identifier">tracel</span> <span class="identifier">item</span>
+
+<span class="comment">// complicated usage</span>
+<span class="keyword">var</span> <span class="identifier">t</span> <span class="operator">=</span> <span class="identifier">table</span> <span class="punctor">{</span><span class="keyword">var</span> <span class="identifier">x</span> <span class="operator">&lt;</span><span class="operator">-</span> <span class="punctor">(</span><span class="number literal">1</span><span class="operator">...</span><span class="number literal">9</span><span class="punctor">)</span><span class="punctor">;</span> <span class="keyword">var</span> <span class="identifier">y</span> <span class="operator">&lt;</span><span class="operator">-</span> <span class="punctor">(</span><span class="number literal">1</span><span class="operator">...</span><span class="number literal">9</span><span class="punctor">)</span><span class="punctor">;</span> <span class="keyword flowctrl">if</span><span class="punctor">(</span><span class="identifier">x</span> <span class="operator">&lt;=</span> <span class="identifier">y</span><span class="punctor">)</span> <span class="identifier">x</span> <span class="operator">+</span> <span class="string literal">' * '</span> <span class="operator">+</span> <span class="identifier">y</span> <span class="operator">+</span> <span class="string literal">' = '</span> <span class="operator">+</span> <span class="identifier">x</span> <span class="operator">*</span> <span class="identifier">y</span> <span class="punctor">}</span>
+<span class="comment">// t = table [build: fBuild]</span>
+<span class="comment">// where fBuild(schemata)()():</span>
+<span class="comment">//     schemata.bind (1...9), (x) :></span>
+<span class="comment">//         schemata.bind (1...9), (y) :></span>
+<span class="comment">//             if(x &lt;= y) schemata.return (x + ' * ' + y + ' = ' + x * y)</span>
+<span class="comment">//             else schemata.return()</span>
+<span class="keyword flowctrl">for</span><span class="punctor">(</span><span class="keyword">var</span> <span class="identifier">item</span> <span class="operator">in</span> <span class="identifier">t</span><span class="punctor">)</span> <span class="identifier">trace</span> <span class="identifier">item</span></pre></div><div class="comm">Even more interesting things could be implemented by monadic primitives, due to it is actually an abstraction of flow control. In some situation, callbacks are not called only once, produces "strange" behaviors, for example, enumerator comprehension:</div><h2>Links</h2>
+<ul><li>Moescript: <a href="http://github.com/be5invis/moescript">http://github.com/be5invis/moescript</a>
+</li>
+<li>Library: <a href="lib/index.html">lib/index</a>
+</li>
+</ul></div></body></html>
