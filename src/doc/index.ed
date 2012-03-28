@@ -8,8 +8,8 @@ You can get it from \githubProject.
 
 :section{Usage}
 	:show
-		::pre
-		> moec <options> input.moe
+		|pre
+			> moec <options> input.moe
 	:comm
 		Options:
 

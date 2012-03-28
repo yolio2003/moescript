@@ -51,10 +51,8 @@ exports.resolve = function(ast, cInitVariables, PE, PW, cWarn){
 					node.position)
 			} else {
 				if(node.declareVariable){
-					var e = current;
-					while(e.rebind && e.parent) e = e.parent;
 					try {
-						e.newVar(node.declareVariable, false, node.constantQ);
+						current.newVar(node.declareVariable, false, node.constantQ);
 					} catch(ex) {
 						throw PE(ex, node.begins || node.position)
 					}
