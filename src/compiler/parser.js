@@ -1342,7 +1342,7 @@ exports.parse = function (input, source, config) {
 					"Invalid assignment/bind");
 			if(tokenIs(ASSIGN)) {
 				var _v = advance().value;
-				var right = assignmentExpression(inlineQ);
+				var right = assignmentExpression();
 				return new Node(nt.ASSIGN, {
 					left: c,
 					right: _v === "=" ? right : new Node(nt[_v.slice(0, _v.length - 1)], {
@@ -1355,7 +1355,7 @@ exports.parse = function (input, source, config) {
 				advance();
 				var right = new Node(nt.CALL, {
 					func: new Node(nt.BINDPOINT),
-					args: [assignmentExpression(inlineQ)],
+					args: [assignmentExpression()],
 					names: [null]
 				});
 				return new Node(nt.ASSIGN, {
