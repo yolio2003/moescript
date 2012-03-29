@@ -271,3 +271,7 @@ var trace = function(xs){
 	return arguments[arguments.length - 1];
 };
 reg('trace', trace);
+
+reg('instanceof', function(f){
+	return {be: function(x){return x instanceof f}}
+});

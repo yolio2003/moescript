@@ -66,6 +66,7 @@ var ID = TokenType('Identifier'),
 	CONSTANT = TokenType('Constant'),
 	ME = TokenType('This'),
 	MY = TokenType('My sign'),
+	IN = TokenType('In'),
 	PROTOMEMBER = TokenType('Prototype member symbol'),
 	ASSIGN = TokenType('Assign symbol'),
 	BIND = TokenType('Bind symbol'),
@@ -118,9 +119,8 @@ var nameTypes = {
 	'is': OPERATOR,
 	'and': OPERATOR,
 	'or': OPERATOR,
-	'in': OPERATOR,
-	'of': OPERATOR,
 	'as': OPERATOR,
+	'in': IN,
 	'if': IF,
 	'for': FOR,
 	'while': WHILE,
@@ -596,7 +596,8 @@ exports.parse = function (input, source, config) {
 		'try': 'MOE_TRY',
 		'throw': 'MOE_THROW',
 		'negate': 'MOE_NEGATE',
-		'not': 'MOE_NOT'
+		'not': 'MOE_NOT',
+		'in': 'MOE_IN'
 	};
 	var constant = function () {
 		var t = advance();
@@ -842,7 +843,7 @@ exports.parse = function (input, source, config) {
 	var esp = [];
 	esp[ID] = variable;
 	esp[NUMBER] = esp[STRING] = literal;
-	esp[CONSTANT] = constant;
+	esp[CONSTANT] = esp[IN] = constant;
 	esp[ME] = thisp;
 	esp[MY] = thisprp;
 	esp[ARGUMENTS] = argsp;
@@ -1130,11 +1131,10 @@ exports.parse = function (input, source, config) {
 	var operatorPiece = function(){
 		var L = 0, R = 1, N = 2;
 		var bp = {
-			'of': 5,
 			'*': 10, '/': 10, '%': 10,
 			'+': 20, '-': 20,
 			'<': 30, '>': 30, '<=': 30, '>=': 30,
-			'is': 35, 'in': 35,
+			'is': 35,
 			'==': 40, '!=': 40, '=~': 40, '!~': 40, '===':40, '!==':40,
 			'and': 50, '&&': 50,
 			'or': 55, '||': 55,
@@ -1142,11 +1142,10 @@ exports.parse = function (input, source, config) {
 			'as': 60
 		};
 		var combp = {
-			'of': R,
 			'*': L, '/': L, '%': L,
 			'+': L, '-': L,
 			'<': N, '>': N, '<=': N, '>=': N,
-			'is': L, 'in': L,
+			'is': L,
 			'==': N, '!=': N, '=~': N, '!~': N, '===':N, '!==':N,
 			'and': L, 'or': L, '&&': L, '||' : L,
 			'..': N, '...': N,
@@ -1155,7 +1154,7 @@ exports.parse = function (input, source, config) {
 		return function (start, progress) {
 			// operators.
 			// the "->" operator gets a "Rule" object
-			// the "is","in","as" operators are costumizable.
+			// the "is" and "as" operators are costumizable.
 			var uber = { right: start, bp: 65536 }, t, tv, operand, nbp, combining, n, node, p;
 			while (tokenIs(OPERATOR) && ensure(bp[token.value] > 0, "Invalid Operator")) {
 				// if is a valid operator, then...
@@ -1658,7 +1657,7 @@ exports.parse = function (input, source, config) {
 		node.vars = decls.terms.map(function(term){return term.name});
 		if(declQ)
 			node._variableDeclares = decls;
-		advance(OPERATOR, 'in');
+		advance(IN);
 		node.range = expression();
 		while(node.range.type === nt.GROUP)
 			node.range = node.range.operand;

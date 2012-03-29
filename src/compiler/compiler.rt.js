@@ -63,7 +63,6 @@ var NodeType = exports.NodeType = function () {
 		// Operators
 		'NEGATIVE', 'NOT',
 
-		'of',
 		'*', '/','%',
 		'+', '-',
 		'<', '>', '<=', '>=', 'is', 'in',

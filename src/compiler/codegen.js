@@ -352,16 +352,6 @@ exports.Generator = function(g_envs, g_config){
 			return $('%1 %2 %3', left, tfoper, right);
 		});
 	};
-	var methodoper = function (operator, method) {
-		eSchemataDef(nt[operator], function (transform) {
-			return $('(%3.%2(%1))', transform(this.left), method, transform(this.right));
-		});
-	};
-	var lmethodoper = function (operator, method) {
-		eSchemataDef(nt[operator], function (transform) {
-			return $('(%1.%2(%3))', transform(this.left), method, transform(this.right));
-		});
-	};
 	var libfuncoper = function (operator, func){
 		eSchemataDef(nt[operator], function (transform) {
 			return $('(%1(%2, %3))', func, transform(this.left), transform(this.right));
@@ -387,10 +377,8 @@ exports.Generator = function(g_envs, g_config){
 	binoper('||', '||');
 	binoper('and', '&&');
 	binoper('or', '||');
-	methodoper('in', 'contains');
-	methodoper('is', 'be');
-	methodoper('as', 'convertFrom');
-	lmethodoper('of', 'of');
+	libfuncoper('is', 'MOE_IS');
+	libfuncoper('as', 'MOE_AS');
 	libfuncoper('..', 'MOE_RANGE_EX');
 	libfuncoper('...', 'MOE_RANGE_INCL');
 

@@ -1,6 +1,6 @@
 ::document{moescript}
 
-**Moe is a new, not-very-little Javascript-targeted language written in JavaScript.** It is aimed to deal with common troubles in JavaScript development. Moe has neatly crafted grammar so that most JavaScript development will be simplified.
+**Moe is a new, not-very-little Javascript-targeted language written in JavaScript.** Its features inspired by Python, Haskell and Coffee. It is aimed to deal with common troubles in JavaScript development. Moe has neatly crafted grammar so that most JavaScript development will be simplified.
 
 This document is an introduction of Moescript in examples. You can try Moescript online on ......
 
@@ -11,6 +11,8 @@ You can get it from \githubProject.
 		|pre
 			> moec <options> input.moe
 	:comm
+		This is the Moescript compiler `moec`.
+
 		Options:
 
 		 - `-o <value>`, `--output <value>`: Specify the path of output file. If it is not specified, `moec` will print generated code into STDOUT.
@@ -22,7 +24,7 @@ You can get it from \githubProject.
 		|js
 			require('moe/dummy')
 	:comm
-		The `moeDummy` makes Node possible to load `.moe` files as well as `.js`. Everything required is a `require`.
+		The `moeDummy` module makes Node possible to load `.moe` files as well as `.js`. Everything required is a `require`.
 
 
 :section{Overview}
@@ -37,18 +39,19 @@ You can get it from \githubProject.
 		First, whitespaces plays important rule in Moe, indents means structure for example. There is nothing works like `end` or `{}` in other languages. It is not required to use `;` to terminate statements (though semiclolns still works as well), and use indentation instead of surrounding statements with `{}`.
 
 	|smoe
-		trace \
+		trace \        // backslash-newline means nothing
 			1, 2,
 			(3 +
 			 4
 			 + 5)
-		var list = [
+		var list = [   // open brackets annihilates coming newlines.
 			1,
 			2,
 			3
 		]
 	:comm
-		Newlines **around** some symbols will be ignored so that you could write long expressions or complex literals.
+		Newlines are **always** "semicolons", expect appearances **around** some symbols will be ignored so that you could write long expressions or complex literals.
+	
 	|smoe
 		// Wrong example: newline inside parentheses
 		--	(trace  -- here
@@ -103,28 +106,63 @@ You can get it from \githubProject.
 			def Number.prototype.times = function(f):
 				for(var i in 0..this) f(i)
 
+:section{Operators}
+	Operators in Moescript are **all** binary, with the priority listed below:
+	|pre
+		(omissioned calls)
+		*   /   %
+		+   -
+		<   >   <=  >=
+		is
+		==  !=  =~  !~  === !==
+		and &&
+		or  ||
+		..  ...
+		as
+		(pipe calls)
+		(when clauses)
+		(where clause)
+		(assignments)
+
+	Most opeators are left-associative, except assignments are right-associative and boolean operators are non-associative. There are **no** unary opeators. Use `not` and `negate` functions.
+
+	`==` and `===` has the same meaning in Moe, which is strict equality test. The mignt-be-harmful non-strict equal(`==`) in JavaScript is `=~` in Moe.
+
+	The behavior of `is` and `as` operator is customizable. `x is y` means `y.be x` while `x as y` means `y.convertFrom x`. As a syntax sugar, `x is in y`, or actually `x is in(y)`, means `y.contains(x)`.
+
+	Operators could be **wrapped** into functions directly using `(op)` or `(op right)`. So that `(+)` means `(x, y) => x + y` while `(+ 5)` means `(x) => x + 5`.
+
 :section{Flow control}
 	|smoe
-		if(condition) block
-		else if(condition)
-			block
+		if(true == true)
+			trace "We are OK!"
+		else if(true != true) trace "Panic"
 		else
-			block
+			trace "The world is crazy!"
+			trace "Really crazy!"
 
-		piecewise
-			when(condition1) action1
-			when(condition2)
-			when(condition3)
-				action2
-			otherwise        action3
+		// e1 when(cond), e2 means (cond ? e1 : e2)
+		def absolute(x) = 
+			negate x when(x < 0),
+			x
 
-		case(x)
-			when(val1)
-				action1
-			when(val2)
-			when(val3) action2
-			otherwise 
-				action3
+		def gpa(score) = piecewise
+		    when(score >= 100) 5
+			when(score >= 90)  4
+			when(score >= 85)  3.5
+			when(score >= 80)  3
+			when(score >= 70)  2
+			when(score >= 60)  1
+			otherwise          0
+
+		def grade(score) = case(gpa score)
+		    when(5)            "Perfect!"
+			when(4)            "Excillent!"
+			when(3.5)          "Pretty good!"
+			when(3)            "Good!"
+			when(2)            "OK!"
+			when(1) when(0)    "Cheer up!"
+			otherwise          throw "Score Error!"
 	:comm
 		Conditionals.
 	
@@ -168,7 +206,7 @@ You can get it from \githubProject.
 				if(x + y == 42)
 					break out
 	:comm
-		Break and labels.
+		Break and labels. You can `break` loops only while only loops could be labelled.
 
 :section{Objects}
 	|smoe

@@ -136,15 +136,12 @@ var MOE_TRY = function(f) {
 };
 var MOE_NEGATE = function(x){return -x}
 var MOE_NOT = function(x){return !x}
-
 var MOE_ITEM = function(o, n){
 	if('item' in o) return o.item(n)
 	else return o[n]
 };
-var MOE_SET_ITEM = function(o, n, v){
-	if('setItem' in o) return (o.setItem(n, v), v)
-	else return (o[n] = v)
-};
+var MOE_IS = function(x, y){ return y.be(x) }
+var MOE_AS = function(x, y){ return y.convertFrom(x) }
 
 //: tryDefineProperty	
 var tryDefineProperty = function() {
@@ -170,24 +167,24 @@ tryDefineProperty(Function.prototype, 'method_', function(n, v) {
 	tryDefineProperty(this.prototype, n, v);
 });
 
-
-Function.method_('new', function() {
-	var obj = MOE_derive(this.prototype);
-	this.apply(obj, arguments);
-	return obj;
-});
+var MOE_IN = function(range){
+	return {'be': function(x){return range.contains(x)}}
+};
 Function.method_('be',function(that) {
 	return that instanceof this;
 });
 String.be = function(s) {
 	return (typeof(s) === 'string') || s instanceof this
 };
+String.convertFrom = function(x){ return x + '' }
 Number.be = function(s) {
-	return (typeof(s) === 'string') || s instanceof this
+	return (typeof(s) === 'number') || s instanceof this
 };
+Number.convertFrom = function(x){ return x - 0 }
 Boolean.be = function(s) {
-	return (typeof(s) === 'string') || s instanceof this
+	return (typeof(s) === 'boolean') || s instanceof this
 };
+Boolean.convertFrom = function(x){ return !!x }
 
 //: ES5
 // Essential ES5 prototype methods
@@ -384,8 +381,6 @@ if (!Array.prototype.forEach) {
 	};
 }
 
-
-
 var MOE_RANGE_EX = function(left, right){
 	return new ExclusiveAscRange(left, right)
 };
@@ -441,10 +436,12 @@ moe.runtime = moe.rt = {
 	TRY: MOE_TRY,
 	NEGATE: MOE_NEGATE,
 	NOT: MOE_NOT,
+	IN: MOE_IN,
+	IS: MOE_IS,
+	AS: MOE_AS,
 	UNIQ: MOE_UNIQ,
 	YIELDVALUE: MOE_YIELDVALUE,
 	ITEM: MOE_ITEM,
-	SET_ITEM: MOE_SET_ITEM,
 	RANGE_EX: MOE_RANGE_EX,
 	RANGE_INCL: MOE_RANGE_INCL,
 	NARGS: NamedArguments
