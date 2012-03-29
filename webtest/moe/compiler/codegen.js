@@ -400,6 +400,9 @@ exports.Generator = function(g_envs, g_config){
 	eSchemataDef(nt.VAR, function(){return ''});
 
 	"Normal transformation specific rules";
+	vmSchemataDef(nt.CALLBLOCK, function(){
+		return $('(%1())', transform(this.func))
+	})
 	vmSchemataDef(nt.ASSIGN, function () {
 		return $('(%1 = %2)', transform(this.left), transform(this.right));
 	});
@@ -867,6 +870,16 @@ exports.Generator = function(g_envs, g_config){
 				names: []
 			};
 			return awaitCall.call(node, node, env);
+		});
+
+		mSchemataDef(nt.CALLBLOCK, function(){
+			var l = label();
+			ps($("return (MOE_SCHEMATA_BLOCK(%1, %2, %3))",
+				transform(this.func),
+				C_TEMP('SCHEMATA'),
+				C_BLOCK(l)));
+			LABEL(l);
+			return C_TEMP(l);
 		});
 
 		mSchemataDef(nt['and'], nt['&&'], function(){

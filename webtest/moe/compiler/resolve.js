@@ -38,6 +38,8 @@ exports.resolve = function(ast, cInitVariables, PE, PW, cWarn){
 
 				node.parameters = node.code = null;
 				node.tree = s.id;
+				generateBindRequirement(s);
+				node.mPrim = node.rebind && s.mPrim;
 			} else if(node.type === nt.LABEL) {
 				var label = node.name;
 				ensure(!current.labels[label] && current.labels[label] !== 0,
@@ -88,9 +90,9 @@ exports.resolve = function(ast, cInitVariables, PE, PW, cWarn){
 		var fWalk = function (node) {
 			if(!node || !node.type) return false;
 			var hasBindPointQ = false;
-			if(node.type === nt.BINDPOINT || node.type === nt.BREAK || node.type === nt.RETURN){
+			if(node.type === nt.BINDPOINT || node.type === nt.BREAK || node.type === nt.RETURN || node.mPrim){
 				hasBindPointQ = true;
-				mPrimQ = mPrimQ || node.type === nt.BINDPOINT;
+				mPrimQ = mPrimQ || node.type === nt.BINDPOINT || node.mPrim;
 			};
 			hasBindPointQ = moecrt.walkNode(node, fWalk) || hasBindPointQ;
 			if(hasBindPointQ) node.bindPoint = true;
@@ -128,7 +130,7 @@ exports.resolve = function(ast, cInitVariables, PE, PW, cWarn){
 	var checkFunction = function(s){
 		checkBreakPosition(s);
 		checkCallWrap(s);
-		generateBindRequirement(s);
+//		generateBindRequirement(s);
 	};
 
 	// Variables resolve

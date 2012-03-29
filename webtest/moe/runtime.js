@@ -144,6 +144,16 @@ var MOE_ITEM = function(o, n){
 var MOE_IS = function(x, y){ return y.be(x) }
 var MOE_AS = function(x, y){ return y.convertFrom(x) }
 
+var MOE_SCHEMATA_BLOCK = function(G, schemata, coming){
+	if(G.build){
+		var m = derive(schemata);
+		m['return'] = coming;
+		return G.build(m)()();
+	} else {
+		return coming(G())
+	}
+};
+
 //: tryDefineProperty	
 var tryDefineProperty = function() {
 	var f;
@@ -440,6 +450,7 @@ moe.runtime = moe.rt = {
 	IN: MOE_IN,
 	IS: MOE_IS,
 	AS: MOE_AS,
+	SCHEMATA_BLOCK: MOE_SCHEMATA_BLOCK,
 	UNIQ: MOE_UNIQ,
 	YIELDVALUE: MOE_YIELDVALUE,
 	ITEM: MOE_ITEM,

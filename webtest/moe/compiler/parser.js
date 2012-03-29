@@ -1263,7 +1263,7 @@ exports.parse = function (input, source, config) {
 	};
 	var whereClausedExpression = function(c){
 		var r = whereClausize(expression(c));
-		ensure(!exprStartQ(), 'Unexpected expression termination.');
+		//ensure(!exprStartQ(), 'Unexpected expression termination.');
 		return r;
 	};
 	var whereClausize = function(node){
@@ -1280,7 +1280,7 @@ exports.parse = function (input, source, config) {
 			advance(WHERE);
 			var stmts = [];
 			if(tokenIs(ID)){
-				stmts.push(whereClause());
+				stmts.push(whereClause(true));
 			};
 			if(tokenIs(INDENT) || !stmts.length) {
 				advance(INDENT);
@@ -1290,22 +1290,16 @@ exports.parse = function (input, source, config) {
 				advance(OUTDENT);
 			};
 			stmts.push(new Node(nt.RETURN, { expression: node }));
-			return new Node(nt.CALL, {
-				func: MemberNode(
-					new Node(nt.FUNCTION, {
+			return new Node(nt.CALLBLOCK, {
+				func: new Node(nt.FUNCTION, {
 						parameters: new Node(nt.PARAMETERS, {names: []}),
 						code: new Node(nt.SCRIPT, {content: stmts}),
-						rebind: true
-					}),
-					'call'),
-				args: [new Node(nt.THIS)],
-				names: [null]
-			})
+						rebind: true })})
 		} else {
 			return node;
 		}
 	};
-	var whereClause = function(){
+	var whereClause = function(notIndentedQ){
 		var begins = pos();
 		var bind = variable();
 		var right;
@@ -1315,7 +1309,7 @@ exports.parse = function (input, source, config) {
 		} else {
 			right = functionLiteral(true);
 		};
-		stripSemicolons();
+		if(!notIndentedQ) stripSemicolons();
 		return new Node(nt.EXPRSTMT, {
 			expression: new Node(nt.ASSIGN, {
 				left: bind,
