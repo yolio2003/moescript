@@ -292,7 +292,7 @@ You can get it from \githubProject.
 					primes.push n
 					trace n
 
-		def outNum(x): tracel (x - 0)
+		def outNum(x): trace (x - 0)
 	:comm
 		To define a more complicated function, use colon and indents.
 
@@ -517,7 +517,7 @@ You can get it from \githubProject.
 			f.apply(this, arguments)()
 
 		// simple usage
-		for(var item in table{var x <- (1..100); x * 2 + 1}) tracel item
+		for(var item in table{var x <- (1..100); x * 2 + 1}) trace item
 		
 		// complicated usage
 		var t = table {var x <- (1...9); var y <- (1...9); if(x <= y) x + ' * ' + y + ' = ' + x * y }

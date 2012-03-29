@@ -53,13 +53,13 @@ var NodeType = exports.NodeType = function () {
 		'UNKNOWN',
 		// Primary
 		'VARIABLE', 'TEMPVAR', 'THIS', 'LITERAL', 'ARRAY', 'OBJECT',
-		'ARGUMENTS', 'CALLEE', 'ARGN', 'GROUP', 'CALLWRAP',
+		'ARGUMENTS', 'ARGN', 'GROUP', 'CALLWRAP',
 		// Wrappers
 		'BINDPOINT', 'CTOR',
 		// Membering
 		'MEMBER', 
 		// Invocation
-		'CALL',
+		'CALL', 'CALLBLOCK',
 		// Operators
 		'NEGATIVE', 'NOT',
 

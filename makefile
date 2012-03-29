@@ -1,7 +1,8 @@
 everything: webtest
 
 DIST = dist
-MOD = dist/node_modules/moe
+NODEMODDIR = dist/node_modules
+MOD = $(NODEMODDIR)/moe
 MOEC = $(MOD)/compiler
 dirs:
 	-@mkdir -p $(DIST)
@@ -52,34 +53,33 @@ moeFullLib: $(moeFullLibMods)
 
 ### Web test environment
 ### Always updates all scripts
-WEBMOD = webtest/moe
+WEBTEST = doc/webtest
+WEBMOD  = $(WEBTEST)/moe
 webtestDir:
-	-@mkdir -p webtest
-	-@mkdir -p webtest/moe
-	-@mkdir -p webtest/moe/libs
-	-@mkdir -p webtest/moe/compiler
+	-@mkdir -p doc
+	-@mkdir -p $(WEBTEST)
+	-@mkdir -p $(WEBMOD)
+	-@mkdir -p $(WEBMOD)/libs
+	-@mkdir -p $(WEBMOD)/compiler
 
-nessat = webtest/nessat.js
+nessat = src/webrt/nessat.js
 nessatEXE = node $(nessat)
-$(nessat): webtest/%.js: src/webrt/%.js
-	cp $< $@
-nessat: $(nessat)
 
 webMods = $(subst $(MOD)/,$(WEBMOD)/,$(moeRTMods) $(moeLibMods) $(moecMods) $(moeFullLibMods))
 $(webMods): $(WEBMOD)/%.js: $(MOD)/%.js
-	$(nessatEXE) $< $@ dist/node_modules/
-webMods: nessat $(webMods)
+	$(nessatEXE) $< $@ $(NODEMODDIR)/
+webMods: $(webMods)
 
-webtestENV = webtest/index.html webtest/inputbox.js webtest/mod.rt.js
+webtestENV = $(WEBTEST)/index.html $(WEBTEST)/inputbox.js $(WEBTEST)/mod.rt.js
 $(webtestENV):
 	cp $< $@
-webtest/index.html:  webtest_env/index.html
-webtest/inputbox.js: webtest_env/inputbox.js
-webtest/mod.rt.js:   src/webrt/mod.rt.js
+$(WEBTEST)/index.html:  webtest_env/index.html
+$(WEBTEST)/inputbox.js: webtest_env/inputbox.js
+$(WEBTEST)/mod.rt.js:   src/webrt/mod.rt.js
 webtestENV: $(webtestENV)
 
-webtest: moec moeFullLib webtestDir nessat webMods webtestENV
+webtest: moec moeFullLib webtestDir webMods webtestENV
 
 clean:
 	rm -rf dist
-	rm -rf webtest
+	rm -rf doc/webtest

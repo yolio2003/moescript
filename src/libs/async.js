@@ -8,7 +8,7 @@ var OWNS = require('moe/runtime').runtime.OWNS;
 
 var asyncSchemata = derive(schemata_m);
 
-exports.async = function(M){
+var async = exports.async = function(M){
 	if(M.build){
 		var g = M.build(asyncSchemata);
 		return function(){
@@ -52,4 +52,4 @@ exports.join = function(o, callback){
 		o[term].call(null, checkContinue(term))
 	};
 	return nActivities;
-}
+};
