@@ -1313,9 +1313,10 @@ exports.parse = function (input, source, config) {
 		return new Node(nt.EXPRSTMT, {
 			expression: new Node(nt.ASSIGN, {
 				left: bind,
-				right: right
+				right: right,
+				declareVariable: bind.name,
+				constantQ: true
 			}),
-			declareVariable: bind.name,
 			begins: begins,
 			ends: pos()
 		});
