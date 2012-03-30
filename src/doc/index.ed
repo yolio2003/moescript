@@ -1,6 +1,6 @@
 ::document{moescript}
 
-**Moe is a new, not-very-little Javascript-targeted language written in JavaScript.** Its features inspired by Python, Haskell and Coffee. It is aimed to deal with common troubles in JavaScript development. Moe has neatly crafted grammar so that most JavaScript development will be simplified.
+**Moe is a new, not-very-little Javascript-targeted language written in JavaScript.** Its features are inspired by Python, Haskell and Coffee. It is aimed to deal with common troubles in JavaScript development. Moe has neatly crafted grammar so that most JavaScript development will be simplified.
 
 This document is an introduction of Moescript in examples. You can try Moescript online \@{webtest/index.html}{Here}.
 
@@ -16,9 +16,9 @@ You can get it from \githubProject.
 		Options:
 
 		 - `-o <value>`, `--output <value>`: Specify the path of output file. If it is not specified, `moec` will print generated code into STDOUT.
-		 - `-t <value>`，`--target <value>`: Specify the compilation target which affects global variable list. `-t least` will provide `require`、`module` and `exports` only for globals. `-t node` will provide all Node global variables.
-		 - `-g <value>`，`--global <value>`: Specify a global variable, e.g. `-g document`。
-		 - `-m <name>=<path>`，`--module <name>=<path>`: Map a module into a global variable, for exmaple, `-m exp=express` will map `require('express')` into the global variablr `exp` inside Moe source.
+		 - `-t <value>`, `--target <value>`: Specify the compilation target which affects global variable list. `-t least` will provide `require`,`module` and `exports` only for globals. `-t node` will provide all Node global variables.
+		 - `-g <value>`, `--global <value>`: Specify a global variable, e.g. `-g document`.
+		 - `-m <name>=<path>`, `--module <name>=<path>`: Map a module into a global variable, for exmaple, `-m exp=express` will map `require('express')` into the global variablr `exp` inside Moe source.
 
 	:show
 		|js
@@ -329,7 +329,7 @@ You can get it from \githubProject.
 		fibonacci(5) // 5
 
 	:comm
-		A slightly complicated example. `Y` is the fixed point combinator, and `def Y f(args)...` means `def f = Y function(args)...`. Fibonacci is actually:
+		A slightly complicated example. `Y` is the fixed point combinator, and `def Y f(args)...` means `def f = Y function(args)...`. In this example, `fibonacci` is actually:
 
 		|moe
 			def fibonacci_1 = function(recurse):
@@ -368,6 +368,19 @@ You can get it from \githubProject.
 		repeatWhile {num -= 1}, {|j| trace j}
 	:comm
 		The last way is to use curly brackets (`{}`) enclose statements, separated by explicit semicolons, not line breaks. `return`'s will be automatically generated. Arguments are writtern inside the brackets, and wrapped by `|`'s, when necessary.
+
+:section{`where` clause}
+	|smoe
+		def math = [square: square, cube: cube]
+		where square(x) = x * x
+		      cube(x) = square x * x
+	:comm
+		The `where` clause in Moescript provided a convient way to create "modules". The code above acts actually
+		|moe
+			def math = do =>
+				def square(x) = x * x
+				def cube(x) = square x * x
+				[square: square, cube: cube]
 
 :section{Calling functions}
 	|smoe

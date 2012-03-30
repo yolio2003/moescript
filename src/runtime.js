@@ -154,7 +154,7 @@ var MOE_SCHEMATA_BLOCK = function(G, schemata, coming){
 };
 
 //: tryDefineProperty	
-var tryDefineProperty = function() {
+var tryDefineProperty = exports.tryDefineProperty = function() {
 	var f;
 	try {
 		f = function(o, n, v) {
