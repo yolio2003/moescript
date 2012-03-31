@@ -1281,7 +1281,10 @@ exports.parse = function (input, source, config) {
 			if(tokenIs(ID)){
 				stmts.push(whereClause(true));
 			};
-			if(tokenIs(INDENT) || !stmts.length) {
+			var shift = 0;
+			while(shiftIs(shift, SEMICOLON)) shift++;
+			if(shiftIs(shift, INDENT) || !stmts.length) {
+				stripSemicolons();
 				advance(INDENT);
 				while(token && !tokenIs(OUTDENT)){
 					stmts.push(whereClause());
