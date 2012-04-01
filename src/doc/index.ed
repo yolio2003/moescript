@@ -130,7 +130,9 @@ You can get it from \githubProject.
 
 	The behavior of `is` and `as` operator is customizable. `x is y` means `y.be x` while `x as y` means `y.convertFrom x`. As a syntax sugar, `x is in y`, or actually `x is in(y)`, means `y.contains(x)`.
 
-	Operators could be **wrapped** into functions directly using `(op)` or `(op right)`. So that `(+)` means `(x, y) => x + y` while `(+ 5)` means `(x) => x + 5`.
+	Operators could be **wrapped** into functions directly by using `(op)`. `(+)(x, y)` means `x + y` while `(+)(x)` means `(y) => x + y`.
+
+	Two of the arguments, `(+)` and `(-)` could be used as "unary operators" in the form `(- x)`, stands for `(0 - x)`.
 
 :section{Flow control}
 	|smoe
@@ -263,6 +265,23 @@ You can get it from \githubProject.
 				@level = 9
 	:comm
 		You can also use `object` function provided in standard libary for large objects, especially configs.
+
+	|smoe
+		def type Man(name):
+			this.name = name
+		def Man::speak(something): // Man.prototype.speak
+			trace something
+
+		def outof(Man) Child(name):
+			resend Man(name) // Man.call this, name
+		def Child::speak(something):
+			trace "Ah!"
+			resend Man::speak(something) // Man.prototype.speak.call this, something
+
+		var tom = new Child "Tom"
+		tom.speak "Thanks!"
+	:comm
+		To define classes, use `type` and `outof`. `outof(TParent)(fCtor)` creates inherited classes. You can access properties of `prototype` by `::`. Call super methods via `resend`, where `resend f(args)` is equalivent to `f.call(this, args)`.
 
 :section{Functions}
 	|smoe
@@ -437,16 +456,11 @@ You can get it from \githubProject.
 			Creating objects using `new`.
 
 		|smoe
-			def Man():
-				//...
-			def Man::speak(something) = trace something
-
-			def outof(Man) Child():
-				//...
-			def Child::speak(something):
-				trace "Ah!"
-				trace resend Man::speak(something)
-				// is equalivent to trace Man.prototype.speak.call(this, something)
+			def Animal::eat(food):
+				trace "I eat " + food
+			def Dog::eat(food): piecewise
+				when(food == meat) resend Animal::eat(food)
+				otherwise          trace "Yucky!"
 		:comm
 			`resend`, followed with a function call, is used to call methods with `this` bound to `this` of current scope. `resend method(args)` stands for `method.call(this, args)`.
 
@@ -546,4 +560,4 @@ You can get it from \githubProject.
 
 :section{Links}
 	 - Moescript: \githubProject
-	 - Library: \page{lib/index}
+	 - Library: \page{lib}

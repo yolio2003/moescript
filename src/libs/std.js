@@ -83,19 +83,7 @@ reg('RegExp', function(){
 
 	return R;
 }());
-reg('Array', function(){
-	var A = function(){
-		return Array.apply(this, arguments)
-	};
-	A.be = function(x){
-		return x instanceof Array
-	};
-	A.convertFrom = function(x){
-		return SLICE(x, 0)
-	};
 
-	return A;
-}());
 reg('Date', function(){
 	var f = function(){
 		var a = arguments;
@@ -225,15 +213,6 @@ reg('object', function(p, f){
 });
 
 reg('seq', function(){return arguments[arguments.length - 1]})
-
-//: prototypes
-RegExp.convertFrom = function(s){
-	return new RegExp(s);
-};
-
-String.method_('stripMargins', function(){
-	return this.replace(/^\s*\|/gm, '')
-});
 
 //: .Array-getEnumerator
 Array.method_('getEnumerator', function(){

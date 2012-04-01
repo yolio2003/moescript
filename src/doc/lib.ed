@@ -1,0 +1,49 @@
+::document{Moe Standard Library Reference}
+
+Things listed here are defined in `moe/libs/std` or the runtime.
+
+:section{Object system}
+	:section{`derive`(oParent)}
+		Creates derived objets. `m` will be the prototype of `derive(m)`.
+
+	:section{`object`(fMaker); `object`(oParent, fMaker)}
+		Creates an object `m`, derives oParent when specified, then call `fMaker.call(m)`, return the modified `m`.
+		|smoe
+			var dragon = object :>
+				@initialHealth = 1000
+				@attack = 1000
+				@defense = 1000
+			var ancientDragon = object dragon, :>
+				@inirialHealth = 2000
+
+			trace ancientDragon.attack -- 1000
+
+	:section{`type`(fConstructor)}
+		Creates types.
+
+	:section{`outof`(TParent)(fConstructor)}
+		Creates derived types. `outof(T)(f)`'s `prototype` property is an instance of `T`.
+:section{Exception handling}
+	:section{`try`(fTest1, fTest2, fTest3, `catch`: (ex) :> fCatch, `fail`: fFail, `finally`: fFinally)}
+		The `try` function is provided by the runtime, provides structural exception handling. `try` will call the attemptions one by one until one of them successfully returns. Is all of them failed, the `fFail` will be called. `fCatch` will be called after an attemption fails, and the exception object `ex` will be passed into it. Whatever these attemptions succeed of fail, the `fFinally` will be called when provided to ensure some actions will be executed. `fCatch`, `fFail` and `fFinally` are are optional.
+
+		|smoe
+			try attemptNative, attemptAlt, catch: fCatch, fail: fFail, finally: fFinally
+			where attemptNative:
+				      return new NativeType
+				  attemptAlt:
+				      return new AltType
+				  fCatch(ex):
+				      trace ex
+				  fFail:
+				      throw "Unable to create object."
+				  fFinally:
+				      tracel '.'
+
+		|smoe
+			def Resource.use(address, action):
+				var resource = Resource.open address
+				try { action resource }, finally: { resource.close() }
+
+	:section{`throw`(oException)}
+		Throws an exception. It will be catched by `try`.

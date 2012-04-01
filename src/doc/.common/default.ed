@@ -2,6 +2,9 @@
 :useInternalPackage{util}
 :useInternalPackage{source}
 
+:__merge{\part{\__jsRequire{\cwd/.common/moe_highlight.js}}{scope}}
+
+
 :defun_{document}{mTitle}{mBody}
 	:def{buildDir}{\normalizePath{\cwd/../../doc}}
 	:defun{pageId2Path}{id}{\buildDir/\id.html}

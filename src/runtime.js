@@ -100,24 +100,23 @@ var MOE_OBSTRUCTIVE_SCHEMATA_M = {
 //: Exceptions
 var MOE_THROW = function(x) {
 	throw x || "[?] Unexpected error"
-}
+};
 var MOE_TRY = function(f) {
-	var ret, fcatch, ffinally;
+	var ret, fcatch, ffinally, ffail;
 	for (var i = arguments.length - 1; i; i--) {
 		if (arguments[i] instanceof MOE_NamedArguments) {
 			fcatch = arguments[i]['catch'];
 			ffinally = arguments[i]['finally'];
+			ffail = arguments[i]['fail'];
 			break;
 		}
 	};
 	
-	if (!fcatch)
-		fcatch = function(e) {};
+	if (!fcatch) fcatch = function(e) {};
 
 	var success = false;
 	var arg;
-
-	for (var j = 0, argn = arguments.length; j < argn; j++)
+	for (var j = 0, argn = arguments.length; j < argn; j++) {
 		if (typeof (arg = arguments[j]) === "function") {
 			try {
 				ret = arg();
@@ -127,12 +126,17 @@ var MOE_TRY = function(f) {
 				fcatch(e);
 			};
 			if (success) {
-				if (ffinally) ffinally();
+				if(ffinally) ffinally();
 				return ret
 			}
 		}
-			
-	return ret;
+	};
+	try {
+		if (ffail) ffail();
+		return undefined;
+	} finally {
+		if(ffinally) ffinally();
+	}
 };
 var MOE_NEGATE = function(x){return -x}
 var MOE_NOT = function(x){return !x}

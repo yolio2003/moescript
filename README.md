@@ -62,7 +62,7 @@ Features
 		resend Man(name) // Man.call this, name
 	def Child::speak(something):
 		trace "Ah!"
-		resend Man::speak(something) // Man.prototype.call this, something
+		resend Man::speak(something) // Man.prototype.speak.call this, something
 
 	var tom = new Child "Tom"
 	tom.speak "Thanks!"
