@@ -100,7 +100,7 @@ var condF = function (match, $1) {
 	}
 };
 var lfUnescape = function (str) {
-	return str.replace(/\\(\\|n|"|t|v|u[a-fA-F0-9]{4})/g, condF);
+	return str.replace(/\\\s*\\/g, '').replace(/\\(\\|n|"|t|v|u[a-fA-F0-9]{4})/g, condF);
 };
 var REPSTR = function(){
 	var cache = [];
@@ -326,7 +326,7 @@ var lex = exports.lex = function (input, cfgMap) {
 	var rComment = /(?:\/\/|--).*/;
 	var rOption = /^-![ \t]*(.+?)[ \t]*$/;
 	var rIdentifier = /[a-zA-Z_$][\w$]*/;
-	var rString = composeRex(/`#identifier|'''[\s\S]*?'''|'[^'\n]*(?:''[^'\n]*)*'|"[^\\"\n]*(?:\\.[^\\"\n]*)*"/, {
+	var rString = composeRex(/`#identifier|'''[\s\S]*?'''|'[^'\n]*(?:''[^'\n]*)*'|"[^\\"\n]*(?:\\(?:.|[ \t]*\n\s*\\)[^\\"\n]*)*"/, {
 		identifier: rIdentifier
 	});
 	var rNumber = /0[xX][a-fA-F0-9]+|\d+(?:\.\d+(?:[eE]-?\d+)?)?/;
@@ -794,29 +794,44 @@ exports.parse = function (input, source, config) {
 				advance();
 				return new Node(nt.FUNCTION, {
 					parameters: new Node(nt.PARAMETERS, {names: [{name: 'x'}, {name: 'y'}]}),
-					code: new Node(nt.RETURN, {
-						expression: new Node(opType, {
-							left: new Node(nt.VARIABLE, {name: 'x'}),
-							right: new Node(nt.VARIABLE, {name: 'y'})
+					code: new Node(nt.SCRIPT, {content: [
+						new Node(nt.IF, { 
+							condition: new Node(nt['<'], {
+								left: MemberNode(new Node(nt.ARGUMENTS), 'length'),
+								right: new Node(nt.LITERAL, {value: 2})
+							}),
+							thenPart: new Node(nt.RETURN, {
+								expression: new Node(nt.FUNCTION, {
+									parameters: new Node(nt.PARAMETERS, {names: [{name: 'y'}]}),
+									code: new Node(nt.RETURN, {
+										expression: new Node(opType, {
+											left: new Node(nt.VARIABLE, {name: 'x'}),
+											right: new Node(nt.VARIABLE, {name: 'y'})
+										})
+									})
+								})
+							}),
+							elsePart: new Node(nt.RETURN, {
+								expression: new Node(opType, {
+									left: new Node(nt.VARIABLE, {name: 'x'}),
+									right: new Node(nt.VARIABLE, {name: 'y'})
+								})
+							})
 						})
-					}),
+					]}),
 					operatorType: opType
 				})
-			} else {
-				var t = makeT();
-				var r = new Node(nt.FUNCTION, {
-					parameters: new Node(nt.PARAMETERS, {names: []}),
-					code: new Node(nt.RETURN, {
-						expression: new Node(opType, {
-							left: new Node(nt.TEMPVAR, {name: t, processing: 1}),
-							right: unary()
-						})
-					})
+			} else if(opType === nt['-'] || opType === nt['+']){
+				var r = new Node(opType, {
+					left: new Node(nt.LITERAL, {value: 0}),
+					right: unary()
 				});
 				advance(CLOSE, RDEND);
 				return r;
+			} else {
+				throw new PE('Unexpected Operator.')
 			}
-		}
+		};
 		if(nextIs(CLOSE, RDEND) && shiftIs(2, LAMBDA)
 			|| nextIs(ID) && (shiftIs(2, CLOSE, RDEND) && shiftIs(3, LAMBDA) || shiftIs(2, COMMA))) {
 			return lambdaExpression();
@@ -890,6 +905,7 @@ exports.parse = function (input, source, config) {
 	esp[NEW] = esp[RESEND] = esp[DO] = esp[WAIT] = function(){
 		return new Node(nt.CALLWRAP, {value: advance().type})
 	};
+
 	var exprStartQ = function(){
 		return token && esp[token.type];
 	};
@@ -1089,6 +1105,25 @@ exports.parse = function (input, source, config) {
 			return new Node(node.func.operatorType, {
 				left: node.args[0],
 				right: node.args[1]
+			});
+		} else if(node.args.length === 1 && !node.names[0]) {
+			return new Node(nt.CALL, {
+				func: new Node(nt.FUNCTION, {
+					parameters: new Node(nt.PARAMETERS, {names: [{name: 'x'}]}),
+					code: new Node(nt.RETURN, {
+						expression: new Node(nt.FUNCTION, {
+							parameters: new Node(nt.PARAMETERS, {names: [{name: 'y'}]}),
+							code: new Node(nt.RETURN, {
+								expression: new Node(node.func.operatorType, {
+									left: new Node(nt.VARIABLE, {name: 'x'}),
+									right: new Node(nt.VARIABLE, {name: 'y'})
+								})
+							})
+						})
+					})
+				}),
+				args: [node.args[0]],
+				names: [null]
 			});
 		}
 		return node;

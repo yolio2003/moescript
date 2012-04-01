@@ -1,0 +1,48 @@
+<!DOCTYPE HTML><html ><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><head ><title >Moe Standard Library Reference</title><style >@import url(rc/style.css);</style></head><body ><div id="contents"><div id="headarea"><h1>Moe Standard Library Reference</h1>
+<div class="pageinfo"> Last update: 2012-04-01</div></div><p>Things listed here are defined in <code>moe/libs/std</code> or the runtime.</p>
+<h2>Object system</h2>
+
+<h3><code>derive</code>(oParent)</h3>
+
+Creates derived objets. <code>m</code> will be the prototype of <code>derive(m)</code>.
+<h3><code>object</code>(fMaker); <code>object</code>(oParent, fMaker)</h3>
+
+<p>Creates an object <code>m</code>, derives oParent when specified, then call <code>fMaker.call(m)</code>, return the modified <code>m</code>.</p>
+<div class="show"><pre class="mghl source moe"><span class="keyword">var</span> <span class="identifier">dragon</span> <span class="operator">=</span> <span class="identifier">object</span> <span class="operator">:></span>
+    <span class="operator">@</span><span class="identifier">initialHealth</span> <span class="operator">=</span> <span class="number literal">1000</span>
+    <span class="operator">@</span><span class="identifier">attack</span> <span class="operator">=</span> <span class="number literal">1000</span>
+    <span class="operator">@</span><span class="identifier">defense</span> <span class="operator">=</span> <span class="number literal">1000</span>
+<span class="keyword">var</span> <span class="identifier">ancientDragon</span> <span class="operator">=</span> <span class="identifier">object</span> <span class="identifier">dragon</span><span class="punctor">,</span> <span class="operator">:></span>
+    <span class="operator">@</span><span class="identifier">inirialHealth</span> <span class="operator">=</span> <span class="number literal">2000</span>
+
+<span class="identifier">trace</span> <span class="identifier">ancientDragon</span><span class="punctor">.</span><span class="identifier">attack</span> <span class="comment">-- 1000</span></pre></div>
+<h3><code>type</code>(fConstructor)</h3>
+
+Creates types.
+<h3><code>outof</code>(TParent)(fConstructor)</h3>
+
+Creates derived types. <code>outof(T)(f)</code>'s <code>prototype</code> property is an instance of <code>T</code>.
+
+<h2>Exception handling</h2>
+
+<h3><code>try</code>(fTest1, fTest2, fTest3, <code>catch</code>: (ex) :&gt; fCatch, <code>fail</code>: fFail, <code>finally</code>: fFinally)</h3>
+
+<p>The <code>try</code> function is provided by the runtime, provides structural exception handling. <code>try</code> will call the attemptions one by one until one of them successfully returns. Is all of them failed, the <code>fFail</code> will be called. <code>fCatch</code> will be called after an attemption fails, and the exception object <code>ex</code> will be passed into it. Whatever these attemptions succeed of fail, the <code>fFinally</code> will be called when provided to ensure some actions will be executed. <code>fCatch</code>, <code>fFail</code> and <code>fFinally</code> are are optional.</p>
+<div class="show"><pre class="mghl source moe"><span class="keyword flowctrl">try</span> <span class="identifier">attemptNative</span><span class="punctor">,</span> <span class="identifier">attemptAlt</span><span class="punctor">,</span> <span class="keyword flowctrl">catch</span><span class="punctor">:</span> <span class="identifier">fCatch</span><span class="punctor">,</span> <span class="identifier">fail</span><span class="punctor">:</span> <span class="identifier">fFail</span><span class="punctor">,</span> <span class="keyword">finally</span><span class="punctor">:</span> <span class="identifier">fFinally</span>
+<span class="keyword">where</span> <span class="identifier">attemptNative</span><span class="punctor">:</span>
+          <span class="keyword flowctrl">return</span> <span class="keyword">new</span> <span class="identifier">NativeType</span>
+      <span class="identifier">attemptAlt</span><span class="punctor">:</span>
+          <span class="keyword flowctrl">return</span> <span class="keyword">new</span> <span class="identifier">AltType</span>
+      <span class="identifier">fCatch</span><span class="punctor">(</span><span class="identifier">ex</span><span class="punctor">)</span><span class="punctor">:</span>
+          <span class="identifier">trace</span> <span class="identifier">ex</span>
+      <span class="identifier">fFail</span><span class="punctor">:</span>
+          <span class="keyword flowctrl">throw</span> <span class="string literal">"Unable to create object."</span>
+      <span class="identifier">fFinally</span><span class="punctor">:</span>
+          <span class="identifier">tracel</span> <span class="string literal">'.'</span></pre></div><div class="show"><pre class="mghl source moe"><span class="keyword">def</span> <span class="identifier">Resource</span><span class="punctor">.</span><span class="identifier">use</span><span class="punctor">(</span><span class="identifier">address</span><span class="punctor">,</span> <span class="identifier">action</span><span class="punctor">)</span><span class="punctor">:</span>
+    <span class="keyword">var</span> <span class="identifier">resource</span> <span class="operator">=</span> <span class="identifier">Resource</span><span class="punctor">.</span><span class="identifier">open</span> <span class="identifier">address</span>
+    <span class="keyword flowctrl">try</span> <span class="punctor">{</span> <span class="identifier">action</span> <span class="identifier">resource</span> <span class="punctor">}</span><span class="punctor">,</span> <span class="keyword">finally</span><span class="punctor">:</span> <span class="punctor">{</span> <span class="identifier">resource</span><span class="punctor">.</span><span class="identifier">close</span><span class="punctor">(</span><span class="punctor">)</span> <span class="punctor">}</span></pre></div>
+<h3><code>throw</code>(oException)</h3>
+
+Throws an exception. It will be catched by <code>try</code>.
+
+</div></body></html>
