@@ -1,7 +1,7 @@
 body {
   margin: 0;
   padding: 0;
-  font-family: "CS Kirisame Latin D", Arial, sans-serif;
+  font-family: "CS Kirisame BL", Arial, sans-serif;
   background: #f7f7f7;
   font-size: 14px;
 }
@@ -94,7 +94,7 @@ h2[id]:hover:after {
 blockquote { font-size: 0.9em }
 
 pre, code, kbd {
-  font-family: "CS Kirisame Latin D Mono", "Consolas", "DejaVu Sans Mono", monospace;
+  font-family: "CS Kirisame BL Mono", "Consolas", "DejaVu Sans Mono", monospace;
   font-size: 1em;
 }
 
