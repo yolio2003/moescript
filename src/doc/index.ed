@@ -36,7 +36,7 @@ You can get it from \githubProject.
 			return m
 		trace max [5, 4, 3, 2, 1]
 	:comm
-		First, whitespaces plays important rule in Moe, indents means structure for example. There is nothing works like `end` or `{}` in other languages. It is not required to use `;` to terminate statements (though semiclolns still works as well), and use indentation instead of surrounding statements with `{}`.
+		First, whitespaces play an important role in Moe, indents means structure for example. There is nothing works like `end` or `{}` in other languages. It is not required to use semicolons(`;`) to terminate statements (though semiclolns still works as well), and use indentation instead of surrounding statements with curly brackets(`{}`).
 
 	|smoe
 		trace \        // backslash-newline means nothing
