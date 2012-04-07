@@ -595,23 +595,20 @@ exports.Generator = function(g_envs, g_config){
 	});
 	vmSchemataDef(nt.FOR, function (nd, e) {
 		var tEnum = makeT(e);
-
+		var tYV = makeT(e);
+		var s_enum = $('(%1 = %2())',
+			C_TEMP(tYV),
+			C_TEMP(tEnum));
+		
 		if(this.pass){
-			var s_enum = $('(%1 = %2())',
-				C_NAME(this.vars[0]),
-				C_TEMP(tEnum));
-			var varAssign = [];
+			var varAssign = [C_NAME(this.vars[0]) + ' = ' + C_TEMP(tYV)];
 		} else {
-			var tYV = makeT(e);
-			var s_enum = $('(%1 = %2())',
-				C_TEMP(tYV),
-				C_TEMP(tEnum));
 			var varAssign = [];
 			for(var i = 0; i < this.vars.length; i += 1)
 				varAssign.push($('%1 = %2[%3]', C_NAME(this.vars[i]), C_TEMP(tYV), i + ''));
 		}
 
-		return $('%1 = %2.getEnumerator();\nwhile(%3){\n%4;%5}',
+		return $('%1 = MOE_GET_ENUM(%2);\nwhile(%3){\n%4;%5}',
 			C_TEMP(tEnum),
 			transform(this.range),
 			s_enum,
@@ -1032,7 +1029,7 @@ exports.Generator = function(g_envs, g_config){
 			var lLoop = label();
 			var bk = lNearest;
 			var lEnd = lNearest = label();
-			ps(C_TEMP(tEnum) + '=' + ct(this.range) + '.getEnumerator()');
+			ps(C_TEMP(tEnum) + '=MOE_GET_ENUM(' + ct(this.range) + ')');
 			ps(s_enum);
 			(LABEL(lLoop));
 			ps('if(!(' + C_TEMP(tYV) + '))' + GOTO(lEnd));
@@ -1042,7 +1039,6 @@ exports.Generator = function(g_envs, g_config){
 			(LABEL(lEnd))
 			lNearest = bk;
 			return '';
-	
 		});
 
 		mSchemataDef(nt.REPEAT, function(){

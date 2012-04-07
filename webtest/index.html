@@ -187,19 +187,23 @@
 				var tracer = infoout.traceraw;
 				eisa_using(['moe/libs/std', 'moe/libs/stdenum', 'moe/libs/async', output, { log: function(){console.log.apply(console, arguments)} }],
 					function(initvs, inita){
-						var lfc = require('moe/compiler/compiler');
-						var varMaps = function(f){inita(function(v, n){f(null, n)})};
-						var script = lfc.compile(document.getElementById('input').value, {
-							initVariables: varMaps,
-							warn: tracel
-						});
-						tracer('[LFC] Generated Source:' + source2html(script.generatedSource));
-						tracer('[LFC] Initialization Source:' + source2html(script.initializationSource));
-						var func = Function(script.aux.runtimeName, script.aux.initsName, 
-							script.initializationSource + '\nreturn ' + script.generatedSource);
-						tracel('[ESA] Started Master Execution.');
-						func(eisa.runtime, initvs)();
-						tracel('[ESA] Master Execution finished.');
+						try {
+							var lfc = require('moe/compiler/compiler');
+							var varMaps = function(f){inita(function(v, n){f(null, n)})};
+							var script = lfc.compile(document.getElementById('input').value, {
+								initVariables: varMaps,
+								warn: tracel
+							});
+							tracer('[LFC] Generated Source:' + source2html(script.generatedSource));
+							tracer('[LFC] Initialization Source:' + source2html(script.initializationSource));
+							var func = Function(script.aux.runtimeName, script.aux.initsName, 
+								script.initializationSource + '\nreturn ' + script.generatedSource);
+							tracel('[ESA] Started Master Execution.');
+							func(eisa.runtime, initvs)();
+							tracel('[ESA] Master Execution finished.');
+						} catch(e){
+							terr('Error occurs:\n' + e + '\nF12 to read more');
+						}
 				});
 			};
 		});
@@ -239,11 +243,7 @@
 		window.onload = function(){
 			resizeInput()
 		};
-		var exret = /webkit/i.test(navigator.userAgent);
-		window.onerror = function(e, f, l, aux){
-			terr('Error occurs:\n' + e + '\nF12 to read more');
-			return exret;
-		};
+
 	</script>
 
 </body>
