@@ -157,6 +157,28 @@ var MOE_SCHEMATA_BLOCK = function(G, schemata, coming){
 	}
 };
 
+var MOE_GET_ENUM = function(obj){
+	if(obj.getEnumerator) {
+		return obj.getEnumerator()
+	} else if(obj instanceof Array) {
+		var t = obj.slice(0);
+		var low = 0;
+		var high = t.length;
+		var i = low;
+		var r = [];
+		return function(){
+			if(i >= high) {
+				return;
+			} else {
+				return r[0] = t[i], r[1] = i++, r
+//				return [t[i], i++]
+			}
+		};
+	} else {
+		throw new Error("Unable to get enumerator of " + obj)
+	}
+}
+
 //: tryDefineProperty	
 var tryDefineProperty = exports.tryDefineProperty = function() {
 	var f;
@@ -459,7 +481,8 @@ moe.runtime = moe.rt = {
 	ITEM: MOE_ITEM,
 	RANGE_EX: MOE_RANGE_EX,
 	RANGE_INCL: MOE_RANGE_INCL,
-	NARGS: NamedArguments
+	NARGS: NamedArguments,
+	GET_ENUM: MOE_GET_ENUM
 };
 
 moe.derive = MOE_derive;

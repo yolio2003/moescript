@@ -1692,12 +1692,15 @@ exports.parse = function (input, source, config) {
 			node._variableDeclares = decls;
 		advance(IN);
 		node.range = expression();
+		advance(CLOSE, RDEND);
+		node.body = block();
 		while(node.range.type === nt.GROUP)
 			node.range = node.range.operand;
+
 		if(!node.pass && (node.range.type === nt['..'] || node.range.type === nt['...'])){ // range loop simplification
 			var hightmp = makeT();
 			var d0name = decls.terms[0].name;
-			node = new Node(nt.OLD_FOR, {
+			return new Node(nt.OLD_FOR, {
 				start: new Node(nt['then'], {
 					left: new Node(nt.ASSIGN, {
 						left: new Node(nt.VARIABLE, {name: d0name}),
@@ -1713,11 +1716,11 @@ exports.parse = function (input, source, config) {
 					right: new Node(nt['+'], {
 						left: new Node(nt.VARIABLE, {name: d0name}),
 						right: new Node(nt.LITERAL, {value: 1})})}),
+				body: node.body,
 				_variableDeclares: declQ ? decls : null});
-		};
-		advance(CLOSE, RDEND);
-		node.body = block();
-		return node;
+		} else {
+			return node;
+		}
 	};
 
 	var piecewise = function (t) {
