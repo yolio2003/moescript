@@ -5,7 +5,12 @@
 This document is an introduction of Moescript in examples. You can try Moescript online \@{webtest/index.html}{Here}.
 
 You can get it from \githubProject.
-
+:section{Install}
+	Simple
+	|pre
+		> npm install moe -g
+		
+	Because moescript has a runtime, you may need to install the `moe` locally in your project by `npm install moe`.
 :section{Usage}
 	:show
 		|pre
