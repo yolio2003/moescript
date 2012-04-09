@@ -81,7 +81,7 @@ var NodeType = exports.NodeType = function () {
 		'IF', 'FOR', 'OLD_FOR', 'WHILE', 'REPEAT', 'CASE', 
 		'PIECEWISE', 'VAR', 'BREAK', 'LABEL', 'RETURN',
 		// Large-scale
-		'BLOCK', 'FUNCTION', 'PARAMETERS', 'SCRIPT'];
+		'TRY', 'FUNCTION', 'PARAMETERS', 'SCRIPT'];
 
 	var T = {};
 	for (var i = 0; i < types.length; i++)

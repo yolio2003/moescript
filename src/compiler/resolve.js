@@ -22,6 +22,7 @@ exports.resolve = function(ast, cInitVariables, PE, PW, cWarn){
 				};
 				s.parameters = node.parameters;
 				s.rebind = node.rebind;
+				s.noVarDecl = node.noVarDecl;
 				for (var i = 0; i < s.parameters.names.length; i++) {
 					s.newVar(s.parameters.names[i].name, true)
 				};
@@ -36,9 +37,10 @@ exports.resolve = function(ast, cInitVariables, PE, PW, cWarn){
 				current = stack[stack.length - 1];
 
 				node.parameters = node.code = null;
-				node.tree = s.id;
+
 				generateBindRequirement(s);
 				node.mPrim = node.rebind && s.mPrim;
+				node.tree = s.id;
 			} else if(node.type === nt.LABEL) {
 				var label = node.name;
 				ensure(!current.labels[label] && current.labels[label] !== 0,
@@ -54,7 +56,9 @@ exports.resolve = function(ast, cInitVariables, PE, PW, cWarn){
 			} else {
 				if(node.declareVariable){
 					try {
-						current.newVar(node.declareVariable, false, node.constantQ);
+						var e = current;
+						while(e.rebind && e.noVarDecl && e.parent) e = e.parent;
+						e.newVar(node.declareVariable, false, node.constantQ);
 					} catch(ex) {
 						throw PE(ex, node.begins || node.position)
 					}

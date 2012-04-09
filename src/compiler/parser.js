@@ -71,7 +71,11 @@ var ID = TokenType('Identifier'),
 	ASSIGN = TokenType('Assign symbol'),
 	BIND = TokenType('Bind symbol'),
 	BACKSLASH = TokenType('Backslash'),
-	SQSTART = '[', SQEND = ']',
+	TRY = TokenType('Try'),
+	CATCH = TokenType('Catch'),
+	FINALLY = TokenType('Finally')
+
+var SQSTART = '[', SQEND = ']',
 	RDSTART = '(', RDEND = ')',
 	CRSTART = '{', CREND = '}';
 var Token = function (t, v, p, s, i) {
@@ -146,7 +150,9 @@ var nameTypes = {
 	'arguments': ARGUMENTS,
 	'do': DO,
 	'try': CONSTANT,
-	'TASK': TASK,
+//	'try': TRY,
+//	'catch': CATCH,
+//	'finally': FINALLY,
 	'let': LET,
 	'where': WHERE,
 	'pass': PASS,
@@ -1497,6 +1503,9 @@ exports.parse = function (input, source, config) {
 			case PASS:
 				advance(PASS);
 				return;
+// I will complete it when I found how to catch exceptions in monads.
+//			case TRY:
+//				return trystmt();
 			default:
 				return new Node(nt.EXPRSTMT, {expression: assignmentExpression(), exprStmtQ : true});
 		};
@@ -1782,6 +1791,46 @@ exports.parse = function (input, source, config) {
 			return new Node(nt.BREAK, { destination: null });
 		}
 	};
+	var trystmt = function(){
+		advance(TRY);
+		var body = new Node(nt.FUNCTION, {
+			code: block(),
+			parameters: new Node(nt.PARAMETERS, { names: [] }),
+			rebind: true,
+			noVarDecl: true
+		});
+		var catchPart = new Node(nt.FUNCTION, {
+			code: new Node(nt.SCRIPT, {content: []}),
+			parameters: new Node(nt.PARAMETERS, {names: []}),
+			rebind: true,
+			noVarDecl: true
+		});
+		var finallyPart = new Node(nt.FUNCTION, {
+			code: new Node(nt.SCRIPT, {content: []}),
+			parameters: new Node(nt.PARAMETERS, {names: []}),
+			rebind: true,
+			noVarDecl: true
+		});
+		stripSemicolons();
+		if(tokenIs(CATCH)) {
+			advance();
+			advance(OPEN, RDSTART);
+			var catchId = variable();
+			advance(CLOSE, RDEND);
+			catchPart.parameters.names[0] = {name: catchId.name}
+			catchPart.code = block();
+		};
+		stripSemicolons();
+		if(tokenIs(FINALLY)) {
+			advance();
+			finallyPart.code = block();
+		};
+		return new Node(nt.TRY, {
+			body: body,
+			catchPart: catchPart,
+			finallyPart: finallyPart
+		});
+	}
 	///
 	var ws_code = statements();
 	stripSemicolons();

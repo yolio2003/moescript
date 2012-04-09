@@ -6,8 +6,8 @@ MOD = $(NODEMODDIR)/moe
 MOEC = $(MOD)/compiler
 dirs:
 	-@mkdir -p $(DIST)
-	-@mkdir -p $(DIST)/bin
 	-@mkdir -p $(MOD)
+	-@mkdir -p $(MOD)/bin
 	-@mkdir -p $(MOD)/libs
 	-@mkdir -p $(MOD)/cli
 	-@mkdir -p $(MOEC)
@@ -24,25 +24,22 @@ moert: dirs $(moeRTMods) $(moeLibMods)
 
 moecMods = $(MOEC)/compiler.rt.js $(MOEC)/compiler.js $(MOEC)/codegen.js $(MOEC)/parser.js \
 			$(MOEC)/resolve.js $(MOEC)/requirements.js
-moecNodeMods = $(MOD)/cli/opts.js $(MOD)/cli/moec.js
+moecNodeMods = $(MOD)/bin/opts.js $(MOD)/bin/moec.js  $(MOD)/bin/moei.js $(MOD)/bin/moec $(MOD)/bin/moei
 moecTargets = $(MOEC)/targets/node.js $(MOEC)/targets/least.js
 $(moecMods) $(moecTargets): $(MOEC)/%: src/compiler/%
 	cp $< $@
-$(moecNodeMods): $(MOD)/cli/%: src/moec/%
+$(moecNodeMods): $(MOD)/bin/%: src/moec/%
 	cp $< $@
 $(MOEC)/package.json: src/compiler/package.json
-	cp $< $@
-$(DIST)/bin/moec: src/moec/moec
 	cp $< $@
 
 moecLib: $(moecMods) $(MOEC)/package.json
 moecNodeLib: $(moecNodeMods)
 moecTargets: $(moecTargets)
-moecMain: moecLib moecNodeLib moecTargets $(DIST)/bin/moec
-
+moecMain: moecLib moecNodeLib moecTargets
 moec: moert moecMain
 
-moecEXE = node $(DIST)/bin/moec -t least
+moecEXE = node $(MOD)/bin/moec -t least
 
 moeFullLibMods = $(MOD)/libs/stdenum.js
 $(moeFullLibMods): $(MOD)/%.js: src/%.moe

@@ -11,18 +11,21 @@ target.addInits(rm);
 exports.addDirectMap = rm.addDirectMap.bind(rm);
 exports.addLibName = rm.addLibName.bind(rm);
 
-var compile = exports.compile = function(module, fileName){
+var getCompiled = exports.getCompiled = function(fileName){
 	var source = fs.readFileSync(fileName, 'utf-8');
 
 	var script = compiler.compile(source, {
 		optiomMaps : {},
-		initVariables: rm.fInits
+		initVariables: rm.fInits,
+		warn: function(s){ process.stderr.write(s + '\n') }
 	});
-	var compiled = 'var ' + script.aux.runtimeName + ' = require("moe/runtime").runtime\n' +
+	return 'var ' + script.aux.runtimeName + ' = require("moe/runtime").runtime\n' +
 			script.initializationSource + '\n' +
 			'(' + script.generatedSource + ')()';
+}
 
-	module._compile(compiled, fileName);
+var compile = exports.compile = function(module, fileName){
+	module._compile(getCompiled(fileName), fileName);
 }
 
 require.extensions['.moe'] = compile;
