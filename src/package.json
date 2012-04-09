@@ -1,0 +1,13 @@
+{
+	"name": "moe",
+	"version": "0.0.2",
+	"author": "Belleve Invis",
+	"description": "New generation language. JavaScript targeted.",
+	"homepage": "http://github.com/be5invis/moescript",
+	"engines": ["node >= 0.6.0"],
+	"main": "./dummy",
+	"bin" : {
+		"moec": "./bin/moec",
+		"moei": "./bin/moei"
+	}
+}

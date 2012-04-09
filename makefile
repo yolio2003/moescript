@@ -33,11 +33,15 @@ $(moecNodeMods): $(MOD)/bin/%: src/moec/%
 $(MOEC)/package.json: src/compiler/package.json
 	cp $< $@
 
+moecPackageMeta: $(MOD)/package.json
+$(MOD)/package.json: src/package.json
+	cp $< $@
+
 moecLib: $(moecMods) $(MOEC)/package.json
 moecNodeLib: $(moecNodeMods)
 moecTargets: $(moecTargets)
 moecMain: moecLib moecNodeLib moecTargets
-moec: moert moecMain
+moec: moert moecMain moecPackageMeta
 
 moecEXE = node $(MOD)/bin/moec -t least
 
