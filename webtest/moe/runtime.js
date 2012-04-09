@@ -178,38 +178,12 @@ var MOE_GET_ENUM = function(obj){
 	} else {
 		throw new Error("Unable to get enumerator of " + obj)
 	}
-}
-
-//: tryDefineProperty	
-var tryDefineProperty = exports.tryDefineProperty = function() {
-	var f;
-	try {
-		f = function(o, n, v) {
-			Object.defineProperty(o, n, {
-				writable: false,
-				value: v,
-				enumerable: false,
-				configurable: false
-			});
-			return o;
-		};
-		f({}, 'a', {});
-	} catch (e) {
-		f = function(o, n, v) {o[n] = v; return o};
-	};
-	return f;
-}();
-
-tryDefineProperty(Function.prototype, 'method_', function(n, v) {
-	tryDefineProperty(this.prototype, n, v);
-});
+};
 
 var MOE_IN = function(range){
 	return {'be': function(x){return range.contains(x)}}
 };
-Function.method_('be',function(that) {
-	return that instanceof this;
-});
+
 String.be = function(s) {
 	return (typeof(s) === 'string') || s instanceof this
 };

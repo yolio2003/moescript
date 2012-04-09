@@ -621,6 +621,10 @@ exports.Generator = function(g_envs, g_config){
 	vmSchemataDef(nt.LABEL, function () {
 		return C_LABELNAME(this.name) + ':{' + transform(this.body) + '}';
 	});
+	
+	// vmSchemataDef(nt.TRY, function(){
+	// 	return $('try{%1}catch(e){}', transform(this.body))
+	// });
 
 	vmSchemataDef(nt.SCRIPT, function (n) {
 		var a = [];
@@ -1071,6 +1075,18 @@ exports.Generator = function(g_envs, g_config){
 			ps(GOTO(this.destination ? scopeLabels[this.destination] : lNearest));
 			return ''
 		});
+
+		// mSchemataDef(nt.TRY, function(){
+		// 	var l = label();
+		// 	ps($("return (MOE_SCHEMATA_TRY(%1, %2, %3, %4, %5))",
+		// 		transform(this.body),
+		// 		transform(this.catchPart),
+		// 		transform(this.finallyPart),
+		// 		C_TEMP('SCHEMATA'),
+		// 		C_BLOCK(l)));
+		// 	LABEL(l);
+		// 	return ''
+		// });
 
 		mSchemataDef(nt.SCRIPT, function (n) {
 			var gens;
