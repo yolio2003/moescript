@@ -1471,7 +1471,16 @@ exports.parse = function (input, source, config) {
 			switch (token.type) {
 			case RETURN:
 				advance();
-				return new Node(nt.RETURN, { expression: whereClausedExpression() });
+				if(tokenIs(BIND)){
+					advance(BIND);
+					return new Node(nt.CALL, {
+						func: new Node(nt.BINDPOINT),
+						args: [assignmentExpression()],
+						names: [null]
+					});
+				} else {
+					return new Node(nt.RETURN, { expression: whereClausedExpression() })
+				}
 			case IF:
 				return ifstmt();
 			case WHILE:
