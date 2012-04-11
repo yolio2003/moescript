@@ -1,444 +1,73 @@
-NECESSARIA_module.define("moe/compiler/parser",["moe/runtime","moe/compiler/compiler.rt"],function(require, exports, module){
+NECESSARIA_module.define("moe/compiler/parser",["moe/runtime","moe/compiler/compiler.rt","moe/compiler/lexer"],function(require, exports, module){
 ﻿//:module: parse
 //	:author:		infinte (aka. be5invis)
 //	:info:			Parser for lofn
 var moe = require("moe/runtime");
 var moecrt = require("moe/compiler/compiler.rt");
-var $ = function(template, items_){
-	var a = arguments;
-	return template.replace(/%(\d+)/g, function(m, $1){
-		return a[parseInt($1, 10)] || '';
-	});
-};
-var NodeType = moecrt.NodeType;
-var MakeNode = moecrt.MakeNode;
-var tokenTypeStrs = [];
-var TokenType = function(){
-	var k = 0;
-	return function(desc){
-		k = k + 1;
-		tokenTypeStrs[k] = desc;
-		return k;
-	}
-}();
-var ID = TokenType('Identifier'),
-	OPERATOR = TokenType('Operator'),
-	COLON = TokenType('Colon'),
-	COMMA = TokenType('Comma'),
-	NUMBER = TokenType('Number'),
-	STRING = TokenType('String'),
-	SEMICOLON = TokenType('Semicolon'),
-	OPEN = TokenType('Open'),
-	CLOSE = TokenType('Close'),
-	DOT = TokenType('Dot'),
-	IF = TokenType('if'),
-	FOR = TokenType('for'),
-	WHILE = TokenType('while'),
-	REPEAT = TokenType('repeat'),
-	UNTIL = TokenType('until'),
-	ARGUMENTS = TokenType('arguments'),
-	CASE = TokenType('case'),
-	PIECEWISE = TokenType('piecewise'),
-	WHEN = TokenType('when'),
-	FUNCTION = TokenType('Function'),
-	RETURN = TokenType('Return'),
-	BREAK = TokenType('Break'),
-	LABEL = TokenType('Label'),
-	END = TokenType('End'),
-	ELSE = TokenType('Else'),
-	OTHERWISE = TokenType('Otherwise'),
-	PIPE = TokenType('Pipeline sign'),
-	VAR = TokenType('Var'),
-	SHARP = TokenType('Sharp sign'),
-	DO = TokenType('Do'),
-	TASK = TokenType('Task'),
-	LAMBDA = TokenType('Lambda'),
-	PASS = TokenType('Pass'),
-	EXCLAM = TokenType('Exclamation symbol'),
-	WAIT = TokenType('Wait'),
-	USING = TokenType('Using'),
-	LET = TokenType('Let'),
-	WHERE = TokenType('Where'),
-	DEF = TokenType('Def'),
-	RESEND = TokenType('Resend'),
-	NEW = TokenType('New'),
-	INDENT = TokenType('Indent'),
-	OUTDENT = TokenType('Outdent'),
-	CONSTANT = TokenType('Constant'),
-	ME = TokenType('This'),
-	MY = TokenType('My sign'),
-	IN = TokenType('In'),
-	PROTOMEMBER = TokenType('Prototype member symbol'),
-	ASSIGN = TokenType('Assign symbol'),
-	BIND = TokenType('Bind symbol'),
-	BACKSLASH = TokenType('Backslash'),
-	TRY = TokenType('Try'),
-	CATCH = TokenType('Catch'),
-	FINALLY = TokenType('Finally')
+var lexer = require("moe/compiler/lexer");
+
+var COMMENT = lexer.COMMENT
+var ID = lexer.ID
+var OPERATOR = lexer.OPERATOR
+var COLON = lexer.COLON
+var COMMA = lexer.COMMA
+var NUMBER = lexer.NUMBER
+var STRING = lexer.STRING
+var SEMICOLON = lexer.SEMICOLON
+var OPEN = lexer.OPEN
+var CLOSE = lexer.CLOSE
+var DOT = lexer.DOT
+var IF = lexer.IF
+var FOR = lexer.FOR
+var WHILE = lexer.WHILE
+var REPEAT = lexer.REPEAT
+var UNTIL = lexer.UNTIL
+var ARGUMENTS = lexer.ARGUMENTS
+var CASE = lexer.CASE
+var PIECEWISE = lexer.PIECEWISE
+var WHEN = lexer.WHEN
+var FUNCTION = lexer.FUNCTION
+var RETURN = lexer.RETURN
+var BREAK = lexer.BREAK
+var LABEL = lexer.LABEL
+var END = lexer.END
+var ELSE = lexer.ELSE
+var OTHERWISE = lexer.OTHERWISE
+var PIPE = lexer.PIPE
+var VAR = lexer.VAR
+var SHARP = lexer.SHARP
+var DO = lexer.DO
+var TASK = lexer.TASK
+var LAMBDA = lexer.LAMBDA
+var PASS = lexer.PASS
+var EXCLAM = lexer.EXCLAM
+var WAIT = lexer.WAIT
+var USING = lexer.USING
+var LET = lexer.LET
+var WHERE = lexer.WHERE
+var DEF = lexer.DEF
+var RESEND = lexer.RESEND
+var NEW = lexer.NEW
+var INDENT = lexer.INDENT
+var OUTDENT = lexer.OUTDENT
+var CONSTANT = lexer.CONSTANT
+var ME = lexer.ME
+var MY = lexer.MY
+var IN = lexer.IN
+var PROTOMEMBER = lexer.PROTOMEMBER
+var ASSIGN = lexer.ASSIGN
+var BIND = lexer.BIND
+var BACKSLASH = lexer.BACKSLASH
+var TRY = lexer.TRY
+var CATCH = lexer.CATCH
+var FINALLY = lexer.FINALLY
 
 var SQSTART = '[', SQEND = ']',
 	RDSTART = '(', RDEND = ')',
 	CRSTART = '{', CREND = '}';
-var Token = function (t, v, p, s, i) {
-	this.type = t;
-	this.value = v;
-	this.position = p;
-	this.spaced = s;
-	this.isName = i;
-}
-Token.prototype.toString = function () {
-	return '[' + tokenTypeStrs[this.type] + (this.value !== undefined ? ' ' + this.value : '') + ']'
-}
-var condF = function (match, $1) {
-	if ($1.length > 1) {
-		return String.fromCharCode(parseInt($1.slice(1), 16));
-	} else {
-		return {
-			'r': '\r',
-			'n': '\n',
-			'\\': '\\',
-			'"': '"',
-			't': '\t',
-			'v': '\v'
-		}[$1];
-	}
-};
-var lfUnescape = function (str) {
-	return str.replace(/\\\s*\\/g, '').replace(/\\(\\|n|"|t|v|u[a-fA-F0-9]{4})/g, condF);
-};
-var REPSTR = function(){
-	var cache = [];
-	return function(n){
-		if(cache[n]) return cache[n];
-		if(n <= 0) return '';
-		if(n <= 1) return 'T';
-		var q = REPSTR(n >>> 1);
-		q += q;
-		if (n & 1) q += 'T';
-		return cache[n] = q;
-	};
-}();
-var nameTypes = {
-	'negate': CONSTANT,
-	'not': CONSTANT,
-	'is': OPERATOR,
-	'and': OPERATOR,
-	'or': OPERATOR,
-	'as': OPERATOR,
-	'in': IN,
-	'if': IF,
-	'for': FOR,
-	'while': WHILE,
-	'repeat': REPEAT,
-	'until': UNTIL,
-	'case': CASE,
-	'piecewise': PIECEWISE,
-	'when': WHEN,
-	'function': FUNCTION,
-	'return': RETURN,
-	'throw': CONSTANT,
-	'break': BREAK,
-	'label': LABEL,
-	'else': ELSE,
-	'otherwise': OTHERWISE,
-	'var': VAR,
-	'def': DEF,
-	'this': ME,
-	'true': CONSTANT,
-	'false': CONSTANT,
-	'null': CONSTANT,
-	'undefined': CONSTANT,
-	'arguments': ARGUMENTS,
-	'do': DO,
-	'try': CONSTANT,
-//	'try': TRY,
-//	'catch': CATCH,
-//	'finally': FINALLY,
-	'let': LET,
-	'where': WHERE,
-	'pass': PASS,
-	'wait': WAIT,
-	'resend': RESEND,
-	'new': NEW
-};
-var nameType = function (m) {
-	if (nameTypes[m] > -65536)
-		return nameTypes[m]
-	else
-		return ID
-};
-var symbolTypes = {
-	'+': OPERATOR,
-	'-': OPERATOR,
-	'*': OPERATOR,
-	'/': OPERATOR,
-	'%': OPERATOR,
-	'<': OPERATOR,
-	'>': OPERATOR,
-	'<=': OPERATOR,
-	'>=': OPERATOR,
-	'==': OPERATOR,
-	'!=': OPERATOR,
-	'===': OPERATOR,
-	'!==': OPERATOR,
-	'=~': OPERATOR,
-	'!~': OPERATOR,
-	'&&': OPERATOR,
-	'||': OPERATOR,
-	'->': OPERATOR,
-	'=': ASSIGN,
-	'+=': ASSIGN,
-	'-=': ASSIGN,
-	'*=': ASSIGN,
-	'/=': ASSIGN,
-	'%=': ASSIGN,
-	'<-': BIND,
-	':>': LAMBDA,
-	'=>': LAMBDA,
-	'#': SHARP,
-	'(': OPEN,
-	'[': OPEN,
-	'{': OPEN,
-	'}': CLOSE,
-	']': CLOSE,
-	')': CLOSE,
-	',': COMMA,
-	':': COLON,
-	'|': PIPE,
-	'.': DOT,
-	'..': OPERATOR,
-	'...': OPERATOR,
-	'!': EXCLAM,
-	';': SEMICOLON,
-	'@': MY,
-	'\\': BACKSLASH,
-	'::': PROTOMEMBER
-};
-var symbolType = function (m) {
-	return symbolTypes[m]
-};
-var lex = exports.lex = function (input, cfgMap) {
-	input = input + "\n\n\n"
-	var token_err = moecrt.PEMeta(moecrt.PWMeta(input));
-	var tokens = [], tokl = 0, options = {}, SPACEQ = {' ': true, '\t': true};
-	var output = {};
-	var optionMaps = cfgMap || {}
-	var make = function (t, v, p, isn) {
-		ignoreComingNewline = false;
-		tokens[tokl++] = new Token(t, // type
-				v, // value
-				p, // position
-				SPACEQ[input.charAt(p - 1)], // space before?
-				isn); // is name?
-	};
-	var option = function(opt){
-		var m;
-		if(m = opt.match(/^\s*(\w+)\s+/)){
-			var command = m[1], carg = opt.slice(m[0].length)
-			switch(command){
-				case 'option':
-					options[carg] = true;
-					break;
-				default:
-					if(typeof optionMaps[command] === 'function') optionMaps[command](carg)
-			}
-		}
-	};
-	var ignoreComingNewline = false;
-	var noImplicits = function () {
-		icomp.desemi();
-	};
-	var noSemicolons = function(){
-		while (tokens[tokl - 1] && tokens[tokl - 1].type === SEMICOLON) {
-			tokl -= 1;
-		}
-	};
-	var p_symbol = function (s, n) {
-		var t = symbolType(s);
-		switch (t) {
-			case OPERATOR:
-			case COMMA:
-			case PIPE:
-			case DOT:
-			case PROTOMEMBER:
-				make(t, s, n);
-				ignoreComingNewline = true;
-				break;
-			case SHARP:
-			case MY:
-			case EXCLAM:
-			case COLON:
-			case ASSIGN:
-			case LAMBDA:
-			case BIND:
-				make(t, s, n);
-				break;
-			case OPEN:
-				make(t, s.charAt(0), n);
-				ignoreComingNewline = true;
-				break;
-			case CLOSE:
-				make(t, s.charAt(0), n);
-				break;
-			case SEMICOLON:
-				make(t, "Explicit", n);
-				break;
-			case BACKSLASH:
-				ignoreComingNewline = true;
-				break;
-			default:
-				throw token_err("Unexpected symbol" + s, n)
-		}
-	}
-	var stringliteral = function(match, n){
-		var char0 = match.charAt(0);
-		if(char0 === "`")
-			return make(STRING, match.slice(1), n);
-		if(char0 === "'")
-			if(match.charAt(1) === "'")
-				return make(STRING, match.slice(3, -3), n);
-			else
-				return make(STRING, match.slice(1, -1).replace(/''/g, "'"), n);
-		if(char0 === '"') {
-			return make(STRING, lfUnescape(match.slice(1, -1)), n);
-		}
-	};
-	var walkRex = function(r, s, fMatch, fGap){
-		var l = r.lastIndex;
-		fMatch = fMatch || function(){};
-		fGap = fGap || function(){};
-		var match, last = 0;
-		while(match = r.exec(s)){
-			if(last < match.index) fGap(s.slice(last, match.index), last);
-			if(fMatch.apply(this, (match.push(match.index), match))) fGap.apply(this, match);
-			last = r.lastIndex;
-		};
-		if(last < s.length) fGap(s.slice(last), last);
-		r.lastIndex = l;
-		return s;
-	};
-	var composeRex = function(r, o){
-		var source = r.source;
-		var g = r.global;
-		var i = r.ignoreCase;
-		var m = r.multiline;
-		source = source.replace(/#\w+/g, function(word){
-			word = word.slice(1);
-			if(o[word] instanceof RegExp) return o[word].source
-			else return word
-		});
-		return new RegExp(source, (g ? 'g' : '') + (i ? 'i' : '') + (m ? 'm' : ''));
-	};
-	var rComment = /(?:\/\/|--).*/;
-	var rOption = /^-![ \t]*(.+?)[ \t]*$/;
-	var rIdentifier = /[a-zA-Z_$][\w$]*/;
-	var rString = composeRex(/`#identifier|'''[\s\S]*?'''|'[^'\n]*(?:''[^'\n]*)*'|"[^\\"\n]*(?:\\(?:.|[ \t]*\n\s*\\)[^\\"\n]*)*"/, {
-		identifier: rIdentifier
-	});
-	var rNumber = /0[xX][a-fA-F0-9]+|\d+(?:\.\d+(?:[eE]-?\d+)?)?/;
-	var rSymbol = /\.{1,3}|<-|[+\-*\/<>=!%~|&][<>=~|&]*|:[:>]|[()\[\]\{\}@\\;,#:]/;
-	var rIgnore = /[+\-*\/<>&|\.,)\]}]|[=!][=~]|::/
-	var rNewline = composeRex(/\n(?!\s*(?:#ignore))(?:[ \t]*\n)*[ \t]*/, {ignore: rIgnore});
-	var rToken = composeRex(/(#comment)|(?:#option)|(#identifier)|(#string)|(#number)|(#symbol)|(#newline)/gm, {
-		comment: rComment,
-		option: rOption,
-		identifier: rIdentifier,
-		string: rString,
-		number: rNumber,
-		symbol: rSymbol,
-		newline: rNewline
-	});
-	var icomp = function(start){
-		var compare = function(a, b, p){
-			if(a === b) return 0;
-			else if (a.length < b.length && b.slice(0, a.length) === a) return 1
-			else if (a.length > b.length && a.slice(0, b.length) === b) return -1
-			else throw token_err("Wrong indentation", p)
-		};
-		var stack = [''], top = 0;
-		var process = function(b, p){
-			var c = compare(stack[top], b, p);
-			if(ignoreComingNewline){
-				ignoreComingNewline = false;
-				return;
-			} else {
-				if(c === 1){
-					// indent
-					stack[++top] = b;
-					make(INDENT, 0, p);
-				} else if(c === -1) {
-					// outdent
-					dump(b, p);
-				} else {
-					make(SEMICOLON, "Implicit", p);
-				};
-				ignoreComingNewline = false;
-			}
-		};
-		var dump = function(b, p){
-			var n = b.length;
-			while(stack[top].length > n){
-				top --;
-				noSemicolons();
-				if(tokens[tokl - 1] && tokens[tokl - 1].type === INDENT){
-					// Remove INDENT-SEMICOLON-OUTDENT sequences.
-					tokl --;
-				} else {
-					make(OUTDENT, 0, p);
-				}
-				make(SEMICOLON, "Implicit", p);
-			};
-			if(stack[top] < b) {
-					// indent
-					stack[++top] = b;
-					make(INDENT, 0, p);
-			};
-		};
-		var desemi = function(){
-			while(tokens[tokl - 1] && (tokens[tokl - 1].type === INDENT ||
-					tokens[tokl - 1].type === SEMICOLON && tokens[tokl - 1].value === "Implicit")){
-				tokl --;
-				if(tokens[tokl].type === INDENT)
-					top --;
-			}
-		};
-		process(start);
-		return {
-			process: process,
-			dump: dump,
-			desemi: desemi
-		}
-	}(input.match(/^[ \t]*/)[0]);
-	walkRex(rToken, input,
-		function (match, comment, opt, nme, strlit, number, symbol, newline, n) {
-			after_space = false;
-			if(comment){
-				//noImplicits();
-			} else if(opt) {
-				//noImplicits();
-				option(opt);
-			} if (nme) {
-				make(nameType(match), match, n, true);
-			} else if (strlit) {
-				stringliteral(match, n);
-			} else if (number) {
-				make(NUMBER, (match.replace(/^0+([1-9])/, '$1') - 0), n);
-			} else if (symbol) {
-				p_symbol(match, n);
-			} else if (newline) {
-				var indent = newline.slice(newline.lastIndexOf('\n') + 1);
-				icomp.process(indent, n);
-			}
-			return '';
-		}, function(m, pos){
-			if(m.trim())
-				throw token_err("Unexpected character", pos);
-		});
-	icomp.process('')
-	output.tokens = tokens;
-	output.options = options;
-	return output;
-};
+
+var NodeType = moecrt.NodeType;
+var MakeNode = moecrt.MakeNode;
 var HAS_DUPL = function (arr) {
 	var b = arr.slice(0).sort();
 	for (var i = 0; i < b.length - 1; i++)

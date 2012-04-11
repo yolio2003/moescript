@@ -1,4 +1,4 @@
-NECESSARIA_module.define("moe/compiler/compiler",["moe/runtime","moe/compiler/compiler.rt","moe/compiler/parser","moe/compiler/resolve","moe/compiler/codegen"],function(require, exports, module){
+NECESSARIA_module.define("moe/compiler/compiler",["moe/runtime","moe/compiler/compiler.rt","moe/compiler/lexer","moe/compiler/parser","moe/compiler/resolve","moe/compiler/codegen"],function(require, exports, module){
 //:module: compiler
 //	:author:		infinte (aka. be5invis)
 //	:info:			The code generator for Moe Runtime
@@ -11,6 +11,7 @@ var moecrt = require("moe/compiler/compiler.rt");
 var nt = moecrt.NodeType;
 var ScopedScript = moecrt.ScopedScript;
 
+var lfc_lexer = require("moe/compiler/lexer");
 var lfc_parser = require("moe/compiler/parser");
 
 var lfc_resolver = require("moe/compiler/resolve");
@@ -23,7 +24,7 @@ var STRIZE = lfc_codegen.STRIZE;
 
 
 //============
-var lex = exports.lex = lfc_parser.lex;
+var lex = exports.lex = lfc_lexer.lex;
 var parse = exports.parse = lfc_parser.parse;
 
 var Generator = lfc_codegen.Generator;
