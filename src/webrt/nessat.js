@@ -1,6 +1,6 @@
 // NESSAT
 // Converts a node module into JS module.
-
+var path = require('path')
 var distinct = function(list){ 
 	var a=[],b=[]; 
 	for(var prop in list){ 
@@ -28,8 +28,9 @@ var requirements = [];
 
 source = source.replace(/require\(('(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*")\)/g, function(term){
 	var s = eval(term.slice(8, -1));
-	if(s.match(/^\.\//))
-		s = modDir + s.slice(2);
+	if(s.match(/^\./)) {
+		s = path.join(path.dirname(modID), s).replace(/\\/g, '/')
+	}
 	requirements.push(s);
 	return 'require(' + JSON.stringify(s) + ')'
 });

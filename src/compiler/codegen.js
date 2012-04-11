@@ -1,4 +1,4 @@
-var moe = require('moe/runtime');
+var moe = require('../runtime');
 var moecrt = require('./compiler.rt');
 var nt = moecrt.NodeType;
 var ScopedScript = moecrt.ScopedScript;

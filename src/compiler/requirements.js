@@ -1,5 +1,5 @@
 var path = require('path')
-var moe = require('moe/runtime')
+var moe = require('../runtime')
 
 exports.RequirementsManager = function(_require){
 	var YES = {};

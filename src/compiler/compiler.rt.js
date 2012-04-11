@@ -2,7 +2,7 @@
 //	:author:		infinte (aka. be5invis)
 //	:info:			The essential environment for Moe Compiler
 
-var moe = require('moe/runtime');
+var moe = require('../runtime');
 var OWNS = moe.runtime.OWNS;
 var Nai = moe.Nai;
 

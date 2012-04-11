@@ -2,142 +2,102 @@
 	Language: Lofn
 	Author: Belleve Invis
 */
+var lexer = require('../../compiler/lexer');
+
+var COMMENT = lexer.COMMENT
+var ID = lexer.ID
+var OPERATOR = lexer.OPERATOR
+var COLON = lexer.COLON
+var COMMA = lexer.COMMA
+var NUMBER = lexer.NUMBER
+var STRING = lexer.STRING
+var SEMICOLON = lexer.SEMICOLON
+var OPEN = lexer.OPEN
+var CLOSE = lexer.CLOSE
+var DOT = lexer.DOT
+var IF = lexer.IF
+var FOR = lexer.FOR
+var WHILE = lexer.WHILE
+var REPEAT = lexer.REPEAT
+var UNTIL = lexer.UNTIL
+var ARGUMENTS = lexer.ARGUMENTS
+var CASE = lexer.CASE
+var PIECEWISE = lexer.PIECEWISE
+var WHEN = lexer.WHEN
+var FUNCTION = lexer.FUNCTION
+var RETURN = lexer.RETURN
+var BREAK = lexer.BREAK
+var LABEL = lexer.LABEL
+var END = lexer.END
+var ELSE = lexer.ELSE
+var OTHERWISE = lexer.OTHERWISE
+var PIPE = lexer.PIPE
+var VAR = lexer.VAR
+var SHARP = lexer.SHARP
+var DO = lexer.DO
+var TASK = lexer.TASK
+var LAMBDA = lexer.LAMBDA
+var PASS = lexer.PASS
+var EXCLAM = lexer.EXCLAM
+var WAIT = lexer.WAIT
+var USING = lexer.USING
+var LET = lexer.LET
+var WHERE = lexer.WHERE
+var DEF = lexer.DEF
+var RESEND = lexer.RESEND
+var NEW = lexer.NEW
+var INDENT = lexer.INDENT
+var OUTDENT = lexer.OUTDENT
+var CONSTANT = lexer.CONSTANT
+var ME = lexer.ME
+var MY = lexer.MY
+var IN = lexer.IN
+var PROTOMEMBER = lexer.PROTOMEMBER
+var ASSIGN = lexer.ASSIGN
+var BIND = lexer.BIND
+var BACKSLASH = lexer.BACKSLASH
+var TRY = lexer.TRY
+var CATCH = lexer.CATCH
+var FINALLY = lexer.FINALLY
+
+var symbolType = []
+symbolType[OPERATOR] = symbolType[ASSIGN] = symbolType[BIND] = symbolType[MY] = symbolType[PIPE] = "operator"
+symbolType[LAMBDA] = "operator lambda"
+symbolType[OPEN] = "punctor bracket open"
+symbolType[CLOSE] = "punctor bracket close"
+
+var nameType = []
+nameType[ID] = 'identifier'
+nameType[OPERATOR] = 'operator'
+nameType[CONSTANT] = "literal constant"
+
+
 var scope = exports.scope = {};
 scope.moe = function(){
-	var OPERATOR = 'operator',
-		PUNCTOR = 'punctor',
-		ID = 'identifier',
-		NUMBER = 'number literal',
-		STRING = 'string literal',
-		COMMENT = 'comment',
-		FLOWCTRL = 'keyword flowctrl',
-		FUNCTION = 'keyword function',
-		KEYWORD = 'keyword',
-		LITERAL = 'literal',
-		OPTION = 'preprocessor option';
-	var nameTypes = {
-		'is': OPERATOR, 'and': OPERATOR, 'not': OPERATOR, 'or': OPERATOR, 'in': OPERATOR,
-		'as': OPERATOR, 'then': OPERATOR,
-		'if': FLOWCTRL,
-		'for': FLOWCTRL,
-		'while': FLOWCTRL,
-		'repeat': FLOWCTRL,
-		'until': FLOWCTRL,
-		'case': FLOWCTRL,
-		'piecewise': FLOWCTRL,
-		'when': FLOWCTRL,
-		'function': FUNCTION,
-		'return': FLOWCTRL,
-		'throw': FLOWCTRL,
-		'break': FLOWCTRL,
-		'label': FLOWCTRL,
-		'else': FLOWCTRL,
-		'otherwise': FLOWCTRL,
-		'var': KEYWORD,
-		'def': KEYWORD,
-		'this': KEYWORD,
-		'true': LITERAL,
-		'false': LITERAL,
-		'null': LITERAL,
-		'undefined': LITERAL,
-		'fallthrough': KEYWORD,
-		'arguments': KEYWORD,
-		'callee': KEYWORD,
-		'do': KEYWORD,
-		'try': FLOWCTRL,
-		'catch': FLOWCTRL,
-		'finally': KEYWORD,
-		'using': KEYWORD,
-		'resend': KEYWORD,
-		'new': KEYWORD,
-		'wait': KEYWORD,
-		'let': KEYWORD,
-		'where': KEYWORD
-	};
-	var nameType = function (m) {
-		if (nameTypes[m] > '')
-			return nameTypes[m]
-		else
-			return ID
-	};
-	var symbolTypes = {
-		'(': PUNCTOR,
-		'[': PUNCTOR,
-		'{': PUNCTOR,
-		'}': PUNCTOR,
-		']': PUNCTOR,
-		')': PUNCTOR,
-		',': PUNCTOR,
-		':': PUNCTOR,
-		'.': PUNCTOR,
-		';': PUNCTOR,
-		'\\': PUNCTOR,
-	};
-	var symbolType = function (m) {
-		if (symbolTypes[m] > '')
-			return symbolTypes[m]
-		else
-			return OPERATOR
-	};
-	var token_err = function(message, input, position){
-		return new Error(message + ' at ' + position);
-	}
-	return function (input) {
-		var entify = this.__lit;
+	var HighlightBackend = function(input, entify){
+		var buffer = '';
 		var make = function(t, v){
 			return '<span class="' + t + '">' + v + '</span>'
-		}
-		var p_symbol = function (s) {
-			return make(symbolType(s), entify(s));
 		};
-		var composeRex = function(r, o){
-			var source = r.source;
-			var g = r.global;
-			var i = r.ignoreCase;
-			var m = r.multiline;
-			source = source.replace(/#\w+/g, function(word){
-				word = word.slice(1);
-				if(o[word] instanceof RegExp) return o[word].source
-				else return word
-			});
-			return new RegExp(source, (g ? 'g' : '') + (i ? 'i' : '') + (m ? 'm' : ''));
-		};
-		var rComment = /(?:\/\/|--).*/;
-		var rOption = /^-![ \t]*(.+?)[ \t]*$/;
-		var rIdentifier = /[a-zA-Z_$][\w$]*/;
-		var rString = composeRex(/`#identifier|'''[\s\S]*?'''|'[^'\n]*(?:''[^'\n]*)*'|"[^\\"\n]*(?:\\.[^\\"\n]*)*"/, {
-			identifier: rIdentifier
-		});
-		var rNumber = /0[xX][a-fA-F0-9]+|\d+(?:\.\d+(?:[eE]-?\d+)?)?/;
-		var rSymbol = /\.{1,3}|<-|[+\-*\/<>=!%~|&][<>=~|&]*|:[:>]|[()\[\]\{\}@\\;,#:]/;
-		var rToken = composeRex(/(#comment)|(?:#option)|(#identifier)|(#string)|(#number)|(#symbol)/gm, {
-			comment: rComment,
-			option: rOption,
-			identifier: rIdentifier,
-			string: rString,
-			number: rNumber,
-			symbol: rSymbol
-		});
-
-		return '<pre class="mghl source moe">' + input.replace(rToken, function (match, comment, option, nme, string, number, symbol) {
-			if (comment){
-				if(match.slice(0, 3) === '//:'){
-					return '<annotation id="' + match.slice(3) + '" />'
-				} else
-					return make(COMMENT, entify(match));
-			} else if(option) {
-				return make(OPTION, match);
-			} if (nme) {
-				return make(nameType(match), match)
-			} else if (string) {
-				return make(STRING, entify(match));
-			} else if (number) {
-				return make(NUMBER, match);
-			} else if (symbol) {
-				return p_symbol(match);
-			} else {
-				return match
+		return {
+			comment: function(type, match, n){buffer += make('comment', entify(match))},
+			opt: function(opt, match, n){buffer += make('option', entify(match))},
+			nme: function(type, match, n){
+				buffer += make('name ' + (nameType[type] || 'keyword') + ' tt_' + lexer.tokenTypeStrs[type], match)
+			},
+			str: function(type, match, n){buffer += make('string literal', entify(match))},
+			number: function(type, match, n){buffer += make('number literal', match)},
+			symbol: function(type, match, n){buffer += make((symbolType[type] || 'punctor') + ' tt_' + lexer.tokenTypeStrs[type], entify(match))},
+			newline: function(type, match, n){buffer += match},
+			mismatch: function(s){buffer += entify(s)},
+			output: function(){
+				return '<pre class="mghl source moe">' + buffer + '</pre>'
 			}
-		}).replace(/\t/g, '    ') + '</pre>';
+		}
+	}
+	return function(input){
+		var entify = this.__lit;
+		input = input.replace(/\t/g, '    ').trim();
+		return lexer.LexMeta(input, HighlightBackend(input, entify))
 	}
 }();

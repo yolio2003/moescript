@@ -2,7 +2,7 @@
 //	:author:		infinte (aka. be5invis)
 //	:info:			The code generator for Moe Runtime
 
-var moe = require('moe/runtime');
+var moe = require('../runtime');
 var MOE_UNIQ = moe.runtime.UNIQ;
 var OWNS = moe.runtime.OWNS;
 
@@ -10,6 +10,7 @@ var moecrt = require('./compiler.rt');
 var nt = moecrt.NodeType;
 var ScopedScript = moecrt.ScopedScript;
 
+var lfc_lexer = require('./lexer');
 var lfc_parser = require('./parser');
 
 var lfc_resolver = require('./resolve');
@@ -22,7 +23,7 @@ var STRIZE = lfc_codegen.STRIZE;
 
 
 //============
-var lex = exports.lex = lfc_parser.lex;
+var lex = exports.lex = lfc_lexer.lex;
 var parse = exports.parse = lfc_parser.parse;
 
 var Generator = lfc_codegen.Generator;

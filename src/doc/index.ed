@@ -6,11 +6,11 @@ This document is an introduction of Moescript in examples. You can try Moescript
 
 You can get it from \githubProject.
 :section{Install}
-	Simple
-	|pre
-		> npm install moe -g
-		
-	Because moescript has a runtime, you may need to install the `moe` locally in your project by `npm install moe`.
+	:show
+		|pre
+			> npm install moe -g
+	:comm
+		Because moescript has a runtime, you may need to install the `moe` locally in your project by `npm install moe`.
 :section{Usage}
 	:show
 		|pre
@@ -549,7 +549,7 @@ You can get it from \githubProject.
 			f.apply(this, arguments)()
 
 		// simple usage
-		for(var item in table{var x <- (1..100); x * 2 + 1}) trace item
+		for(var item in table {var x <- (1..100); x * 2 + 1}) trace item
 		
 		// complicated usage
 		var t = table {var x <- (1...9); var y <- (1...9); if(x <= y) x + ' * ' + y + ' = ' + x * y }

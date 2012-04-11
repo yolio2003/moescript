@@ -1,4 +1,4 @@
-var moe = require('moe/runtime');
+var moe = require('../runtime');
 var MOE_UNIQ = moe.runtime.UNIQ;
 var OWNS = moe.runtime.OWNS;
 var moecrt = require('./compiler.rt');
