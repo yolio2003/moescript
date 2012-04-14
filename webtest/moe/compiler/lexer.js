@@ -70,7 +70,7 @@ var FINALLY = exports.FINALLY = TokenType('Finally')
 
 
 
-var Token = function (t, v, p, s, i) {
+var Token = exports.Token = function (t, v, p, s, i) {
 	this.type = t;
 	this.value = v;
 	this.position = p;

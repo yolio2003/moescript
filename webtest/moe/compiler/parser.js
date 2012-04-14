@@ -62,6 +62,8 @@ var TRY = lexer.TRY
 var CATCH = lexer.CATCH
 var FINALLY = lexer.FINALLY
 
+var Token = lexer.Token
+
 var SQSTART = '[', SQEND = ']',
 	RDSTART = '(', RDEND = ')',
 	CRSTART = '{', CREND = '}';
@@ -879,6 +881,7 @@ exports.parse = function (input, source, config) {
 		ensure(!exprStartQ(), 'Unexpected expression termination.');
 		return r;
 	};
+
 	var pipeClausize = function(node){
 		// Pipeline calls
 		if(!tokenIs(PIPE)) return node;
@@ -904,13 +907,33 @@ exports.parse = function (input, source, config) {
 		};
 		if(tokenIs(PIPE)) {
 			return pipeClausize(wrapCall(c))
-		} else if(argStartQ()) {
-			argList(c);
-			return pipeClausize(wrapCall(c))
 		} else {
-			return c;
+			return completePipelineCall(c)
 		};
 	};
+	var completePipelineCall = function(node){
+		var argTypeDetect = argStartQ();
+		if(!argTypeDetect) return node;
+		// Named arguments detected
+		if(argTypeDetect === 2){
+			argList(node);
+			return pipeClausize(wrapCall(node));
+		} else {
+			var term = callExpression();
+			if(tokenIs(COMMA)){
+				node.args.push(term);
+				node.names.push(null);
+				advance(COMMA);
+				argList(node);
+				return pipeClausize(wrapCall(node));
+			} else {
+				node.args.push(completeOmissionCall(term))
+				node.names.push(null);
+				return pipeClausize(node);
+			}
+		}
+	};
+
 	var whenClausize = function(node){
 		// when affix
 		if(tokenIs(WHEN)){
