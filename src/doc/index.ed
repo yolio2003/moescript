@@ -26,6 +26,16 @@ You can get it from \githubProject.
 		 - `-m <name>=<path>`, `--module <name>=<path>`: Map a module into a global variable, for exmaple, `-m exp=express` will map `require('express')` into the global variablr `exp` inside Moe source.
 
 	:show
+		|pre
+			> moei source.moe
+	:comm
+		Instantly runs a Moe module.
+		
+		- Acts like `node source.js`.
+		- Uses `moe/dummy` internally.
+		- Requires ability to `require('moe')`.
+
+	:show
 		|js
 			require('moe/dummy')
 	:comm
@@ -552,13 +562,12 @@ You can get it from \githubProject.
 		for(var item in table {var x <- (1..100); x * 2 + 1}) trace item
 		
 		// complicated usage
-		var t = table {var x <- (1...9); var y <- (1...9); if(x <= y) x + ' * ' + y + ' = ' + x * y }
+		var t = table {var x <- (1...9); var y <- (x...9); x + ' * ' + y + ' = ' + x * y }
 		// t = table [build: fBuild]
 		// where fBuild(schemata)()() =
 		//     schemata.bind (1...9), (x) =>
-		//         schemata.bind (1...9), (y) =>
-		//             if(x <= y) schemata.return (x + ' * ' + y + ' = ' + x * y)
-		//             else schemata.return()
+		//         schemata.bind (x...9), (y) =>
+		//             schemata.return (x + ' * ' + y + ' = ' + x * y)
 		for(var item in t) trace item
 	:comm
 		Even more interesting things could be implemented by monadic primitives, due to it is actually an abstraction of flow control. In some situation, callbacks are not called only once, produces "strange" behaviors, for example, enumerator comprehension:
